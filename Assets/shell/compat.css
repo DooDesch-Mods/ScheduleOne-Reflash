@@ -34,7 +34,13 @@
    each of them its own block and stack a coloured price under the sentence it belongs to. */
 :where(span, b, strong, i, em, u, small, code, a) { display: inline; }
 
-/* Controls come with a lot of browser styling the renderer has no concept of. */
+/* Controls come with a lot of browser styling the renderer has no concept of.
+
+   `display` is restated as flex and that is the whole point of the rule: this block sits AFTER the one above and
+   carries the same zero specificity, so a `display: block` here quietly took every button, input and select back
+   out of flex layout - in the browser only. The renderer makes no exception for a control, so any button laid out
+   as a row was a row in the game and a stack of blocks on the phone: captions centred instead of left, trailing
+   icons dropped below the field they belong in. */
 :where(input, button, textarea, select) {
   appearance: none;
   -webkit-appearance: none;
@@ -42,7 +48,7 @@
   font: inherit;
   color: inherit;
   outline: none;
-  display: block;
+  display: flex;
 }
 
 :where(button) { cursor: pointer; text-align: center; }
