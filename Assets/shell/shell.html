@@ -584,7 +584,12 @@ function open(app) {
   told = null;
 
   buzz(10);
-  document.getElementById('frame').src = '/app/' + app.id + '/index.html';
+
+  // The query is a cache-buster, and it earned its place. A bundle file can be replaced under a running app - by a
+  // mod update, or by the folder under Mods/<appId>/ while someone is working on it - and a browser that had
+  // heuristically cached index.html kept serving the old page and its old app.js. The server sends no-store now,
+  // but that only helps once the browser asks; this makes it ask.
+  document.getElementById('frame').src = '/app/' + app.id + '/index.html?r=' + Date.now();
   show('app');
   fit();
   keepAwake(true);

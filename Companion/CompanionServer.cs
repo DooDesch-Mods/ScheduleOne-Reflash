@@ -421,7 +421,10 @@ namespace Reflash.Companion
             if (path.EndsWith("index.html", StringComparison.OrdinalIgnoreCase))
                 bytes = Shell.InjectInto(bytes, appId);
 
-            Http.Bytes(stream, 200, Mime.For(path), bytes);
+            // no-store, and it is not caution. A bundle file may be replaced under the app - by a mod update, or by
+            // a folder under Mods/<appId>/ while someone is working on it - and a browser that kept the old app.js
+            // shows the old app with no way to tell. Hunting a fix that was already deployed cost real time here.
+            Http.Bytes(stream, 200, Mime.For(path), bytes, "Cache-Control: no-store");
         }
 
         private void ServeImage(NetworkStream stream, string rest)

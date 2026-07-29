@@ -118,13 +118,47 @@ body {
   background: #c04a4a;
 }
 
-/* The white notch on the rim: where this person sits on the relationship scale. */
-.notch {
+/* Whether this person supplies you or deals for you: vanilla puts a 106x106 coloured circle BEHIND the 100x100
+   node, so it reads as a ring a couple of pixels wide, with the word above it. Same colours as the game's own
+   Indicator objects. */
+.role {
   position: absolute;
-  left: 25px;
-  top: -2px;
-  width: 4px;
-  height: 8px;
+  left: -1.8px;
+  top: -1.8px;
+  width: 64.7px;
+  height: 64.7px;
+  border-radius: 33px;
+}
+
+.role.supplier { background: #843c36; }
+.role.dealer { background: #5283a8; }
+
+.role-label {
+  position: absolute;
+  left: -60px;
+  right: -60px;
+  top: -19.4px;
+  font-size: 12.2px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.role-label.supplier { color: #b05348; }
+.role-label.dealer { color: #6cabdb; }
+
+/* The white notch on the rim: where this person sits on the relationship scale.
+
+   transform-origin, again. app.js works the notch's top-left out for a box that rotates about its top-left, which
+   is the only pivot the in-game renderer has; a browser rotates about the centre, so without this line the notch
+   lands somewhere off the rim entirely. Every other rotated box on this page already carried it. */
+.notch {
+  transform-origin: 0 0;
+  position: absolute;
+
+  /* Vanilla's Notch is 12x18 canvas units. The size has to agree with NOTCH_W/NOTCH_H in app.js, which is what
+     the rotated top-left is computed from - 4x8 here against 7.3x11 there put it half its own width off. */
+  width: 7.3px;
+  height: 11px;
   background: #ffffff;
   border-radius: 2px;
 }

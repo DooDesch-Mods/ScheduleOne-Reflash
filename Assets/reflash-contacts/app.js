@@ -195,6 +195,18 @@ function node(p) {
   el.setAttribute('data-id', p.id);
   el.addEventListener('click', nodeClicked);
 
+  // Supplier or dealer: a coloured circle slightly larger than the node, drawn FIRST so it shows as a ring around
+  // it, with the word above - which is exactly the two objects vanilla puts there.
+  var role = p.kind === 'supplier' || p.kind === 'dealer' ? p.kind : '';
+  if (role) {
+    el.appendChild(box('role ' + role));
+
+    var word = document.createElement('div');
+    word.className = 'role-label ' + role;
+    word.textContent = role === 'supplier' ? 'SUPPLIER' : 'DEALER';
+    el.appendChild(word);
+  }
+
 
   // The face only exists once the mod has published it - they arrive a few per tick so the app can open at once
   // rather than after forty-five texture reads.
@@ -224,16 +236,23 @@ function node(p) {
   // Vanilla's own formula: +90 degrees at no relationship, -90 at the top of the scale. Vanilla rotates a pivot
   // centred on the circle and hangs the notch off it; here the notch's own place on that circle is worked out and
   // it is rotated to match.
+  // Vanilla hangs the notch at (0, 47) on a pivot centred on the circle and turns the pivot from +90 degrees at no
+  // relationship to -90 at the top of the scale. Rotating (0, R) by t gives Unity (-R sin t, R cos t), and Unity's
+  // y points UP where css y points down - so the css centre is (R - R sin t, R - R cos t). The x term was a PLUS
+  // here, which mirrored the whole scale: Loyal sat at nine o'clock instead of three.
+  //
+  // The box's own turn is negated for the same reason - a positive angle is counter-clockwise in Unity and
+  // clockwise in css.
   var deg = 90 - 180 * Math.max(0, Math.min(1, (p.rel || 0) / 5));
   var rad = deg * Math.PI / 180;
 
-  var at = topLeftFor(NODE_R + NOTCH_R * Math.sin(rad),
+  var at = topLeftFor(NODE_R - NOTCH_R * Math.sin(rad),
                       NODE_R - NOTCH_R * Math.cos(rad),
-                      NOTCH_W, NOTCH_H, deg);
+                      NOTCH_W, NOTCH_H, -deg);
 
   notch.setAttribute('style',
     'left:' + at.x.toFixed(1) + 'px;top:' + at.y.toFixed(1) + 'px;' +
-    'transform:rotate(' + deg.toFixed(1) + 'deg)');
+    'transform:rotate(' + (-deg).toFixed(1) + 'deg)');
 
   el.appendChild(notch);
   return el;
@@ -451,16 +470,40 @@ function text(className, value) {
   return el;
 }
 
-// ---- panning -------------------------------------------------------------------------------------------------
+// ---- moving the board ----------------------------------------------------------------------------------------
 
-// Drag to move the graph around, the same gesture vanilla's scrollable board takes. The delta arrives in css
-// pixels of the SCREEN, so it is divided by the zoom to become a distance across the board.
+var RICH = !!(typeof s1 !== 'undefined' && s1.rich);
+
+var ZOOM_MIN = 0.25;
+var ZOOM_MAX = 2.5;
+
+// Free zoom, kept separately from the fitted overview. `fitted` means "work the scale out from the region"; the
+// moment a finger changes it, this is the number and fitted is off.
+var freeZoom = 1;
+var pinching = false;
+
+// How far a finger has to travel before it counts as a drag.
+//
+// Without this a plain TAP was a pan: the pointer moves a pixel or two between down and up, a drag event arrives
+// with a delta of one, and the board left the fitted overview and snapped to zoom 1. Which is exactly what "it
+// jumps to Near as soon as I touch anything" was.
+var DRAG_SLOP = 4;
+var dragged = 0;
+
+viewportEl.addEventListener('dragstart', function () { dragged = 0; });
+
 viewportEl.addEventListener('drag', function (e) {
-  if (!e.deltaX && !e.deltaY) return;
+  if (pinching || (!e.deltaX && !e.deltaY)) return;
 
-  // Dragging is close work, so it leaves the fitted overview - staying fitted would snap the middle straight back.
-  fitted = false;
-  setZoomButtons();
+  dragged += Math.abs(e.deltaX) + Math.abs(e.deltaY);
+  if (dragged < DRAG_SLOP) return;
+
+  // Panning is close work, so it leaves the fitted overview - staying fitted would snap the middle straight back.
+  if (fitted) {
+    freeZoom = zoom;
+    fitted = false;
+    setZoomButtons();
+  }
 
   centre = {
     x: centre.x - e.deltaX / zoom,
@@ -470,8 +513,110 @@ viewportEl.addEventListener('drag', function (e) {
   apply();
 });
 
+// Zoom about a point of the WINDOW, so whatever is under the fingers stays under them.
+function zoomAt(next, px, py) {
+  if (next < ZOOM_MIN) next = ZOOM_MIN;
+  if (next > ZOOM_MAX) next = ZOOM_MAX;
+  if (Math.abs(next - zoom) < 0.001) return;
+
+  var box = viewBox(s1.orientation === 'portrait');
+
+  // The board point currently under (px, py), which must still be under it afterwards.
+  var atX = centre.x + (px - box.w / 2) / zoom;
+  var atY = centre.y + (py - box.h / 2) / zoom;
+
+  if (fitted) { fitted = false; setZoomButtons(); }
+
+  freeZoom = next;
+  centre = { x: atX - (px - box.w / 2) / next, y: atY - (py - box.h / 2) / next };
+
+  apply();
+}
+
+viewportEl.addEventListener('wheel', function (e) {
+  var box = viewBox(s1.orientation === 'portrait');
+  zoomAt(zoom * (e.wheelDelta > 0 ? 1.18 : 1 / 1.18), box.w / 2, box.h / 2);
+});
+
 document.getElementById('z-out').addEventListener('click', fit);
 document.getElementById('z-in').addEventListener('click', close);
+
+// Two fingers, on a device that has them. Same shape as the map's, because it is the same gesture and the map's
+// is the one that was reported as working well.
+if (RICH) {
+  var touches = {};
+  var pinchFrom = 0;
+  var pinchZoom = 1;
+
+  function spread() {
+    var ids = Object.keys(touches);
+    if (ids.length < 2) return null;
+
+    var a = touches[ids[0]];
+    var b = touches[ids[1]];
+
+    return {
+      d: Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)),
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+    };
+  }
+
+  // Where a page point lands inside the window, in the css pixels this layout is written in. The screen is scaled
+  // to fill the device, so a client coordinate has to come back through that scale first.
+  function local(clientX, clientY) {
+    var box = viewportEl.getBoundingClientRect();
+    var k = box.width / viewportEl.offsetWidth;
+
+    return { x: (clientX - box.left) / k, y: (clientY - box.top) / k };
+  }
+
+  viewportEl.addEventListener('touchstart', function (e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i];
+      touches[t.identifier] = local(t.clientX, t.clientY);
+    }
+
+    var s = spread();
+    if (!s) return;
+
+    // A second finger landed: the pan stops and the pinch takes over. Both at once fights itself.
+    pinching = true;
+    pinchFrom = s.d;
+    pinchZoom = zoom;
+  }, { passive: true });
+
+  viewportEl.addEventListener('touchmove', function (e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i];
+      touches[t.identifier] = local(t.clientX, t.clientY);
+    }
+
+    if (!pinching) return;
+
+    var s = spread();
+    if (!s || pinchFrom <= 0) return;
+
+    e.preventDefault();
+    zoomAt(pinchZoom * (s.d / pinchFrom), s.x, s.y);
+  }, { passive: false });
+
+  function lift(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) delete touches[e.changedTouches[i].identifier];
+
+    if (Object.keys(touches).length >= 2) return;
+
+    // Every finger has to come off before panning is allowed again, or lifting one of two hands the board a jump
+    // the size of the gap between them.
+    if (pinching) {
+      if (Object.keys(touches).length === 0) pinching = false;
+      else pinchFrom = 0;
+    }
+  }
+
+  viewportEl.addEventListener('touchend', lift, { passive: true });
+  viewportEl.addEventListener('touchcancel', lift, { passive: true });
+}
 
 function centreOnSelection() {
   var node = findNode(selectedId);
@@ -491,6 +636,7 @@ function fit() {
 
 function close() {
   fitted = false;
+  freeZoom = 1;
   setZoomButtons();
   centreOnSelection();
 }
@@ -530,7 +676,7 @@ function apply() {
 
   zoom = fitted && graph.w > 0 && graph.h > 0
     ? Math.min(1, Math.min(vw / graph.w, vh / graph.h))
-    : 1;
+    : Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, freeZoom));
 
   // While fitted, the middle IS the middle of the graph - derived here rather than remembered, because the first
   // render can happen before the graph has arrived (the companion answers a read a moment late) and a centre

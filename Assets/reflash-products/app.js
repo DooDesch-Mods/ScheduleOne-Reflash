@@ -136,6 +136,10 @@ function tile(p) {
 
   // Vanilla's tile is the product's own icon and nothing else - the name lives in the detail panel. The picture
   // arrives a few per tick, so a tile falls back to its name until then rather than opening empty.
+  var shade = document.createElement('div');
+  shade.className = 'tile-shade';
+  el.appendChild(shade);
+
   if (p.icon) {
     var icon = document.createElement('img');
     icon.className = 'tile-icon';
@@ -150,11 +154,21 @@ function tile(p) {
     el.appendChild(name);
   }
 
-  // The corner badge says whether the product is for sale, not what it costs: a green dollar when it is listed, a
-  // red cross when it is not. Vanilla puts the price in the detail panel and nowhere else.
+  // The corner mark says whether the product is for sale, not what it costs - vanilla keeps the price in the
+  // detail panel and nowhere else. Built out of boxes rather than typed as a character: the font atlases carry
+  // Latin-1 only, so a proper cross or a currency glyph would draw as an empty square.
+  function box(cls) { var b = document.createElement('div'); b.className = cls; return b; }
+
   var badge = document.createElement('div');
   badge.className = 'tile-badge';
-  badge.textContent = p.listed ? '$' : 'x';
+
+  var note = document.createElement('div');
+  note.className = 'note';
+  note.appendChild(box('note-eye'));
+  badge.appendChild(note);
+
+  badge.appendChild(box('bar a'));
+  badge.appendChild(box('bar b'));
   el.appendChild(badge);
 
   el.addEventListener('click', pick);

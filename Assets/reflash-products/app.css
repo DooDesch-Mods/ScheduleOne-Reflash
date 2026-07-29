@@ -60,64 +60,121 @@ body {
 
 .cat-none { flex: none; font-size: 11px; color: #8a8a8a; }
 
-.tiles { flex: none; flex-direction: row; flex-wrap: wrap; gap: 10px; margin: 6px 0 4px 0; }
+/* Grid cell 100x100, spacing 10x10 - so 61.1 and 6.1 in css px. */
+.tiles { flex: none; flex-direction: row; flex-wrap: wrap; gap: 6.1px; margin: 6px 0 4px 0; }
 
-/* A tile is the product's own icon in a framed box. The frame is what says "listed"; the badge in the corner says
-   it again in a way that survives a screenshot. */
+/* A tile, straight off the vanilla dump:
+     ProductEntry  100x100          the cell
+       Shade        96x96           a rounded plate
+       Icon         80x80           the artwork
+       Frame       100x100          ProductSlotBackground, #4d823b listed / #505050 not
+       Tick/Cross   16x16 / 15x15   bottom right
+       Favourite    30x30 at -15,-15  a star, TOP LEFT and outside the tile's corner
+
+   What was here before was a guess at all five: the icon filled 46 of 60 where vanilla gives it 80 of 100 at a
+   smaller cell, the frame colour was a grey border rather than the green plate, and the star sat top RIGHT at
+   two thirds of its size. */
 .tile {
   position: relative;
   flex: none;
-  width: 60px;
-  height: 60px;
+  width: 61.1px;
+  height: 61.1px;
   align-items: center;
   justify-content: center;
-  background: #4a4a4a;
-  border: 1px solid #5e5e5e;
-  border-radius: 3px;
+  background: #505050;
+  border: 0;
+  border-radius: 4px;
 }
 
-.tile:hover { background: #565656; }
-.tile.listed { border: 1px solid #6fae55; }
-.tile.on { border: 1px solid #ffffff; }
+/* The frame IS the state: green while the product is listed for sale, grey while it is not. */
+.tile.listed { background: #4d823b; }
+.tile:hover { background: #5e5e5e; }
+.tile.listed:hover { background: #5a9646; }
+.tile.on { box-shadow: 0 0 0 2px #ffffff; }
 
-.tile-icon { width: 46px; height: 46px; }
+/* Shade 96x96 inside the 100 cell: the plate the artwork sits on. */
+.tile-shade {
+  position: absolute;
+  left: 1.5px;
+  top: 1.5px;
+  width: 58.6px;
+  height: 58.6px;
+  border-radius: 3px;
+  background: #00000030;
+}
+
+.tile-icon { position: relative; width: 48.9px; height: 48.9px; }
 .tile-name { font-size: 10px; color: #c8c8c8; text-align: center; }
 
-/* The favourite star, top right, and the listed badge, bottom right. The star is on every tile - filled in for a
-   favourite, faint otherwise - because that is where vanilla keeps the switch. */
+/* Favourite 30x30 at (-15,-15) - the hit box hangs off the tile's top-left corner, and the star inside it is
+   19x19. Grey when it is not a favourite, the title's own yellow when it is. */
 .star {
   position: absolute;
-  right: 2px;
-  top: 1px;
-  width: 14px;
-  height: 14px;
+  left: -6px;
+  top: -6px;
+  width: 18.3px;
+  height: 18.3px;
   align-items: center;
   justify-content: center;
   background: #00000000;
   border: 0;
-  opacity: 0.35;
 }
 
-.star img { width: 11px; height: 11px; }
-.star.on { opacity: 1; }
+.star img { width: 11.6px; height: 11.6px; }
+.star.on img { width: 11.6px; height: 11.6px; }
 .star:hover { opacity: 0.75; }
 
+/* Bottom right: a note of money while it is listed, a red cross while it is not. Vanilla draws sprites there and
+   these are the same two shapes built out of boxes - a glyph would be a tofu box, the atlases carry Latin-1. */
 .tile-badge {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 14px;
-  height: 14px;
-  justify-content: center;
-  background: #3f8f3f;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: bold;
-  color: #ffffff;
-  text-align: center;
+  right: 3.5px;
+  bottom: 3.5px;
+  width: 9.8px;
+  height: 9.8px;
 }
 
-.tile:not(.listed) .tile-badge { background: #00000000; color: #d05555; }
+.tile-badge .bar {
+  position: absolute;
+  left: 0.5px;
+  top: 3.9px;
+  width: 8.8px;
+  height: 2px;
+  border-radius: 1px;
+  background: #ff645d;
+  transform-origin: 0 0;
+}
+
+/* Two bars crossed. transform-origin because the renderer turns a box about its top-left and a browser about its
+   middle, and a cross drawn for one lands off the tile in the other. */
+.tile-badge .bar.a { transform: rotate(45deg); left: 1.9px; top: 1.4px; }
+.tile-badge .bar.b { transform: rotate(-45deg); left: 1.4px; top: 8.1px; }
+
+/* Listed: a small note rather than a cross. */
+.tile.listed .tile-badge .bar { display: none; }
+
+.tile-badge .note { display: none; }
+
+.tile.listed .tile-badge .note {
+  display: flex;
+  position: absolute;
+  left: 0;
+  top: 1.4px;
+  width: 9.8px;
+  height: 7px;
+  border-radius: 1px;
+  background: #ffffff;
+}
+
+.tile.listed .tile-badge .note-eye {
+  position: absolute;
+  left: 3.4px;
+  top: 3.4px;
+  width: 3px;
+  height: 3px;
+  border-radius: 2px;
+  background: #4d823b;
+}
 
 .pager { flex: none; flex-direction: row; justify-content: center; gap: 8px; padding-bottom: 4px; }
 
