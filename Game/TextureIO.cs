@@ -21,18 +21,36 @@ namespace Reflash.Game
         /// </summary>
         internal static byte[] EncodeSpritePng(Sprite sprite)
         {
+            Color32[] pixels = SpritePixels(sprite, out int width, out int height);
+            if (pixels == null) return null;
+
+            return EncodePixels(pixels, width, height);
+        }
+
+        /// <summary>
+        /// A sprite's own pixels, cropped to its region in the atlas, bottom row first as Unity stores them. Null
+        /// when the picture is not there yet - see <see cref="Blank"/>.
+        ///
+        /// Split out from <see cref="EncodeSpritePng"/> because the phone's wallpaper has to be SAMPLED rather than
+        /// handed over: vanilla stretches one huge sprite across the background and the screen shows a slice of it,
+        /// so the companion has to do the same arithmetic instead of shipping the whole thing.
+        /// </summary>
+        internal static Color32[] SpritePixels(Sprite sprite, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
             if (sprite == null || sprite.texture == null) return null;
 
             Rect region = sprite.textureRect;
-            int width = Mathf.Max(1, Mathf.RoundToInt(region.width));
-            int height = Mathf.Max(1, Mathf.RoundToInt(region.height));
+            width = Mathf.Max(1, Mathf.RoundToInt(region.width));
+            height = Mathf.Max(1, Mathf.RoundToInt(region.height));
 
             // A texture the game built at runtime - a mugshot, a product icon - is already readable, and copying
             // its pixels is both cheaper and EXACTLY what it holds. The GPU detour below has to sample and re-store
             // every pixel, and in a linearly lit project that round trip came back visibly darker: the shader
             // converts sRGB bytes to linear on the way in, and a texture that is not flagged sRGB gets that
             // conversion applied to values that were never linear. Reading directly cannot be wrong that way.
-            byte[] copied = Copy(sprite.texture, region, width, height);
+            Color32[] copied = Copy(sprite.texture, region, width, height);
             if (copied != null) return copied;
 
             RenderTexture rt = null;
@@ -53,13 +71,12 @@ namespace Reflash.Game
                 readable.ReadPixels(new Rect(region.x, region.y, width, height), 0, 0);
                 readable.Apply(false, false);
 
-                if (Blank(readable.GetPixels32())) return null;
-
-                return ImageConversion.EncodeToPNG(readable);
+                Color32[] pixels = readable.GetPixels32();
+                return Blank(pixels) ? null : pixels;
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] encoding a sprite failed: {e.Message}");
+                Core.Log.Warning($"[Reflash] reading a sprite failed: {e.Message}");
                 return null;
             }
             finally
@@ -70,15 +87,39 @@ namespace Reflash.Game
             }
         }
 
+        /// <summary>A block of pixels as a PNG. Bottom row first, the way Unity holds them.</summary>
+        internal static byte[] EncodePixels(Color32[] pixels, int width, int height)
+        {
+            if (pixels == null || width <= 0 || height <= 0) return null;
+
+            Texture2D texture = null;
+
+            try
+            {
+                texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                texture.SetPixels32(pixels);
+                texture.Apply(false, false);
+
+                return ImageConversion.EncodeToPNG(texture);
+            }
+            catch (Exception e)
+            {
+                Core.Log.Warning($"[Reflash] encoding pixels failed: {e.Message}");
+                return null;
+            }
+            finally
+            {
+                if (texture != null) UnityEngine.Object.Destroy(texture);
+            }
+        }
+
         /// <summary>
         /// The sprite's own pixels, straight out of the texture. Null when the texture will not be read - which is
         /// the normal case for anything shipped in an asset bundle, and why the GPU path exists at all.
         /// </summary>
-        private static byte[] Copy(Texture2D source, Rect region, int width, int height)
+        private static Color32[] Copy(Texture2D source, Rect region, int width, int height)
         {
             if (source == null || !source.isReadable) return null;
-
-            Texture2D cropped = null;
 
             try
             {
@@ -103,22 +144,12 @@ namespace Reflash.Game
                     Array.Copy(all, from, cut, y * width, width);
                 }
 
-                if (Blank(cut)) return null;
-
-                cropped = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                cropped.SetPixels32(cut);
-                cropped.Apply(false, false);
-
-                return ImageConversion.EncodeToPNG(cropped);
+                return Blank(cut) ? null : cut;
             }
             catch
             {
                 // isReadable can still be true for a texture whose rect does not fit; fall through to the GPU.
                 return null;
-            }
-            finally
-            {
-                if (cropped != null) UnityEngine.Object.Destroy(cropped);
             }
         }
 

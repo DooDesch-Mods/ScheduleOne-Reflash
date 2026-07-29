@@ -266,6 +266,14 @@ namespace Reflash.Companion
 
             if (req.Path.StartsWith("/icon/", StringComparison.Ordinal)) { ServeIcon(stream, req.Path.Substring(6)); return; }
 
+            if (req.Path == "/wallpaper")
+            {
+                byte[] png = OnMainThread(Wallpaper.Png, null);
+                if (png == null) Http.Text(stream, 404, "not found");
+                else Http.Bytes(stream, 200, "image/png", png, "Cache-Control: private, max-age=3600");
+                return;
+            }
+
             if (req.Path == "/fw/s1.css")
             {
                 byte[] css = OnMainThread(() => _bundles.FrameworkAsset("s1.css"), null);
