@@ -83,7 +83,14 @@ body {
   overflow: hidden;
 }
 
-.row-face img { width: 57px; height: 57px; border-radius: 29px; }
+/* A mugshot is a PORTRAIT - measured, 335x464 for Ray Hoffman, 458x512 for Randy Caulfield - and vanilla fits it
+   inside a square icon rather than filling one, so the grey of the circle behind it shows at the sides. Stretching
+   it to a square instead made every face about forty percent wider, and only the ones that happened to be nearly
+   square (Randy at 0.89) looked right, which is exactly how it was reported.
+
+   object-fit: contain is what the in-game renderer does with an <img> anyway, so this is the line that makes the
+   two screens agree rather than a browser-only tweak. */
+.row-face img { width: 57px; height: 57px; border-radius: 29px; object-fit: contain; }
 
 .row-name {
   position: absolute;
@@ -214,7 +221,7 @@ body {
   overflow: hidden;
 }
 
-.head-face img { width: 50px; height: 50px; border-radius: 25px; }
+.head-face img { width: 50px; height: 50px; border-radius: 25px; object-fit: contain; }
 
 .head-mid { flex: none; align-items: flex-start; gap: 4px; }
 .head-name { font-size: 24px; font-weight: bold; color: #2b2b2b; }
@@ -846,7 +853,7 @@ body {
   .list-head { height: 48px; font-size: 26px; padding: 0 20px; }
   .row { height: 64px; }
   .row-face { left: 28px; top: 12px; width: 40px; height: 40px; border-radius: 20px; font-size: 17px; }
-  .row-face img { width: 40px; height: 40px; border-radius: 20px; }
+  .row-face img { width: 40px; height: 40px; border-radius: 20px; object-fit: contain; }
   .row-dot { left: 12px; top: 28px; }
   .row-line { left: 21px; right: 26px; }
   .row-name { left: 79px; top: 8px; }

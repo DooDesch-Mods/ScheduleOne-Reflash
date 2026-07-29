@@ -22,10 +22,10 @@ namespace Reflash.Companion
 
         internal static void ServeAsset(NetworkStream stream, string name)
         {
-            string text = Asset(name);
-            if (text == null) { Http.Text(stream, 404, "not found"); return; }
+            byte[] bytes = AssetBytes(name);
+            if (bytes == null) { Http.Text(stream, 404, "not found"); return; }
 
-            Http.Bytes(stream, 200, Mime.For(name), Encoding.UTF8.GetBytes(text));
+            Http.Bytes(stream, 200, Mime.For(name), bytes);
         }
 
         /// <summary>
@@ -73,13 +73,24 @@ namespace Reflash.Companion
         /// </summary>
         private static string Asset(string name)
         {
+            byte[] bytes = AssetBytes(name);
+            return bytes == null ? null : Encoding.UTF8.GetString(bytes);
+        }
+
+        /// <summary>
+        /// The same files as raw bytes. The shell is mostly text, but the home-screen icons the web app manifest
+        /// points at are PNGs, and reading a PNG through a StreamReader mangles it.
+        /// </summary>
+        private static byte[] AssetBytes(string name)
+        {
             string resource = "Reflash.Assets.shell." + name.Replace('/', '.');
 
             using Stream stream = typeof(Shell).Assembly.GetManifestResourceStream(resource);
             if (stream == null) return null;
 
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
         }
     }
 }

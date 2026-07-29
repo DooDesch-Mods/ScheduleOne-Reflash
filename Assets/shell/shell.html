@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#101010">
+<!-- Add to home screen and this runs as `standalone`: no address bar, and the system's own back gesture still
+     reaches the page as a history navigation. That combination is the reason the Fullscreen API is not used here
+     at all - see the note above goBackOneStep. -->
+<link rel="manifest" href="/sc/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
 <!-- Says "this page is already dark", which stops Chrome's auto dark theme from inverting it a second time. Left
      off, that feature dimmed the one thing on the page that has to stay white: the QR code's quiet zone came out
      grey, and a camera reads a low-contrast code slowly or not at all. -->
@@ -389,46 +394,42 @@ function tellOrientation() {
 window.addEventListener('resize', fit);
 window.addEventListener('orientationchange', function () { setTimeout(fit, 150); });
 
-// A phone should be a phone: no address bar, no browser chrome. Asked for on a touch, because that is the only
-// moment a browser will grant it, and only on a device that has touches to give.
+// Back is history, not fullscreen.
 //
-// Asked again whenever it has been lost, not once. Android's back gesture leaves fullscreen before it reaches the
-// page - the first press costs the chrome, the next one actually goes back - so a one-shot request meant the
-// address bar came back for good after a single tap of Back.
-function goFullscreen() {
-  if (!('ontouchstart' in window)) return;
-  if (document.fullscreenElement || document.webkitFullscreenElement) return;
-
-  var root = document.documentElement;
-  var ask = root.requestFullscreen || root.webkitRequestFullscreen;
-  if (!ask) return;
-
-  try { ask.call(root); } catch (e) { /* refused, and the page is perfectly usable without it */ }
-}
-
-document.addEventListener('touchend', goFullscreen);
-
-// Android's back gesture is spent on LEAVING fullscreen before the page ever hears about it. A phone in fullscreen
-// therefore has no back at all: the first press costs the chrome, and the next touch - which asks for fullscreen
-// again - puts it straight back, so the press count never gets ahead.
+// The Fullscreen API was the wrong tool and it took a device to see why. Android spends the back gesture on
+// LEAVING fullscreen before the page ever hears about it, so a phone in fullscreen has no back at all - and
+// reading the loss itself as the gesture, which is what this did, only papered over it: the chrome came back on
+// every single press. Worse, fullscreen with viewport-fit=cover puts the page under the gesture bar, which is
+// what cut the bottom row off the reply buttons, the contacts panel and the map.
 //
-// So the loss itself is read as the gesture. One press, one step back, exactly as everywhere else on the phone;
-// fullscreen returns with the next touch, which is the only moment a browser would grant it anyway.
-var wasFullscreen = false;
+// So: no fullscreen request at all. In a browser tab the page keeps the address bar, back means back, and nothing
+// is hidden behind a system bar. Added to the home screen it runs from the web app manifest as `standalone`,
+// which drops the browser chrome for real AND keeps the system's own navigation - the combination the Fullscreen
+// API cannot give.
+//
+// One entry is kept on the stack while an app is open, so the gesture lands here instead of leaving the page.
+var backHeld = false;
 
-function fullscreenNow() {
-  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+function holdBack() {
+  if (backHeld) return;
+
+  history.pushState({ reflash: 1 }, '', location.pathname);
+  backHeld = true;
 }
 
-function onFullscreenChange() {
-  var now = fullscreenNow();
-
-  if (wasFullscreen && !now) goBackOneStep();
-  wasFullscreen = now;
+function releaseBack() {
+  backHeld = false;
 }
 
-document.addEventListener('fullscreenchange', onFullscreenChange);
-document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+window.addEventListener('popstate', function () {
+  // The entry has just been spent. Anything that stays open needs a fresh one, or the next press leaves the page.
+  backHeld = false;
+
+  if (!current) return;
+
+  holdBack();
+  goBackOneStep();
+});
 
 // One step back, wherever the phone happens to be. An open app is asked first - it may have a sheet or a thread of
 // its own to close - and only closes when it says it has nothing left.
@@ -587,6 +588,7 @@ function open(app) {
   show('app');
   fit();
   keepAwake(true);
+  holdBack();
 }
 
 function close() {
@@ -596,6 +598,7 @@ function close() {
   goHome();
   refreshBadges();
   keepAwake(false);
+  releaseBack();
 }
 
 // A short tick under the thumb. It is the difference between a page that reacts and a phone that answers, and it
@@ -641,13 +644,11 @@ function goHome() {
 }
 
 // An app asks to be closed when its own back handler declined to keep it open - the same contract the in-game
-// phone has. It also passes its touches up, because they are the only user gesture this document ever sees once an
-// app is open, and a gesture is what fullscreen needs.
+// phone has.
 window.addEventListener('message', function (e) {
   if (!e.data) return;
 
   if (e.data.k === 'close') close();
-  else if (e.data.k === 'touch') goFullscreen();
 });
 
 // The event stream. EventSource reconnects on its own, which is most of why this is SSE rather than a socket.
