@@ -274,11 +274,8 @@
       <div class="grid" id="tiles"></div>
     </div>
 
-    <div id="app">
-      <!-- allowfullscreen so the app inside can ask for it during a real touch. The shell cannot: once an app is
-           open, every touch lands in the frame and a relayed one arrives too late to count as a gesture. -->
-      <iframe id="frame" title="app" allowfullscreen></iframe>
-    </div>
+    <!-- The iframe is not written here: frameTo builds a new one for every app and throws the last one away. -->
+    <div id="app"><iframe id="frame" title="app" allowfullscreen></iframe></div>
 
   </div>
 </div>
@@ -407,7 +404,10 @@ window.addEventListener('orientationchange', function () { setTimeout(fit, 150);
 // which drops the browser chrome for real AND keeps the system's own navigation - the combination the Fullscreen
 // API cannot give.
 //
-// One entry is kept on the stack while an app is open, so the gesture lands here instead of leaving the page.
+// One spare entry is kept on the stack at ALL times, home screen included, so the gesture always lands here
+// instead of leaving the page. Holding it only while an app was open was not enough: back on the home screen then
+// walked out of the document onto whatever the tab had shown before, which is a blank page with nothing but
+// Forward, or a stale address that answers `not paired`.
 var backHeld = false;
 
 function holdBack() {
@@ -417,33 +417,56 @@ function holdBack() {
   backHeld = true;
 }
 
-function releaseBack() {
-  backHeld = false;
-}
+// Two presses in a row at home mean the player really wants out - Android's own launcher reads it the same way.
+var lastHomeBack = 0;
 
 window.addEventListener('popstate', function () {
   // The entry has just been spent.
   backHeld = false;
 
-  if (!current) return;
+  if (current) {
+    // The replacement goes on the stack HERE, before the app is asked anything. One press spends one entry and puts
+    // one back, so the stack is the same size whatever the app decides - and it stays the same size even when the
+    // app decides nothing at all, which is the case that used to break it: an app that had not finished loading had
+    // no listener yet, the question went nowhere, and the entry the press had spent was simply gone. The next press
+    // then walked out of the document, which is the white page with only Forward.
+    //
+    // Pushing here was tried once before and did grow the stack - but that was while the frame was pointed with
+    // `src`, so every open added an entry of the iframe's own. It is pointed with location.replace now and adds
+    // none.
+    holdBack();
+    goBackOneStep();
+    return;
+  }
 
-  // No entry is pushed here. The app answers - `close` if it is done, `held` if it swallowed the press - and the
-  // replacement goes back on the stack only in the second case.
-  //
-  // Two earlier attempts got this wrong in ways worth remembering. Pushing immediately meant every press ADDED an
-  // entry, so the stack grew instead of shrinking and after four presses the browser walked out of the document
-  // entirely: the white screen with only Forward. Pushing after a timer only moved the race - postMessage is
-  // itself a task, so `current` was often still set when the timer looked.
-  goBackOneStep();
+  // At home, where a phone's own launcher does nothing at all. The entry goes straight back on so the press is
+  // spent here, and only a second press within two seconds is let through to leave the page.
+  var now = Date.now();
+  if (now - lastHomeBack < 2000) { history.back(); return; }
+
+  lastHomeBack = now;
+  holdBack();
+  toast('Press back again to leave');
 });
 
 // One step back, wherever the phone happens to be. An open app is asked first - it may have a sheet or a thread of
 // its own to close - and only closes when it says it has nothing left.
+//
+// The question is given a deadline, because an app that is still loading has no listener on the message yet and
+// would never answer. Back that does nothing at all is worse than back that closes an app which had not drawn
+// anything yet, and a quarter of a second is far longer than a same-document postMessage takes once the page is up.
+var backTicket = 0;
+
 function goBackOneStep() {
   if (!current) return;
 
   var frame = document.getElementById('frame');
-  if (frame.contentWindow) frame.contentWindow.postMessage({ k: 'back' }, '*');
+  if (!frame.contentWindow) { close(); return; }
+
+  var mine = ++backTicket;
+  frame.contentWindow.postMessage({ k: 'back' }, '*');
+
+  setTimeout(function () { if (backTicket === mine && current) close(); }, 250);
 }
 
 function start() {
@@ -613,7 +636,6 @@ function close() {
   goHome();
   refreshBadges();
   keepAwake(false);
-  releaseBack();
 }
 
 // A short tick under the thumb. It is the difference between a page that reacts and a phone that answers, and it
@@ -653,20 +675,34 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && current) keepAwake(true);
 });
 
-// Point the frame somewhere without spending a history entry on it.
+// Put an app on screen without spending a history entry on it.
+//
+// A fresh element rather than a navigation, because an iframe's navigations go into the SAME session history as
+// this page. `location.replace` was the first fix and it is not quite enough: a frame navigated while its previous
+// load is still in flight still adds an entry, so pressing back during an app's first render cost an extra press
+// for the rest of the session. Removing the element discards whatever its browsing context held, and a src set
+// before the element is inserted counts as that context's initial navigation, which replaces rather than adds.
 function frameTo(url) {
-  var frame = document.getElementById('frame');
+  var host = document.getElementById('app');
+  var old = document.getElementById('frame');
 
-  try {
-    if (frame.contentWindow) { frame.contentWindow.location.replace(url); return; }
-  } catch (e) { /* cross-origin, which this never is - fall through */ }
+  var fresh = document.createElement('iframe');
+  fresh.id = 'frame';
+  fresh.title = 'app';
 
-  frame.src = url;
+  // allowfullscreen so the app inside can ask for it during a real touch. The shell cannot: once an app is open,
+  // every touch lands in the frame and a relayed one arrives too late to count as a gesture.
+  fresh.setAttribute('allowfullscreen', '');
+  if (url && url !== 'about:blank') fresh.setAttribute('src', url);
+
+  if (old) old.remove();
+  host.appendChild(fresh);
 }
 
 function goHome() {
   show('home');
   fit();
+  holdBack();
 }
 
 // An app asks to be closed when its own back handler declined to keep it open - the same contract the in-game
@@ -674,8 +710,10 @@ function goHome() {
 window.addEventListener('message', function (e) {
   if (!e.data) return;
 
-  if (e.data.k === 'close') close();
-  else if (e.data.k === 'held') { backHeld = false; holdBack(); }
+  // Either answer settles the press, so the deadline in goBackOneStep is called off. The entry is already back on
+  // the stack by now; holdBack elsewhere is a no-op while it is held.
+  if (e.data.k === 'close') { backTicket++; close(); }
+  else if (e.data.k === 'held') backTicket++;
 });
 
 // The event stream. EventSource reconnects on its own, which is most of why this is SSE rather than a socket.
