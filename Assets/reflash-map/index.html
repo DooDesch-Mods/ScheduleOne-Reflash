@@ -1,0 +1,36 @@
+<link rel="stylesheet" href="app.css">
+
+<div class="app" id="app">
+
+  <!-- Topbar 1201x40 #414141, "Map" size 24 white, left-aligned, with a #00000050 shade down it. -->
+  <header class="topbar">
+    <div class="topbar-title">Map</div>
+  </header>
+
+  <!-- Vanilla's map is a ScrollRect: a 2048x2048 Content moved behind a 1205x617 window. This is the same thing -
+       #world is bigger than #viewport and slides under it with a transform. Since Sideload 1.1.0 a transform written
+       from script repaints instead of rebuilding, which is what makes panning affordable at all. -->
+  <div class="viewport" id="viewport">
+    <div class="world" id="world">
+      <img class="map" id="map-img" src="s1://map" alt="">
+      <div class="pins" id="pins"></div>
+    </div>
+
+    <!-- North, which never moves: vanilla's map is not rotatable, and its compass is a static sprite. -->
+    <div class="compass">
+      <div class="n">N</div>
+      <img src="north.png" alt="">
+    </div>
+
+    <!-- The two thin scrollbars vanilla draws down the right and along the bottom: track invisible, handle #e7e7e7,
+         15 canvas units thick. They are the only chrome the vanilla map has. -->
+    <div class="bar-h"><div class="grip" id="grip-h"></div></div>
+    <div class="bar-v"><div class="grip" id="grip-v"></div></div>
+
+    <!-- The name of the marker that was last tapped. Vanilla shows this on hover, which a phone cannot do. -->
+    <div class="poi-name" id="poi-name"></div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>

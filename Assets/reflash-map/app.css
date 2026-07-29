@@ -1,0 +1,167 @@
+/* Map.
+
+   Every number here comes from the vanilla prefab dump (Workspace/docs/Reflash/vanilla-dumps/vanilla-map.txt)
+   divided by 1.6375, the canvas-to-css factor, with the canvas figure in the comment. Guessing at them off a
+   screenshot was how the first version ended up with a map that did not fill the screen.
+
+   Vanilla gives the map the WHOLE screen: a thin dark strip with the word "Map", a static compass, two hairline
+   scrollbars, and everything else is the picture - at full brightness, with the street and building names baked
+   into it. There is no region list, no search and no zoom buttons; the only chrome is what is listed above. */
+
+body {
+  height: 100%;
+  font-family: game-ui;
+  font-size: 12px;
+  color: #e8e8e8;
+  background: #2b2b2b;
+}
+
+.app { height: 100%; background: #2b2b2b; }
+
+/* Topbar 1201x40 #414141, title size 24 white. */
+.topbar { flex: none; flex-direction: row; align-items: center; height: 24.4px; padding: 0 8px; background: #414141; }
+.topbar-title { font-size: 14.7px; color: #ffffff; }
+
+/* Compass 50x50 at 35.4,-78.2 - which is inside the map area, just under the strip. */
+.compass { position: absolute; left: 12px; top: 6px; align-items: center; }
+.compass .n { font-size: 9px; color: #ffffff; text-align: center; }
+.compass img { width: 14px; height: 18px; }
+
+/* The window: Scroll View 1205x617, the whole screen under the strip.
+   touch-action so a phone browser pans the MAP rather than the page - the game's renderer has no such notion and
+   ignores the property. */
+.viewport { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; }
+
+/* Content 2048x2048 canvas units = 1250.8 css px at zoom 1. Vanilla's zoom runs 0.8 to 2.0 over this.
+
+   Every one of these four needs its size stated. The renderer lays out from CSS alone - it cannot read a picture's
+   intrinsic size and it does not honour an <img> width attribute - so a map declared only in HTML came out 0 x 0 and
+   the app showed pins on an empty background. */
+.world { position: absolute; left: 0; top: 0; width: 1250.8px; height: 1250.8px; transform-origin: 0 0; }
+
+.map { display: block; width: 1250.8px; height: 1250.8px; }
+
+.nomap { position: absolute; left: 0; top: 0; width: 1250.8px; height: 1250.8px; background: #1b2029; }
+
+.pins { position: absolute; left: 0; top: 0; width: 1250.8px; height: 1250.8px; }
+
+/* ---- markers ------------------------------------------------------------------------------------------------
+   Sizes are the prefab's, in canvas units, over 1.6375. */
+
+/* PotentialCustomerPoI/Area 140x140 #ffb1ff19 - the "somewhere around here" disc. PotentialDealerPoI is the same
+   shape in #81c4ff19. Both scale with the map, because they mark an area of the world rather than of the screen. */
+.area { position: absolute; border-radius: 999px; background: #ffb1ff19; }
+.area.dealer { background: #81c4ff19; }
+
+/* Outline 30x30, a white ring the mugshot is masked into. */
+.face {
+  position: absolute;
+  width: 18.3px;
+  height: 18.3px;
+  border-radius: 9.2px;
+  border: 1.2px solid #ffffff;
+  background: #6a6a6a;
+  overflow: hidden;
+}
+
+.face img { width: 16px; height: 16px; display: block; }
+
+/* PropertyPoI/Owned 20x20 #4a9cf3 with a white home glyph 12x12. */
+.pin {
+  position: absolute;
+  width: 12.2px;
+  height: 12.2px;
+  border-radius: 6.1px;
+  background: #4a9cf3;
+  border: 1px solid #ffffff;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin img { width: 7.3px; height: 7.3px; }
+
+/* DeaddropPoI_Red/Outline 20x20 #a14d4d with a white briefcase glyph. */
+.pin.stash { background: #a14d4d; }
+
+/* PlayerPoI: an 80x80 #ffffff26 halo, a 15x15 white outline, a 12x12 #4ea7ff fill, and an arrow 11x11 parked 13
+   units above the middle that spins with the player's heading. */
+.player { position: absolute; width: 48.9px; height: 48.9px; border-radius: 24.4px; background: #ffffff26; }
+
+.player .dot {
+  position: absolute;
+  left: 19.8px;
+  top: 19.8px;
+  width: 9.2px;
+  height: 9.2px;
+  border-radius: 4.6px;
+  background: #4ea7ff;
+  border: 1px solid #ffffff;
+}
+
+/* MainLabel 500x120 at 0,-46, size 32 white, centred. Vanilla shows it while the pointer is over the marker; here
+   it appears when a marker is tapped, which is the same gesture a phone has. */
+.poi-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 26px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #ffffff;
+  text-align: center;
+  display: none;
+}
+
+.poi-name.on { display: block; }
+
+/* Scrollbar Horizontal 1188x15 and Vertical 15x600: track invisible, handle #e7e7e7. */
+.bar-h { position: absolute; left: 6px; right: 12px; bottom: 3px; height: 4px; }
+.bar-v { position: absolute; top: 6px; bottom: 12px; right: 3px; width: 4px; }
+
+.bar-h .grip { position: absolute; top: 0; height: 4px; border-radius: 2px; background: #e7e7e7; }
+.bar-v .grip { position: absolute; left: 0; width: 4px; border-radius: 2px; background: #e7e7e7; }
+
+/* -------------------------------------------------------------------------------------------------- portrait --
+   Same map, taller window - nothing changes except how much of it fits. */
+@media (orientation: portrait) {
+  .topbar { height: 30px; }
+  .topbar-title { font-size: 17px; }
+  .poi-name { font-size: 15px; bottom: 30px; }
+}
+
+/* ------------------------------------------------------------------------------------------------------ rich --
+   A real browser on a real phone. The class is set by the companion's bridge and nothing in the game ever carries
+   it, so the renderer never matches a single rule below - these are additions the game cannot do, not overrides.
+
+   Vanilla's LOOK is untouched here on purpose. What changes is how the thing feels under a thumb. */
+.rich .viewport { -webkit-tap-highlight-color: transparent; }
+
+.rich .world { will-change: transform; }
+
+/* The marker that was tapped lifts slightly, so a thumb that covers the pin still gets an answer. */
+.rich .face, .rich .pin { transition: transform 120ms ease-out; }
+.rich .face.picked, .rich .pin.picked { transform: scale(1.35); }
+
+/* The name reads as a sheet rising off the bottom edge rather than as text lying on the map. */
+.rich .poi-name {
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(20, 20, 20, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+  display: block;
+  pointer-events: none;
+}
+
+.rich .poi-name.on { opacity: 1; transform: translateY(0); }
+
+/* The scrollbars fade away while the map is still, the way a touch scrollbar does. */
+.rich .bar-h, .rich .bar-v { opacity: 0; transition: opacity 400ms ease-out; }
+.rich .bar-h.busy, .rich .bar-v.busy { opacity: 1; transition: opacity 80ms linear; }

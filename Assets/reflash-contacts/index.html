@@ -1,0 +1,33 @@
+<link rel="stylesheet" href="app.css">
+
+<div class="app" id="app">
+
+  <!-- The graph. Vanilla's own circles at vanilla's own positions, read off the live prefab rather than laid out
+       here - people learn where a face sits, and a layout computed on this side would move every one of them. -->
+  <section class="graph-pane">
+
+    <!-- The regions run along the TOP, one name each with a small lock on the ones still closed, and a white bar
+         under the one being looked at. -->
+    <div class="tabs" id="tabs"></div>
+
+    <div class="viewport" id="viewport">
+      <div class="world" id="world">
+        <div class="edges" id="edges"></div>
+        <div class="nodes" id="nodes"></div>
+      </div>
+
+      <!-- Vanilla pinches to zoom and this renderer has no pinch, so the two views it actually uses are buttons:
+           the whole region, or one person up close. -->
+      <div class="controls">
+        <button class="cbtn on" id="z-out">All</button>
+        <button class="cbtn" id="z-in">Near</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detail 351x655 #373737, on the right. -->
+  <aside class="detail" id="detail"></aside>
+
+</div>
+
+<script src="app.js"></script>

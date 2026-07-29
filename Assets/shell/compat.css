@@ -1,0 +1,124 @@
+/* The renderer's own defaults, restated for a browser.
+
+   Without these three rules the browser lays out every box differently from the game, and the same bundle looks
+   like a different app on each screen. In the Sideload renderer EVERY element is a flex container, the default
+   direction is column, and box-sizing is always border-box - none of which is true in CSS.
+
+   Wrapped in :where() so the specificity is zero. That part is load-bearing: a plain `* { flex-direction: column }`
+   would outrank nothing, but `#viewport *` would outrank every class selector in an app's own stylesheet and its
+   `flex-direction: row` would never win. */
+
+/* Every one of these apps is dark by design. Saying so stops Chrome's auto dark theme from inverting it a second
+   time, which on a phone came out as washed-out colours and, worst of it, a grey QR quiet zone. */
+:root { color-scheme: dark; }
+
+:where(html, body, body *) {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  min-height: 0;
+
+  /* The renderer never shrinks a box past a height its author declared - that is a deliberate narrowing of the
+     spec on its side, and the reason a list of 92px rows stays 92px and scrolls. A browser shrinks them to fit
+     instead, which turned the same list into twenty overlapping lines. Zero here restores the renderer's rule;
+     an app that genuinely wants an item to give way says so itself, and beats this at any specificity. */
+  flex-shrink: 0;
+}
+
+/* Inline runs. The renderer folds these back into ONE TextMeshPro string with the CSS colour as a tag, so they sit
+   on the same line as the text around them - a browser has to be told, because the flex default above would make
+   each of them its own block and stack a coloured price under the sentence it belongs to. */
+:where(span, b, strong, i, em, u, small, code, a) { display: inline; }
+
+/* Controls come with a lot of browser styling the renderer has no concept of. */
+:where(input, button, textarea, select) {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  display: block;
+}
+
+:where(button) { cursor: pointer; text-align: center; }
+
+:where(img) { display: block; max-width: none; }
+
+/* The renderer's initial values for the INHERITED properties, from Sideload/Css/ComputedStyle.cs. Set once on the
+   root and inherited from there, never restated per element: a `:where(*)` rule would look harmless and would in
+   fact break inheritance, resetting every child whose parent had chosen something else.
+
+   A browser's own defaults are 16px, `normal` line-height and black text. All three are visibly wrong here - a
+   page written against a 15px base comes out about 7% larger, and dark-on-dark text is unreadable. */
+html {
+  font-size: 15px;         /* ComputedStyle.FontSize */
+  line-height: 1.2;        /* ResolvedLineHeight, when line-height is unset */
+  color: #ecedf1;          /* ComputedStyle.Color */
+  text-align: left;
+  font-weight: 400;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #16181d;
+}
+
+/* `game-ui` is the family name the bundles ask for. In the game it resolves to the Open Sans cuts the phone itself
+   uses (Sideload/Paint/TextSupport.cs); here font.css declares the same typeface under that same name, so a line
+   breaks in the same place on both screens.
+
+   Standing in with whatever the device has is not close enough: Segoe UI at the same size runs about a sixth wider,
+   which moves every wrap, every measured position, and made the companion read as a different app. */
+body {
+  font-family: game-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Touch scrolling, which the in-game renderer cannot offer and a phone should not be denied. Scrollbars stay
+   hidden so the two screens still look alike. */
+:where([style*="overflow"], .scroll, .rows, .messages) {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ---- the phone --------------------------------------------------------------------------------------------- --
+   This file is only ever served to a browser, so everything below is unconditional here and unreachable in the
+   game. It changes nothing about how the apps LOOK - it is what stops a page built for a mouse feeling wrong under
+   a thumb.
+
+   Rules a page can override: this whole file sits at specificity 0 through :where(), same as the reset above. */
+
+:where(html) {
+  /* No rubber-band at the ends of a list, which on a phone reads as the whole app coming loose. */
+  overscroll-behavior: none;
+
+  /* A phone app does not select its own labels when a thumb rests on them. Fields opt back in below. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+
+  /* The grey flash Android paints over anything tapped. Every one of these pages draws its own pressed state. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(input, textarea) { -webkit-user-select: text; user-select: text; }
+
+/* Anything a finger is meant to hit reacts to being held, so a tap that is still travelling has already answered.
+   120ms is under the threshold where a delay is felt and well over the one where a change is seen. */
+:where(button, .tile, .row, .card, .chip, [role="button"]) {
+  transition: transform 120ms ease-out, background-color 120ms ease-out, opacity 120ms ease-out;
+}
+
+:where(button, .tile, .row, .card, .chip, [role="button"]):active { transform: scale(0.97); }
+
+/* A scrolling list keeps its momentum and snaps to nothing - the same physics the rest of the phone has. */
+:where([style*="overflow"], .scroll, .rows, .messages, .list) { overscroll-behavior: contain; }

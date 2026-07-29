@@ -1,0 +1,23 @@
+<link rel="stylesheet" href="app.css">
+
+<!-- Deliveries, rebuilt from Workspace/docs/Reflash/vanilla-shots/09, 10, 11 and 14.
+
+     The three names sit along the TOP, not the bottom. The first attempt put them under the content, which is
+     where a phone app usually keeps them and not where this one does. -->
+
+<div class="app" id="app">
+
+  <nav class="bar">
+    <button class="tab on" data-tab="shops">Shops</button>
+    <button class="tab" data-tab="active">Active Orders <span id="active-count"></span></button>
+    <button class="tab" data-tab="history">Past Orders</button>
+    <div class="balance" id="balance"></div>
+  </nav>
+
+  <div class="scroll" id="body"></div>
+
+  <div class="basket" id="basket"></div>
+
+</div>
+
+<script src="app.js"></script>

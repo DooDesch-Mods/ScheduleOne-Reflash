@@ -1,0 +1,13 @@
+{
+  "name": "Reflash",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/DooDesch-Mods/ScheduleOne-Reflash",
+  "description": "Put the in game phone on your real phone. Scan the code in the Connect app and messages, map, deliveries, products, dealers, contacts and the journal open on a second screen. Needs Sideload.",
+  "dependencies": [
+    "LavaGang-MelonLoader-0.7.3",
+    "DooDesch-Sideload-1.1.0"
+  ],
+  "contributors": [
+    "DooDesch"
+  ]
+}

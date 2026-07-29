@@ -1,0 +1,158 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared release hardening: strips Release debug info + assembly identity, cuts AV false positives. -->
+  <Import Project="$(MSBuildThisFileDirectory)../Workspace/build/Hardening.props" Condition="Exists('$(MSBuildThisFileDirectory)../Workspace/build/Hardening.props')" />
+  <Import Project="$(MSBuildThisFileDirectory)Workspace/build/Hardening.props" Condition="Exists('$(MSBuildThisFileDirectory)Workspace/build/Hardening.props')" />
+
+  <!--
+    Reflash - the seven vanilla phone apps, rebuilt as HTML and served by Sideload, plus a companion server that
+    hands the same bundles to a real phone over the local network.
+
+    Split three ways on purpose:
+
+      Wire/  and Apps/   the wire protocol and each app's view logic. NO engine assembly, so the headless suite
+                         compiles them in a second and catches an accidental dependency there rather than in a
+                         game launch.
+      Game/              the IL2CPP adapters. Everything that touches a manager lives here and nowhere else.
+      Hijack/            seven Harmony prefixes on App.SetOpen(bool) - the one point every way of opening a
+                         vanilla app passes through.
+
+    Sideload.dll is never referenced; contact runs through the single-file Sideload.Api shim, which finds the host
+    by reflection. Reflash needs Sideload 1.1.0 or newer (iconless apps + programmatic open) and says so and stops
+    if it is older, rather than leaving the player apps they cannot reach.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Reflash</RootNamespace>
+    <AssemblyName>Reflash</AssemblyName>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <NoWarn>$(NoWarn);MSB3277;MSB3245</NoWarn>
+
+    <WorkspaceLibPath Condition="'$(WorkspaceLibPath)' == ''">$(MSBuildThisFileDirectory)../Workspace/lib</WorkspaceLibPath>
+    <ModsDirectory Condition="'$(ModsDirectory)' == ''">$(MSBuildThisFileDirectory)../_MPTest/Schedule I/Mods</ModsDirectory>
+  </PropertyGroup>
+
+  <!-- On CI the build-libs repo is checked out into ./Workspace; keep that tree out of the default compile glob.
+       The explicit Sideload.Api include below comes after this and is therefore unaffected. -->
+  <ItemGroup>
+    <Compile Remove="Workspace/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MelonLoader">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/melonloader/MelonLoader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/melonloader/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/melonloader/Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppSystem">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/Il2CppSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- BaseItemDefinition lives here, and it is what carries ID / Name / Description for every product and item.
+         Without it a ProductDefinition looks like it has no name at all. -->
+    <Reference Include="Il2CppScheduleOne.Core">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/Il2CppScheduleOne.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Player and the economy singletons derive from FishNet's NetworkBehaviour. -->
+    <Reference Include="Il2CppFishNet.Runtime">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/Il2CppFishNet.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Texture2D.EncodeToPNG, for handing the map image and NPC portraits to the pages as s1:// pictures. -->
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Only the debug-only UI dumper needs this: the vanilla screens label themselves with TextMeshPro, and
+         reproducing them means reading the real sizes and colours rather than guessing from a screenshot. -->
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(WorkspaceLibPath)/il2cpp/game/UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- The shim as SOURCE rather than a second DLL: one file, one assembly to install. Two locations for the same
+       file - the sibling project in the development monorepo, the copy in the private build-libs repo on CI. -->
+  <ItemGroup>
+    <Compile Condition="Exists('$(MSBuildThisFileDirectory)../Sideload.Api/Sideload.cs')"
+             Include="$(MSBuildThisFileDirectory)../Sideload.Api/Sideload.cs" Link="Sideload.Api.cs" />
+    <Compile Condition="!Exists('$(MSBuildThisFileDirectory)../Sideload.Api/Sideload.cs') And Exists('$(WorkspaceLibPath)/sideload-api/Sideload.cs')"
+             Include="$(WorkspaceLibPath)/sideload-api/Sideload.cs" Link="Sideload.Api.cs" />
+  </ItemGroup>
+
+  <!-- One bundle per app. The logical name decides the prefix passed to Apps.Register, and getting it wrong is a
+       runtime "no such file" rather than a build error, so it is spelled out rather than left to MSBuild. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/reflash-journal/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-journal.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-messages/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-messages.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-delivery/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-delivery.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-products/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-products.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-contacts/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-contacts.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-dealers/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-dealers.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-map/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-map.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets/reflash-connect/*" Exclude="Assets/**/preview.html;Assets/**/s1-mock.js">
+      <LogicalName>Reflash.Assets.reflash-connect.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <!-- The companion shell: the page a real phone loads, plus the two files injected into every app bundle so the
+         SAME bundle runs in a browser. Embedded rather than written to disk - nothing to install, and nothing a
+         player can break by editing. -->
+    <EmbeddedResource Include="Assets/shell/*">
+      <LogicalName>Reflash.Assets.shell.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Condition="Exists('$(ModsDirectory)')" Command="cmd /c if exist &quot;$(ModsDirectory)&quot; copy /Y &quot;$(TargetPath)&quot; &quot;$(ModsDirectory)&quot;" ContinueOnError="true" />
+  </Target>
+
+</Project>

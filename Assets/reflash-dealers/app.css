@@ -1,0 +1,155 @@
+/* Dealer Management.
+
+   Measured off Workspace/docs/Reflash/vanilla-shots/08, with the phone's screen cut out of it and scaled to what
+   this app lays out at: 400 x 733.4 css px upright.
+
+   Vanilla holds this one UPRIGHT - the title is centred at the top in the app's own violet, on the same dark grey
+   the product manager uses, and an empty roster says so in the middle of the screen rather than in a corner. */
+
+body {
+  height: 100%;
+  font-family: game-ui;
+  font-size: 14px;
+  color: #e8e8e8;
+  background: #2f2f2f;
+}
+
+.app { height: 100%; background: #2f2f2f; }
+
+.bar { position: relative; flex: none; height: 34px; align-items: center; justify-content: center; }
+
+.bar-title { font-size: 17px; font-weight: bold; color: #8f7ce8; text-align: center; }
+
+.back {
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  width: 24px;
+  height: 24px;
+  background: #ffffff00;
+  border: 0;
+  color: #b0a8e0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.list-pane, .detail-pane { flex: 1; min-height: 0; }
+.detail-pane { display: none; }
+.app.show-detail .list-pane { display: none; }
+.app.show-detail .detail-pane { display: flex; }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 12px; gap: 8px; }
+
+.empty { display: none; padding: 10px 20px; font-size: 15px; color: #9a9a9a; text-align: center; }
+.empty.on { display: block; }
+
+/* ---- the roster ------------------------------------------------------------------------------------------- */
+
+.dealer {
+  flex: none;
+  gap: 3px;
+  padding: 10px 12px;
+  background: #3a3a3a;
+  border-radius: 5px;
+}
+
+.dealer:hover { background: #444444; }
+.dealer.on { background: #4a4463; }
+
+.dealer-name { font-size: 16px; font-weight: bold; color: #ffffff; }
+.dealer-sub { font-size: 13px; color: #a8a8a8; }
+
+/* ---- one dealer ------------------------------------------------------------------------------------------- */
+
+.detail-body { gap: 12px; }
+
+.stats { flex-direction: row; gap: 8px; }
+
+.stat {
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: #3a3a3a;
+  border-radius: 5px;
+  font-size: 15px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.stat.money { color: #4fc44f; }
+.stat-label { font-size: 11.5px; color: #a8a8a8; }
+
+.section { gap: 6px; }
+.section-title { font-size: 14px; font-weight: bold; color: #b0a8e0; }
+
+.cut-row { flex-direction: row; align-items: center; gap: 10px; }
+
+.step {
+  width: 26px;
+  height: 26px;
+  background: #4a4a4a;
+  border: 0;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 17px;
+  text-align: center;
+}
+
+.step:hover { background: #585858; }
+
+.entry {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #3a3a3a;
+  border-radius: 5px;
+}
+
+.entry-name { flex: 1; min-width: 0; font-size: 14px; color: #ffffff; }
+
+.drop, .add {
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  background: #4a4a4a;
+  border: 0;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 12px;
+  text-align: center;
+}
+
+.add { background: #5a4f8f; color: #ffffff; }
+.add.off { background: #3a3a3a; color: #7a7a7a; }
+.drop:hover { background: #585858; }
+.add:hover { background: #6a5da8; }
+
+.picker { gap: 6px; padding: 6px; background: #333333; border-radius: 5px; }
+
+.candidate {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+.candidate:hover { background: #454545; }
+
+/* ------------------------------------------------------------------------------------------------- landscape --
+   Vanilla never turns this app; on its side the roster and the dealer fit side by side, which is this mod's own. */
+@media (orientation: landscape) {
+  .app { flex-direction: row; }
+  .list-pane { flex: none; width: 40%; }
+  .detail-pane { display: flex; flex: 1; }
+  .app.show-detail .list-pane { display: flex; }
+  .back { display: none; }
+  .bar-title { font-size: 14px; }
+  .dealer-name { font-size: 13px; }
+  .dealer-sub, .entry-name { font-size: 11.5px; }
+  .empty { font-size: 12px; }
+}

@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#101010">
+<!-- Says "this page is already dark", which stops Chrome's auto dark theme from inverting it a second time. Left
+     off, that feature dimmed the one thing on the page that has to stay white: the QR code's quiet zone came out
+     grey, and a camera reads a low-contrast code slowly or not at all. -->
+<meta name="color-scheme" content="dark">
+<title>Reflash</title>
+<link rel="stylesheet" href="/sc/font.css">
+<style>
+  /* THE ONE RULE THIS FILE EXISTS FOR: the phone screen is rendered at the size the game renders it - 400 x 733.4
+     css px upright, 733.4 x 400 on its side - and then scaled to whatever the device happens to be.
+
+     Letting the apps lay out at the device's own width was the reason the companion looked like a different mod.
+     A landscape app given 390px does not look like a smaller version of itself; it reflows into something else
+     entirely. Scaling a fixed layout is the only way the two screens can agree, and it is why the numbers below
+     are absolute rather than relative.
+
+     Sizes come from Workspace/docs/Reflash/vanilla-dumps/homescreen.txt, divided by 1.6375 - the canvas-to-css
+     factor - with the canvas figure in the comment. */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #101010;
+    color: #ffffff;
+    font-family: game-ui, "Segoe UI", Roboto, Arial, sans-serif;
+    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+
+    /* A phone, not a web page: nothing rubber-bands, nothing gets selected by a resting thumb, and nothing flashes
+       grey when it is tapped. */
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* The room the phone sits in. */
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* The screen itself, at game size. Width, height and scale are set from script. */
+  #screen {
+    position: relative;
+    flex: none;
+    overflow: hidden;
+    transform-origin: center center;
+    background: #676767;
+    box-shadow: 0 0 0 2px #000, 0 10px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  #pair, #home, #app { display: none; position: absolute; inset: 0; flex-direction: column; }
+  #pair.on, #home.on, #app.on { display: flex; }
+
+  /* An app comes up out of its icon and goes back into it, which is what every phone does and what makes the home
+     screen feel like a place rather than a menu. Transform and opacity only - both are composited, so this runs on
+     the GPU and stays smooth on a phone that is also running the game's stream. */
+  #app.on { animation: rise 180ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+  #home.on { animation: settle 160ms ease-out; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes settle {
+    from { opacity: 0; transform: scale(1.04); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #app.on, #home.on { animation: none; }
+  }
+
+  /* ---- home screen ------------------------------------------------------------------------------------------ */
+
+  /* Background 655x1161 #676767, with the Guilloche weave over it. The real weave is a sprite this page cannot
+     reach, so two crossing gradients stand in - it should read as texture, not as pattern. */
+  #home::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(45deg, #595b58 0 1px, transparent 1px 9px),
+      repeating-linear-gradient(-45deg, #595b58 0 1px, transparent 1px 9px);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* InfoBar 655x40 #3c3f3c, text size 28 white */
+  .infobar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 24.4px;
+    padding: 0 10px;
+    background: #3c3f3c;
+    font-size: 17.1px;
+    flex: none;
+    z-index: 1;
+  }
+
+  .infobar .time { flex: 1; }
+
+  /* AppIcons grid: cell 190x190, spacing 15 x 60, three columns inside a 600-wide viewport */
+  .grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 116px);
+    column-gap: 9.2px;
+    row-gap: 36.6px;
+    width: 366.4px;
+    margin: 0 auto;
+    padding: 49px 0 30px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .grid::-webkit-scrollbar { width: 0; }
+
+  .tile {
+    position: relative;
+    width: 116px;
+    height: 116px;
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Outline 184x185 white rounded, Mask/Image 170x170 inside it */
+  .tile .glyph {
+    position: absolute;
+    left: 1.8px;
+    top: 1.5px;
+    width: 112.4px;
+    height: 113px;
+    border-radius: 18px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .tile .glyph img { width: 103.8px; height: 103.8px; object-fit: contain; display: block; }
+
+  /* The fallback when an icon's artwork could not be read: the app's colour and its initial. */
+  .tile .glyph span {
+    width: 103.8px;
+    height: 103.8px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .tile:active .glyph { transform: scale(0.96); }
+
+  /* Label 190x50 at 0,-22, size 32 white, upper-centred - anchored to the tile's BOTTOM edge, which is why it
+     reads as a caption under the icon rather than across it. */
+  .tile .label {
+    position: absolute;
+    left: -6px;
+    right: -6px;
+    top: 118px;
+    font-size: 19.5px;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Notifications 60x60 at -20,-20 #ff4949, text size 36 */
+  .badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 36.6px;
+    height: 36.6px;
+    padding: 0 6px;
+    background: #ff4949;
+    border-radius: 18.3px;
+    font-size: 22px;
+    line-height: 36.6px;
+    text-align: center;
+  }
+
+  /* ---- an open app ------------------------------------------------------------------------------------------ */
+
+  /* The app fills the screen exactly, as it does in the game. Nothing is laid over it: no back button, no turn
+     button. The device already knows which way round it is, and its own back gesture already means back. */
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #323232; }
+
+  /* ---- pairing and messages -------------------------------------------------------------------------------- */
+
+  .msg { padding: 40px 26px; text-align: center; line-height: 1.5; }
+  .msg h2 { font-size: 22px; margin-bottom: 10px; }
+  .msg p { color: #d8d8d8; font-size: 16px; }
+
+  #toast {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: max(12px, env(safe-area-inset-top));
+    padding: 12px 14px;
+    background: #3c3f3c;
+    border: 1px solid #5a5d5a;
+    border-radius: 10px;
+    font-size: 14px;
+    display: none;
+    z-index: 6;
+  }
+
+  #toast.on { display: block; }
+  #toast b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="screen">
+
+    <div id="pair">
+      <div class="msg">
+        <h2>Connecting</h2>
+        <p id="pair-text">Pairing with the game...</p>
+      </div>
+    </div>
+
+    <div id="home">
+      <div class="infobar">
+        <div class="time" id="clock"></div>
+        <div class="signal">4G</div>
+      </div>
+      <div class="grid" id="tiles"></div>
+    </div>
+
+    <div id="app">
+      <!-- allowfullscreen so the app inside can ask for it during a real touch. The shell cannot: once an app is
+           open, every touch lands in the frame and a relayed one arrives too late to count as a gesture. -->
+      <iframe id="frame" title="app" allowfullscreen></iframe>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// The shell: trade the pairing token for a session, then be the phone.
+//
+// The token lives in the URL fragment on purpose - a fragment is never sent to a server, so it appears in no
+// request log, no proxy and no Referer. It is posted once and then removed from the address bar.
+
+// The SHORT side of the phone's screen in css pixels. Not a choice made here: the game's canvas is 655x1201 units
+// and the renderer divides by 1.6375, which is 400 across.
+//
+// Only the short side is fixed. Every width, padding and font size in every bundle is keyed to it, so holding it
+// constant is what keeps a companion screen identical to the game's. The LONG side follows the device instead, so
+// the app fills the phone edge to edge rather than sitting in a letterbox - a taller phone simply shows more rows,
+// which is what a real app does.
+var SHORT = 400;
+
+// How far the long side may run. A browser window dragged into a strange shape would otherwise hand an app a
+// layout nobody designed for.
+var LONG_MIN = 560;
+var LONG_MAX = 1400;
+
+var apps = [];
+var current = null;
+var landscape = false;          // is the SCREEN on its side (an app that wants to be), not the device
+
+// Used only when an icon's artwork could not be read off the phone.
+var COLOURS = {
+  'reflash-messages': '#4bbf5a',
+  'reflash-journal': '#e7944b',
+  'reflash-products': '#a33a3a',
+  'reflash-contacts': '#3d8fd8',
+  'reflash-map': '#3f9e59',
+  'reflash-dealers': '#3b3f6b',
+  'reflash-delivery': '#c14b9a',
+  'reflash-connect': '#7b5ec7',
+};
+
+function show(which) {
+  document.getElementById('pair').className = which === 'pair' ? 'on' : '';
+  document.getElementById('home').className = which === 'home' ? 'on' : '';
+  document.getElementById('app').className = which === 'app' ? 'on' : '';
+}
+
+// Which way the screen is held. The DEVICE decides - there is no button for it, because a phone already knows
+// which way round it is, and asking the player to say so a second time is not what a phone does. An app that
+// declared only one orientation keeps that one, exactly as the in-game phone refuses to turn those apps.
+function wanted() {
+  var wide = window.innerWidth > window.innerHeight;
+  if (!current) return wide;
+
+  return current.canTurn ? wide : current.declaredPortrait === false;
+}
+
+// Size the screen and scale it to fill the device. A transform rather than zoom or a rem base, because a transform
+// leaves every length inside the frame exactly as the game computed it.
+function fit() {
+  var screen = document.getElementById('screen');
+  landscape = wanted();
+
+  // The STAGE's content box, not the window. In fullscreen with viewport-fit=cover the window reaches under the
+  // status bar and the gesture bar, so innerHeight counts room the app cannot actually use - and the last reply
+  // button sat behind the home indicator, cut off along the bottom edge.
+  var stage = document.getElementById('stage');
+  var pad = getComputedStyle(stage);
+
+  var vw = stage.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+  var vh = stage.clientHeight - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom);
+
+  var long = Math.round(SHORT * Math.max(vw, vh) / Math.min(vw, vh));
+  long = Math.max(LONG_MIN, Math.min(LONG_MAX, long));
+
+  var w = landscape ? long : SHORT;
+  var h = landscape ? SHORT : long;
+
+  screen.style.width = w + 'px';
+  screen.style.height = h + 'px';
+
+  var k = Math.min(vw / w, vh / h);
+  screen.style.transform = 'scale(' + k + ')';
+
+  // Flexbox centres the box at its LAID-OUT size, so a scaled screen leaves the difference as empty space around
+  // it. Collapsing the margins puts it back in the middle of the stage.
+  screen.style.margin = ((h * k - h) / 2) + 'px ' + ((w * k - w) / 2) + 'px';
+
+  tellOrientation();
+}
+
+// The page has to be told when the screen changes shape. Nothing about its own document necessarily changed - the
+// frame is stretched to the screen either way - so it has no way of noticing by itself.
+//
+// SIZE, not just orientation. Only the short side is fixed at 400; the long one follows the device, so a page that
+// laid itself out at one height and is then handed another - a window dragged, a tablet turned, or simply the frame
+// being sized a moment after it loaded - would keep the layout it computed for a screen it no longer has.
+var told = '';
+
+function tellOrientation() {
+  var now = landscape ? 'landscape' : 'portrait';
+  var screen = document.getElementById('screen');
+  var stamp = now + ' ' + Math.round(parseFloat(screen.style.width)) + 'x' + Math.round(parseFloat(screen.style.height));
+
+  if (stamp === told) return;
+  told = stamp;
+
+  var frame = document.getElementById('frame');
+  if (frame.contentWindow) frame.contentWindow.postMessage({ k: 'orient', o: now }, '*');
+}
+
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', function () { setTimeout(fit, 150); });
+
+// A phone should be a phone: no address bar, no browser chrome. Asked for on a touch, because that is the only
+// moment a browser will grant it, and only on a device that has touches to give.
+//
+// Asked again whenever it has been lost, not once. Android's back gesture leaves fullscreen before it reaches the
+// page - the first press costs the chrome, the next one actually goes back - so a one-shot request meant the
+// address bar came back for good after a single tap of Back.
+function goFullscreen() {
+  if (!('ontouchstart' in window)) return;
+  if (document.fullscreenElement || document.webkitFullscreenElement) return;
+
+  var root = document.documentElement;
+  var ask = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (!ask) return;
+
+  try { ask.call(root); } catch (e) { /* refused, and the page is perfectly usable without it */ }
+}
+
+document.addEventListener('touchend', goFullscreen);
+
+// Android's back gesture is spent on LEAVING fullscreen before the page ever hears about it. A phone in fullscreen
+// therefore has no back at all: the first press costs the chrome, and the next touch - which asks for fullscreen
+// again - puts it straight back, so the press count never gets ahead.
+//
+// So the loss itself is read as the gesture. One press, one step back, exactly as everywhere else on the phone;
+// fullscreen returns with the next touch, which is the only moment a browser would grant it anyway.
+var wasFullscreen = false;
+
+function fullscreenNow() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function onFullscreenChange() {
+  var now = fullscreenNow();
+
+  if (wasFullscreen && !now) goBackOneStep();
+  wasFullscreen = now;
+}
+
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+// One step back, wherever the phone happens to be. An open app is asked first - it may have a sheet or a thread of
+// its own to close - and only closes when it says it has nothing left.
+function goBackOneStep() {
+  if (!current) return;
+
+  var frame = document.getElementById('frame');
+  if (frame.contentWindow) frame.contentWindow.postMessage({ k: 'back' }, '*');
+}
+
+function start() {
+  fit();
+
+  // Ask whether this device is ALREADY paired before spending the code.
+  //
+  // A pairing code admits exactly one device and is burnt on use, and five refused attempts from one address lock
+  // it out for a while. Reloading the page therefore used to cost a code every time and, after five reloads, the
+  // ability to pair at all - for a phone, where a reload is one accidental swipe away, that is a trap.
+  fetch('/api/manifest', { headers: { 'X-Reflash': '1' } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (installed) {
+      if (installed) {
+        // The cookie still stands. Nothing to redeem.
+        history.replaceState(null, '', '/');
+        apps = installed;
+        renderTiles();
+        goHome();
+        listen();
+        tick();
+        return;
+      }
+
+      redeem();
+    })
+    .catch(redeem);
+}
+
+function redeem() {
+  var hash = location.hash || '';
+  var token = '';
+
+  var at = hash.indexOf('t=');
+  if (at >= 0) token = decodeURIComponent(hash.substring(at + 2).split('&')[0]);
+
+  if (!token) { pairFailed('Scan the code shown in the game.'); return; }
+
+  fetch('/api/pair', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Reflash': '1' },
+    body: JSON.stringify({ t: token, device: navigator.userAgent.slice(0, 60) }),
+  }).then(function (r) {
+    if (!r.ok) {
+      // The server says WHY, and saying it is the difference between "show a new code" and twenty minutes of
+      // showing new codes that were never the problem.
+      r.text().then(function (why) { pairFailed(why || 'Pairing was refused.'); })
+              .catch(function () { pairFailed('Pairing was refused.'); });
+      return;
+    }
+
+    // The token has served its purpose and should not sit in the address bar, in history, or in a screenshot.
+    history.replaceState(null, '', '/');
+    loadApps();
+  }).catch(function () {
+    pairFailed('Could not reach the game.');
+  });
+}
+
+function pairFailed(text) {
+  document.getElementById('pair-text').textContent = text;
+  show('pair');
+}
+
+function loadApps() {
+  fetch('/api/manifest', { headers: { 'X-Reflash': '1' } })
+    .then(function (r) { return r.json(); })
+    .then(function (list) {
+      apps = list || [];
+      renderTiles();
+      goHome();
+      listen();
+      tick();
+    })
+    .catch(function () { pairFailed('Could not read the app list.'); });
+}
+
+function renderTiles() {
+  var grid = document.getElementById('tiles');
+  grid.innerHTML = '';
+
+  apps.forEach(function (app) {
+    var name = app.iconLabel || app.title || app.id;
+
+    var tile = document.createElement('button');
+    tile.className = 'tile';
+
+    var glyph = document.createElement('div');
+    glyph.className = 'glyph';
+
+    // The real artwork, taken off the phone's own home screen. If the game could not hand it over - a sprite that
+    // will not read back - the tile falls back to the app's colour and its initial rather than an empty frame.
+    var img = document.createElement('img');
+    img.src = '/icon/' + encodeURIComponent(name);
+    img.alt = '';
+    img.addEventListener('error', function () {
+      glyph.innerHTML = '';
+      var span = document.createElement('span');
+      span.style.background = COLOURS[app.id] || '#5a5a5a';
+      span.textContent = name.charAt(0).toUpperCase();
+      glyph.appendChild(span);
+    });
+
+    glyph.appendChild(img);
+    tile.appendChild(glyph);
+
+    var label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = name;
+    tile.appendChild(label);
+
+    if (app.badge > 0) {
+      var badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = app.badge > 99 ? '99+' : String(app.badge);
+      tile.appendChild(badge);
+    }
+
+    tile.addEventListener('click', function () { open(app); });
+    grid.appendChild(tile);
+  });
+}
+
+// The status bar carries the phone's clock in vanilla, in the game's own time. The companion has no clock of the
+// game's unless an app tells it one, so it shows the real one - stated the same way, "7:04 PM Monday".
+function tick() {
+  var el = document.getElementById('clock');
+  if (!el) return;
+
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+
+  var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  el.textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm + ' ' + days[now.getDay()];
+
+  setTimeout(tick, 20000);
+}
+
+function open(app) {
+  current = app;
+  told = null;
+
+  buzz(10);
+  document.getElementById('frame').src = '/app/' + app.id + '/index.html';
+  show('app');
+  fit();
+  keepAwake(true);
+}
+
+function close() {
+  current = null;
+  document.getElementById('frame').src = 'about:blank';
+  buzz(6);
+  goHome();
+  refreshBadges();
+  keepAwake(false);
+}
+
+// A short tick under the thumb. It is the difference between a page that reacts and a phone that answers, and it
+// costs nothing where the device has no motor.
+function buzz(ms) {
+  if (!navigator.vibrate) return;
+  try { navigator.vibrate(ms); } catch (e) { /* refused, and nothing depends on it */ }
+}
+
+// Hold the screen on while an app is up.
+//
+// This is a second screen for a game being played on another one: the phone is watched, not touched, and a phone
+// that is only watched locks itself after fifteen seconds. Every unlock then costs the pairing cookie nothing but
+// costs the player their place. Released again on the home screen so the phone behaves normally when it is idle.
+var wakeLock = null;
+
+function keepAwake(on) {
+  if (!navigator.wakeLock) return;
+
+  if (!on) {
+    if (wakeLock) { try { wakeLock.release(); } catch (e) { /* already gone */ } wakeLock = null; }
+    return;
+  }
+
+  if (wakeLock) return;
+
+  navigator.wakeLock.request('screen')
+    .then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener('release', function () { wakeLock = null; });
+    })
+    .catch(function () { /* refused - the phone simply dims as it would anyway */ });
+}
+
+// A lock is dropped whenever the page is hidden, so it has to be taken again on the way back.
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && current) keepAwake(true);
+});
+
+function goHome() {
+  show('home');
+  fit();
+}
+
+// An app asks to be closed when its own back handler declined to keep it open - the same contract the in-game
+// phone has. It also passes its touches up, because they are the only user gesture this document ever sees once an
+// app is open, and a gesture is what fullscreen needs.
+window.addEventListener('message', function (e) {
+  if (!e.data) return;
+
+  if (e.data.k === 'close') close();
+  else if (e.data.k === 'touch') goFullscreen();
+});
+
+// The event stream. EventSource reconnects on its own, which is most of why this is SSE rather than a socket.
+function listen() {
+  var source = new EventSource('/events');
+
+  source.onmessage = function (e) {
+    var msg;
+    try { msg = JSON.parse(e.data); } catch (err) { return; }
+
+    if (msg.k === 'badge') {
+      for (var i = 0; i < apps.length; i++) if (apps[i].id === msg.app) apps[i].badge = msg.c;
+      if (!current) renderTiles();
+      return;
+    }
+
+    if (msg.k === 'notify') { toast(msg.t, msg.s); return; }
+
+    if (msg.k === 'emit') {
+      var frame = document.getElementById('frame');
+      if (current && frame.contentWindow) frame.contentWindow.postMessage(msg, '*');
+    }
+  };
+}
+
+function refreshBadges() {
+  fetch('/api/manifest', { headers: { 'X-Reflash': '1' } })
+    .then(function (r) { return r.json(); })
+    .then(function (list) { apps = list || apps; renderTiles(); })
+    .catch(function () {});
+}
+
+var toastTimer = null;
+
+function toast(title, subtitle) {
+  var el = document.getElementById('toast');
+  el.innerHTML = '';
+
+  var b = document.createElement('b');
+  b.textContent = title || '';
+  el.appendChild(b);
+
+  if (subtitle) {
+    var s = document.createElement('span');
+    s.textContent = subtitle;
+    el.appendChild(s);
+  }
+
+  el.className = 'on';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.className = ''; }, 4000);
+}
+
+start();
+</script>
+
+</body>
+</html>

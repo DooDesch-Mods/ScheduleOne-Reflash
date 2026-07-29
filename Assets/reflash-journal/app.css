@@ -1,0 +1,165 @@
+/* Journal.
+
+   Measured off Workspace/docs/Reflash/vanilla-shots/04 and 21, with the phone's screen cut out of them and scaled
+   to the size this app lays out at: 733.4 x 400 css px on its side.
+
+   Vanilla holds this app in landscape and shows both panes at once. Portrait is this mod's own arrangement - the
+   list, and the detail pushed over it - because two panes in 400px would be two unreadable columns. */
+
+body {
+  height: 100%;
+  font-family: game-ui;
+  font-size: 12px;
+  color: #2b2b2b;
+  background: #f4f4f4;
+}
+
+.app { height: 100%; background: #f4f4f4; }
+
+/* The one coloured thing on the screen: an orange bar with the app's name in it. */
+.bar {
+  position: relative;
+  flex: none;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  background: #e0904a;
+}
+
+.bar-title { font-size: 16px; font-weight: bold; color: #ffffff; text-align: center; }
+
+.back {
+  display: none;
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 24px;
+  height: 24px;
+  background: #ffffff00;
+  border: 0;
+  color: #ffffff;
+  font-size: 18px;
+  text-align: center;
+}
+
+.panes { flex: 1; min-height: 0; flex-direction: row; gap: 16px; padding: 6px; }
+
+.tasks-pane { flex: 1; min-width: 0; }
+.details-pane { width: 282px; }
+
+.section-title { flex: none; height: 18px; padding-left: 3px; font-size: 12px; font-weight: bold; color: #2b2b2b; }
+
+/* Both panes sit in the same light panel; only what is in them differs. */
+.panel { flex: 1; min-height: 0; background: #e0e0e0; border-radius: 4px; padding: 4px; }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; gap: 4px; }
+
+.empty { display: none; padding: 10px 8px; font-size: 12px; color: #8a8a8a; text-align: center; }
+.empty.on { display: block; }
+
+/* One task: a grey pill with a gold badge and the title. Selected, vanilla darkens it. */
+.quest {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  padding: 0 6px;
+  background: #9a9a9a;
+  border-radius: 11px;
+}
+
+.quest:hover { background: #7a7a7a; }
+.quest.on { background: #4a4a4a; }
+
+.quest-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #e8a33d;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.quest-icon img { width: 10px; height: 10px; }
+
+.quest-title { flex: 1; min-width: 0; font-size: 12px; font-weight: bold; color: #ffffff; }
+
+.timer { flex: none; font-size: 11px; color: #ffffff; }
+.timer.critical { color: #ffb0b0; }
+
+/* ---- the detail ------------------------------------------------------------------------------------------- */
+
+.detail-box { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 6px; }
+
+.hint { display: none; padding-top: 24px; font-size: 12px; font-style: italic; color: #8a8a8a; text-align: center; }
+.hint.on { display: block; }
+
+.detail-title { flex: none; font-size: 14px; font-weight: bold; color: #2b2b2b; }
+
+.detail-desc {
+  display: block;
+  flex: none;
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #4a4a4a;
+}
+
+.detail-label { flex: none; margin-top: 8px; font-size: 11.5px; color: #6a6a6a; }
+
+/* A step is a light strip with its state written on the right, in italics, the way vanilla does it. */
+.step {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0 6px;
+  background: #ededed;
+  border-radius: 2px;
+}
+
+.step.done { background: #e6e6e6; }
+
+.step-title { flex: 1; min-width: 0; font-size: 11.5px; color: #2b2b2b; }
+.step.done .step-title { color: #8a8a8a; }
+.step.failed .step-title { color: #b04a4a; }
+
+.step-state { flex: none; font-size: 11px; font-style: italic; color: #8a8a8a; }
+
+.pin {
+  flex: none;
+  height: 15px;
+  padding: 0 6px;
+  background: #d0d0d0;
+  border: 0;
+  border-radius: 7px;
+  color: #4a4a4a;
+  font-size: 10px;
+  text-align: center;
+}
+
+.pin:hover { background: #c0c0c0; }
+
+/* ------------------------------------------------------------------------------------------------- portrait --
+   Vanilla cannot turn this app, so upright is this mod's own: one pane at a time, with the bar's arrow to go back. */
+@media (orientation: portrait) {
+  .panes { flex-direction: column; gap: 8px; }
+  .tasks-pane, .details-pane { width: auto; flex: 1; min-height: 0; }
+
+  .app.show-detail .tasks-pane { display: none; }
+  .app:not(.show-detail) .details-pane { display: none; }
+  .app.show-detail .back { display: flex; }
+
+  .quest { height: 30px; border-radius: 15px; }
+  .quest-title { font-size: 15px; }
+  .quest-icon { width: 20px; height: 20px; border-radius: 10px; }
+  .detail-title { font-size: 18px; }
+  .detail-desc { font-size: 14px; }
+  .step { height: 26px; }
+  .step-title, .step-state { font-size: 14px; }
+}

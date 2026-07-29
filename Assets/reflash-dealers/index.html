@@ -1,0 +1,24 @@
+<link rel="stylesheet" href="app.css">
+
+<div class="app" id="app">
+
+  <aside class="list-pane">
+    <header class="bar"><div class="bar-title">Dealer Management</div></header>
+
+    <!-- Above the list, not after it: the list is flex:1, so anything below it is pushed to the bottom edge, and
+         vanilla puts this line directly under the title. Same words vanilla uses. -->
+    <div class="empty" id="empty">You haven't recruited any dealers</div>
+    <div class="scroll" id="dealers"></div>
+  </aside>
+
+  <main class="detail-pane" id="detail-pane">
+    <header class="bar">
+      <button class="back" id="back">&lt;</button>
+      <div class="bar-title" id="detail-title">Dealer</div>
+    </header>
+    <div class="scroll" id="detail"></div>
+  </main>
+
+</div>
+
+<script src="app.js"></script>

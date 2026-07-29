@@ -1,0 +1,860 @@
+/* Messages.
+
+   Every number here was measured off the vanilla screenshots in Workspace/docs/Reflash/vanilla-shots, after cutting
+   the phone's screen out of them and scaling it to the size the app actually lays out at - 400 x 733.4 css px
+   upright. That step is what makes a measurement mean anything: the screenshots were taken at whatever size the
+   window happened to be, so a distance in screenshot pixels is a distance in nothing.
+
+   The screenshots decide WHERE things go. Reading the object dump instead is how the first attempt ended up with
+   invented filter chips, the category badge on the wrong side and no hide button at all. */
+
+body {
+  height: 100%;
+  font-family: game-ui;
+  font-size: 12px;
+  color: #2b2b2b;
+  background: #f0f0f0;
+}
+
+.app { height: 100%; background: #f0f0f0; }
+
+/* ------------------------------------------------------------------------------------------------- the list -- */
+
+.list { height: 100%; }
+.app.on-thread .list { display: none; }
+
+/* "Messages", large and heavy, over the list rather than in a coloured bar. */
+.list-head {
+  flex: none;
+  height: 75px;
+  padding: 0 31px;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: bold;
+  color: #2b2b2b;
+}
+
+.rows { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* A row is a plain box and everything in it is placed absolutely, because vanilla places it that way: the
+   separator spans only part of the width, the unread dot sits left of the mugshot, and the category badge sits
+   immediately after the name rather than at the far edge. */
+.row {
+  position: relative;
+  flex: none;
+  height: 91px;
+}
+
+.row:hover { background: #e9e9e9; }
+
+/* The separator is inset on both sides - it is not the row's edge. */
+.row-line {
+  position: absolute;
+  left: 31px;
+  right: 39px;
+  top: 0;
+  height: 2px;
+  background: #dcdcdc;
+}
+
+.row-dot {
+  position: absolute;
+  left: 20px;
+  top: 42px;
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  background: #2196f3;
+}
+
+.row-face {
+  position: absolute;
+  left: 42px;
+  top: 18px;
+  width: 57px;
+  height: 57px;
+  border-radius: 29px;
+  background: #e2e2e2;
+  align-items: center;
+  justify-content: center;
+  color: #9a9a9a;
+  font-size: 24px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.row-face img { width: 57px; height: 57px; border-radius: 29px; }
+
+.row-name {
+  position: absolute;
+  left: 116px;
+  top: 13px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-name-text { font-size: 21px; font-weight: bold; color: #2b2b2b; }
+
+/* The letter after the name: C for a customer, S for a supplier, D for a dealer. */
+.cat {
+  width: 26px;
+  height: 20px;
+  border-radius: 5px;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.cat.customer { background: #5cb85c; }
+.cat.supplier { background: #d9534f; }
+.cat.dealer { background: #8a82e5; }
+
+/* Two lines and then it stops - vanilla clips there, and without the ceiling a long message grew a third line that
+   ran past the bottom of its own row and under the next one. */
+.row-preview {
+  display: block;      /* as .bubble - a coloured price is an inline span and must stay in the sentence */
+  position: absolute;
+  left: 116px;
+  right: 46px;
+  top: 40px;
+  height: 44px;
+  overflow: hidden;
+  font-size: 19px;
+  color: #939393;
+  line-height: 1.18;
+}
+
+/* Vanilla only puts the cross on a customer's row. */
+.row-hide {
+  position: absolute;
+  right: 8px;
+  top: 33px;
+  width: 26px;
+  height: 26px;
+  background: #ffffff00;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-hide img { width: 16px; height: 16px; }
+.row-hide:hover { background: #00000010; border-radius: 13px; }
+
+/* How long an offer still stands, as a hairline along the bottom of the row. */
+.row-offer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #61c828;
+}
+
+.row-offer.low { background: #d7b13a; }
+.row-offer.gone { background: #c25c4e; }
+
+.list-empty { padding: 40px 20px 0 20px; font-size: 19px; color: #939393; text-align: center; }
+
+/* --------------------------------------------------------------------------------------------- one thread -- */
+
+.thread { display: none; height: 100%; }
+.app.on-thread .thread { display: flex; }
+
+/* The mugshot, the name, the relationship band and whatever this contact is measured by are ONE group centred in
+   the strip - vanilla does not left-align them - while the back arrow is taken out of the flow so it cannot shift
+   that centre. */
+.chat-head {
+  position: relative;
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 62px;
+  background: #e5e5e5;
+}
+
+/* An <img> is sized by CSS, never by its width/height attributes - the layout runs without Unity and cannot open a
+   PNG to learn its intrinsic size, so a picture with no CSS size is a box of nothing. */
+.back .icon { width: 14px; height: 20px; }
+.star .icon { width: 14px; height: 14px; }
+.compose .icon { width: 22px; height: 22px; }
+
+/* Icons are PNGs in the bundle, not characters. The font atlases carry Latin-1 and nothing else, so every arrow,
+   cross and star typed as a glyph draws as an empty box - and the ones that DO exist ('<', 'x', '*') are letters
+   pretending to be icons. The CSS triangle trick is no help either: the renderer keeps one border colour per box,
+   so the transparent sides come out coloured too and the arrow is a square. */
+.back {
+  position: absolute;
+  left: 14px;
+  top: 17px;
+  width: 30px;
+  height: 28px;
+  background: #ffffff00;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.back:hover { background: #00000010; border-radius: 6px; }
+
+.head-face {
+  flex: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background: #ededed;
+  align-items: center;
+  justify-content: center;
+  color: #9a9a9a;
+  font-size: 19px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.head-face img { width: 50px; height: 50px; border-radius: 25px; }
+
+.head-mid { flex: none; align-items: flex-start; gap: 4px; }
+.head-name { font-size: 24px; font-weight: bold; color: #2b2b2b; }
+
+/* The relationship scale. FIVE bands, not a gradient: vanilla shows the categories as discrete blocks, and a
+   smooth ramp reads as a progress bar instead of as "where on the scale this person sits". */
+/* The bar sits in a light frame of its own, and the marker overhangs it top and bottom - so no overflow clipping
+   here, which is what flattened the marker into the band. */
+.head-band {
+  position: relative;
+  flex-direction: row;
+  width: 127px;
+  height: 13px;
+  padding: 2px;
+  background: #dcdcdc;
+  border-radius: 4px;
+}
+
+.head-band .seg { height: 9px; width: 24.6px; }
+.head-band .seg.s1 { background: #ab3535; }
+.head-band .seg.s2 { background: #e08a3c; }
+.head-band .seg.s3 { background: #b4b4b4; }
+.head-band .seg.s4 { background: #4aa3dd; }
+.head-band .seg.s5 { background: #5ed84a; }
+
+.head-marker {
+  position: absolute;
+  top: -3px;
+  margin-left: 2px;
+  width: 7px;
+  height: 19px;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+/* The standards star, on the quality colour the customer expects. */
+.star {
+  flex: none;
+  width: 24px;
+  height: 22px;
+  border-radius: 5px;
+  background: #8f2f2f;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A little card, not two loose lines: vanilla boxes the debt in its own light panel. */
+.debt {
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.debt-label { font-size: 19px; font-weight: bold; color: #2b2b2b; }
+
+.debt-value {
+  padding: 2px 14px;
+  background: #eeeeee;
+  border-radius: 5px;
+  font-size: 19px;
+  color: #e03131;
+}
+
+.bubbles {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 14px 10px 14px;
+  gap: 67px;
+  background: #f0f0f0;
+}
+
+/* Their words on the left in grey, yours on the right in blue, each with the little tail vanilla draws.
+
+   display: block, not the flex default. A coloured price arrives as a <span> inside the sentence, and a flex
+   container blockifies every child - so the span became its own line and "I'll pay $120 for it" broke into three.
+   The renderer folds inline children into one string and never had the problem; the browser needs telling. */
+.bubble {
+  display: block;
+  position: relative;
+  flex: none;
+  max-width: 78%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: #e1e1e1;
+  color: #2b2b2b;
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+.bubble.me { background: #4bafe1; color: #ffffff; }
+
+/* The tail. A square turned through 45 degrees - and turned about its TOP-LEFT corner, because that is the only
+   pivot the renderer has. The browser is told the same so the two agree. */
+.tail {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: #e1e1e1;
+  transform: rotate(45deg);
+  transform-origin: 0 0;
+}
+
+/* Half of the diamond lands inside the bubble, where it is the same colour and disappears; what is left below is
+   the triangle. The offsets follow from the pivot: turned about its top-left corner, an 11px square becomes a
+   diamond whose TOP point is the anchor and which then hangs 15.6px down. */
+.bubble.them .tail { left: 6px; bottom: -3px; }
+.bubble.me .tail { right: -4px; bottom: -3px; background: #4bafe1; }
+
+/* The answers to an offer, stacked on their own strip below the conversation. */
+.replies { flex: none; gap: 8px; padding: 12px 13px 14px 13px; background: #e5e5e5; }
+
+.reply {
+  flex: none;
+  height: 41px;
+  justify-content: center;
+  background: #4bafe1;
+  border: 0;
+  border-radius: 21px;
+  color: #ffffff;
+  font-size: 20px;
+  text-align: center;
+}
+
+.reply:hover { background: #5cbcea; }
+.reply:active { background: #3f9dcb; }
+
+/* "Send Message" - a supplier's way in, and only shown when there is something to say. */
+.compose-bar { display: none; flex: none; height: 118px; background: #fefefe; }
+.app.has-compose .compose-bar { display: flex; }
+
+.compose {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  margin: 17px 12px 0 12px;
+  padding: 0 16px;
+  height: 60px;
+  background: #e5e5e5;
+  border: 0;
+  border-radius: 12px;
+}
+
+.compose:hover { background: #dcdcdc; }
+
+.compose-text { flex: 1; font-size: 21px; color: #6e6e6e; text-align: left; }
+
+/* ------------------------------------------------------------------------------------------- the send sheet -- */
+
+.sheet { display: none; position: absolute; left: 0; right: 0; top: 240px; bottom: 0; background: #fefefe; }
+.app.on-sheet .sheet { display: flex; }
+
+.sheet-title {
+  flex: none;
+  height: 68px;
+  justify-content: center;
+  font-size: 21px;
+  font-weight: bold;
+  color: #2b2b2b;
+  text-align: center;
+}
+
+.sheet-list { flex: 1; min-height: 0; overflow-y: auto; gap: 19px; padding: 0 49px; }
+
+.sheet-item {
+  flex: none;
+  padding: 9px 18px;
+  background: #4bafe1;
+  border: 0;
+  border-radius: 21px;
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.sheet-item:hover { background: #5cbcea; }
+.sheet-item.off { background: #b9d7e6; color: #eef6fa; }
+
+.sheet-cancel {
+  flex: none;
+  margin: 12px 49px 8px 49px;
+  height: 49px;
+  justify-content: center;
+  background: #e6e6e6;
+  border: 0;
+  border-radius: 8px;
+  color: #9a9a9a;
+  font-size: 21px;
+  text-align: center;
+}
+
+.sheet-cancel:hover { background: #dedede; }
+
+/* ----------------------------------------------------------------------------------------- the game's sheets --
+   The counter-offer and a supplier's order sheet. Both are windows the GAME opens - choosing "[Counter-offer]" or
+   sending "I need to order a dead drop" runs code that opens them and keeps the callback that completes the deal -
+   so this page draws them and drives the real ones underneath. */
+
+.veil {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: #00000040;
+  align-items: center;
+  justify-content: center;
+}
+
+.app.on-counter .veil.counter { display: flex; }
+.app.on-order .veil.order { display: flex; }
+.app.on-deal .veil.deal { display: flex; }
+
+.card {
+  position: relative;    /* the close cross is placed against this, not against the veil */
+  flex: none;
+  width: 330px;
+  background: #fefefe;
+  border-radius: 3px;
+}
+
+.card-title {
+  flex: none;
+  height: 41px;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2b2b2b;
+  text-align: center;
+}
+
+.card-sub { flex: none; font-size: 15px; color: #7a7a7a; text-align: center; }
+
+.card-close {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  width: 30px;
+  height: 30px;
+  background: #ffffff00;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-close img { width: 19px; height: 19px; }
+.card-close:hover { background: #00000010; border-radius: 15px; }
+
+/* ---- counter-offer ---- */
+
+.card.counter { padding-bottom: 13px; }
+
+.co-label { flex: none; margin-top: 22px; font-size: 15px; color: #7a7a7a; text-align: center; }
+
+.co-row {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.step {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  justify-content: center;
+  background: #f4f4f4;
+  border: 0;
+  border-radius: 4px;
+  color: #2b2b2b;
+  font-size: 22px;
+  text-align: center;
+}
+
+.step:hover { background: #e6e6e6; }
+
+.co-product {
+  position: relative;
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 221px;
+  height: 37px;
+  background: #f4f4f4;
+  border: 0;
+  border-radius: 4px;
+}
+
+.co-product:hover { background: #ebebeb; }
+.co-product img { width: 24px; height: 24px; }
+.co-product .name { font-size: 21px; color: #2b2b2b; }
+
+/* The amount buttons, sized to their own text, with the price itself as a taller chip between them. */
+.co-money {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.money-step {
+  flex: none;
+  height: 24px;
+  min-width: 26px;
+  padding: 0 4px;
+  justify-content: center;
+  background: #f4f4f4;
+  border: 0;
+  border-radius: 4px;
+  color: #2b2b2b;
+  font-size: 15px;
+  text-align: center;
+}
+
+.money-step:hover { background: #e6e6e6; }
+
+.co-price {
+  flex: none;
+  width: 70px;
+  height: 38px;
+  justify-content: center;
+  background: #f4f4f4;
+  border-radius: 4px;
+  color: #2fbf2f;
+  font-size: 22px;
+  text-align: center;
+}
+
+.co-fair { flex: none; margin-top: 8px; font-size: 16px; font-style: italic; color: #6a6a6a; text-align: center; }
+
+.co-send {
+  flex: none;
+  margin: 14px 14px 0 14px;
+  height: 34px;
+  justify-content: center;
+  background: #5dbafd;
+  border: 0;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 21px;
+  text-align: center;
+}
+
+.co-send:hover { background: #74c5fe; }
+
+/* The product picker hangs off the box it replaces, exactly as wide. */
+.picker {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 37px;
+  width: 221px;
+  height: 285px;
+  background: #fefefe;
+  border-radius: 4px;
+}
+
+.app.on-picker .picker { display: flex; }
+
+.picker-search {
+  flex: none;
+  margin: 8px 8px 0 8px;
+  padding: 0 8px;
+  height: 24px;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  color: #2b2b2b;
+  font-size: 15px;
+  text-align: left;
+}
+
+.picker-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+  padding: 8px;
+}
+
+.pick {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4;
+  border: 0;
+  border-radius: 4px;
+}
+
+.pick:hover { background: #e2e2e2; }
+.pick img { width: 28px; height: 28px; }
+.pick .letter { font-size: 17px; color: #7a7a7a; text-align: center; }
+
+.picker-foot {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 15px;
+  color: #4a4a4a;
+}
+
+.picker-foot .page { flex: 1; text-align: center; }
+.picker-foot .turn { background: #ffffff00; border: 0; color: #4a4a4a; font-size: 15px; }
+.picker-foot .turn:hover { color: #000000; }
+
+/* ---- which window the deal lands in ----
+
+   Vanilla draws a CLOCK, not a list: Content 540x740 with a 450x450 wheel quartered into Morning (top left),
+   Afternoon (top right), Night (bottom right) and Late Night (bottom left), a white cross between them, a marker on
+   the rim at the current time, and a white disc at the middle. Noon is at the top and midnight at the bottom, which
+   is what puts 6AM on the left and 6PM on the right.
+
+   Sizes are the prefab's over 1.6375; the two blues are measured off the vanilla screen, because the prefab tints a
+   sprite and the result is neither the tint nor the sprite. */
+
+.card.deal { width: 329.8px; height: 451.9px; padding-bottom: 0; }
+
+/* Title 540x50 at -53 from the top, size 32 #323232. */
+.dw-title { flex: none; margin-top: 17.1px; font-size: 19.5px; color: #323232; text-align: center; }
+
+/* Subtitle 480x164.6 at -110, size 24 #7b7b7b, two lines. */
+.dw-sub {
+  flex: none;
+  width: 293.1px;
+  margin: 8px auto 0 auto;
+  font-size: 14.7px;
+  line-height: 1.25;
+  color: #7b7b7b;
+  text-align: center;
+}
+
+/* The clock's own reading, above the wheel and against the left edge, as vanilla places it. */
+.dw-now { flex: none; margin: 10px 0 0 23px; font-size: 14.7px; color: #7b7b7b; }
+.dw-now-value { flex: none; margin-left: 23px; font-size: 19.5px; color: #323232; }
+
+/* Wheel 450x450, its middle 100 units below the card's. */
+.dw-wheel { position: absolute; left: 27.5px; top: 149.6px; width: 274.8px; height: 274.8px; }
+
+/* Each quadrant is a square with ONE corner rounded to the full radius - four of them make the disc, and each stays
+   its own hit target. Whole-circle clipping would need a round mask, which neither renderer has. */
+.dw-q {
+  position: absolute;
+  width: 137.4px;
+  height: 137.4px;
+  background: #5086b6;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.dw-q.tl { left: 0; top: 0; border-radius: 137.4px 0 0 0; }
+.dw-q.tr { right: 0; top: 0; border-radius: 0 137.4px 0 0; }
+.dw-q.br { right: 0; bottom: 0; border-radius: 0 0 137.4px 0; }
+.dw-q.bl { left: 0; bottom: 0; border-radius: 0 0 0 137.4px; }
+
+/* The dial is a DAY/NIGHT picture, not a state display - its sprite is literally called "Day night shit". The top
+   half is daylight and the bottom half is night, always, whatever is choosable. Reading the dark half as "closed"
+   is the mistake that made the first version paint all four the same blue. */
+.dw-q.tl, .dw-q.tr { background: #5086b6; }
+.dw-q.bl, .dw-q.br { background: #010715; }
+
+.dw-q.tl:hover, .dw-q.tr:hover { background: #5f97c7; }
+.dw-q.bl:hover, .dw-q.br:hover { background: #0b1729; }
+
+/* A window with under two hours left is closed today. Vanilla lays a dark wash over the quadrant rather than
+   hiding it - the player still needs to see that the window exists and comes back tomorrow. */
+.dw-q .dw-shade { display: none; position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: #00000064; }
+.dw-q.off .dw-shade { display: block; }
+
+.dw-q.tl .dw-shade { border-radius: 137.4px 0 0 0; }
+.dw-q.tr .dw-shade { border-radius: 0 137.4px 0 0; }
+.dw-q.br .dw-shade { border-radius: 0 0 137.4px 0; }
+.dw-q.bl .dw-shade { border-radius: 0 0 0 137.4px; }
+
+.dw-q.off:hover { background: #5086b6; }
+.dw-q.bl.off:hover, .dw-q.br.off:hover { background: #010715; }
+
+/* Title size 30, time size 24, both white, stacked and sitting slightly inside the quadrant's own middle. */
+.dw-q-name { font-size: 18.3px; color: #ffffff; text-align: center; }
+.dw-q-span { font-size: 14.7px; color: #ffffff; text-align: center; }
+
+.dw-q.tl { padding: 24px 0 0 18px; }
+.dw-q.tr { padding: 24px 18px 0 0; }
+.dw-q.br { padding: 0 18px 24px 0; }
+.dw-q.bl { padding: 0 0 24px 18px; }
+
+/* Line 450x10 and 10x450, white - the cross between the quadrants. */
+.dw-line-h { position: absolute; left: 0; top: 134.3px; width: 274.8px; height: 6.1px; background: #ffffff; }
+.dw-line-v { position: absolute; left: 134.3px; top: 0; width: 6.1px; height: 274.8px; background: #ffffff; }
+
+/* The marker on the rim: Image 18x70 at radius 225, with an 8x60 black bar inside it. Straddles the rim rather than
+   sitting inside it, which is why it pokes out past the circle.
+
+   transform-origin is load-bearing. The renderer rotates every box about its TOP-LEFT and a browser about its
+   centre, so the page pins the browser to the renderer's rule and works out the top-left that puts the marker's
+   middle where it belongs. Midnight is at the bottom; the angle runs clockwise from there, one turn a day. */
+.dw-arm-mark {
+  position: absolute;
+  width: 11px;
+  height: 42.7px;
+  background: #ffffff;
+  align-items: center;
+  transform-origin: 0 0;
+}
+
+.dw-arm-line { width: 4.9px; height: 36.6px; margin-top: 3px; background: #000000; }
+
+/* Center 50x50, a white disc over the crossing lines. */
+.dw-centre {
+  position: absolute;
+  left: 122.1px;
+  top: 122.1px;
+  width: 30.5px;
+  height: 30.5px;
+  border-radius: 15.3px;
+  background: #ffffff;
+}
+
+/* ---- a supplier's order sheet ---- */
+
+.card.order { padding-bottom: 12px; }
+
+.order-panel {
+  flex: none;
+  height: 277px;
+  overflow-y: auto;
+  gap: 3px;
+  margin: 23px 13px 0 13px;
+  padding: 2px 0;
+  background: #eaeaea;
+  border-radius: 5px;
+}
+
+.order-row {
+  position: relative;
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  height: 40px;
+  padding: 0 8px;
+  gap: 8px;
+  background: #f0f0f0;
+  border-radius: 5px;
+}
+
+.order-row img { flex: none; width: 26px; height: 26px; }
+
+.order-text { flex: 1; min-width: 0; gap: 1px; }
+.order-name { font-size: 15px; color: #2b2b2b; }
+.order-price { font-size: 13px; color: #2fbf2f; }
+
+.order-qty { flex: none; flex-direction: row; align-items: center; gap: 9px; }
+.order-qty .n { width: 20px; font-size: 19px; color: #2b2b2b; text-align: center; }
+
+.order-lock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  background: #00000080;
+  border-radius: 5px;
+}
+
+.order-lock img { width: 22px; height: 22px; }
+.order-lock .why { flex: 1; font-size: 16px; font-style: italic; color: #ffffff; }
+
+.order-sums {
+  flex: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin: 14px 13px 0 13px;
+  gap: 12px;
+}
+
+.sum { flex-direction: row; align-items: center; gap: 8px; width: 145px; }
+.sum .k { font-size: 17px; font-weight: 600; color: #2b2b2b; }
+.sum .v { font-size: 17px; color: #2fbf2f; }
+.sum .v.plain { color: #2b2b2b; }
+.sum .v.over { color: #e03131; }
+
+.order-send {
+  flex: none;
+  margin: 15px 13px 0 13px;
+  height: 36px;
+  justify-content: center;
+  background: #5dbafd;
+  border: 0;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 21px;
+  text-align: center;
+}
+
+.order-send:hover { background: #74c5fe; }
+.order-send.off { background: #bfd0e3; color: #f0f4f8; }
+
+/* ------------------------------------------------------------------------------------------------- landscape --
+   Vanilla cannot turn this app at all, so the wide shape is this mod's own: the thread beside the list rather than
+   pushed over it. */
+@media (orientation: landscape) {
+  .app { flex-direction: row; }
+
+  .list { width: 46%; }
+  .app.on-thread .list { display: flex; }
+
+  .thread { display: flex; flex: 1; min-width: 0; }
+
+  .list-head { height: 48px; font-size: 26px; padding: 0 20px; }
+  .row { height: 64px; }
+  .row-face { left: 28px; top: 12px; width: 40px; height: 40px; border-radius: 20px; font-size: 17px; }
+  .row-face img { width: 40px; height: 40px; border-radius: 20px; }
+  .row-dot { left: 12px; top: 28px; }
+  .row-line { left: 21px; right: 26px; }
+  .row-name { left: 79px; top: 8px; }
+  .row-name-text { font-size: 16px; }
+  .cat { width: 17px; height: 17px; border-radius: 4px; font-size: 11px; }
+  .row-preview { left: 79px; top: 29px; height: 30px; font-size: 13px; }
+  .row-hide { top: 20px; }
+  .back { display: none; }
+  .bubbles { gap: 34px; }
+  .sheet { top: 120px; }
+}

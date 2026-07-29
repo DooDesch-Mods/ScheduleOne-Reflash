@@ -1,0 +1,151 @@
+<link rel="stylesheet" href="app.css">
+
+<!-- Messages, rebuilt from Workspace/docs/Reflash/vanilla-shots (01, 02, 03, 15, 16, 17, 18, 19, 20).
+
+     The list and the thread are two SCREENS, not two panes: vanilla holds this app upright and pushes one over
+     the other, and the blue back arrow in the thread's header is the way out. -->
+
+<div class="app" id="app">
+
+  <!-- ---- the list ---------------------------------------------------------------------------------------- -->
+  <section class="list" id="list">
+    <header class="list-head">Messages</header>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <!-- ---- one conversation -------------------------------------------------------------------------------- -->
+  <section class="thread" id="thread">
+
+    <!-- Back arrow, round mugshot, name, and then whatever this contact is measured by: a customer's relationship
+         band with the standards star, a supplier's debt. -->
+    <header class="chat-head">
+      <button class="back" id="back"><img class="icon" src="icon-back.png" alt=""></button>
+      <div class="head-face" id="head-face"></div>
+
+      <div class="head-mid">
+        <div class="head-name" id="head-name"></div>
+        <div class="head-band" id="head-band"><div class="seg s1"></div><div class="seg s2"></div><div class="seg s3"></div><div class="seg s4"></div><div class="seg s5"></div><div class="head-marker" id="head-marker"></div></div>
+      </div>
+
+      <div class="star" id="head-star"><img class="icon" src="icon-star.png" alt=""></div>
+
+      <div class="debt" id="head-debt">
+        <div class="debt-label">Debt</div>
+        <div class="debt-value" id="head-debt-value"></div>
+      </div>
+    </header>
+
+    <div class="bubbles" id="bubbles"></div>
+
+    <!-- What the conversation is waiting for: the answers to an offer. -->
+    <div class="replies" id="replies"></div>
+
+    <!-- A supplier's way in. Hidden for anyone with nothing to say. -->
+    <div class="compose-bar">
+      <button class="compose" id="compose">
+        <span class="compose-text">Send Message</span>
+        <img class="icon" src="icon-pencil.png" alt="">
+      </button>
+    </div>
+  </section>
+
+  <!-- The sheet "Send Message" opens. A screen of its own in vanilla, not a popup over the text. -->
+  <section class="sheet" id="sheet">
+    <div class="sheet-title">Send Message</div>
+    <div class="sheet-list" id="sheet-list"></div>
+    <button class="sheet-cancel" id="sheet-cancel">Cancel</button>
+  </section>
+
+  <!-- ---- the counter-offer ------------------------------------------------------------------------------- -->
+  <div class="veil counter" id="veil-counter">
+    <section class="card counter">
+      <div class="card-title">Counter-offer</div>
+      <button class="card-close" id="counter-close"><img src="icon-close.png" alt=""></button>
+
+      <div class="co-label">Customer Receives</div>
+      <div class="co-row">
+        <button class="step" id="qty-down">-</button>
+
+        <!-- A div, not a button, however much it behaves like one. The picker below carries buttons of its own, and
+             a button inside a button is something the HTML parser refuses: it closes the outer one where the inner
+             one starts, which tore the rest of this card out of the card. -->
+        <div class="co-product" id="co-product">
+          <img id="co-icon" src="" alt="">
+          <span class="name" id="co-name"></span>
+
+          <!-- The picker hangs off the product box, the width of the box, exactly as vanilla drops it. -->
+          <div class="picker" id="picker">
+            <div class="picker-search" id="picker-search">Search products...</div>
+            <div class="picker-grid" id="picker-grid"></div>
+            <div class="picker-foot">
+              <button class="turn" id="page-prev">Previous</button>
+              <span class="page" id="page-label"></span>
+              <button class="turn" id="page-next">Next</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="step" id="qty-up">+</button>
+      </div>
+
+      <div class="co-label">You Receive</div>
+      <div class="co-money" id="co-money">
+        <button class="money-step" data-d="-100">-100</button>
+        <button class="money-step" data-d="-10">-10</button>
+        <button class="money-step" data-d="-1">-1</button>
+        <div class="co-price" id="co-price"></div>
+        <button class="money-step" data-d="1">+1</button>
+        <button class="money-step" data-d="10">+10</button>
+        <button class="money-step" data-d="100">+100</button>
+      </div>
+
+      <div class="co-fair" id="co-fair"></div>
+      <button class="co-send" id="co-send">Send</button>
+    </section>
+  </div>
+
+  <!-- ---- when the deal should land ----------------------------------------------------------------------- -->
+  <!-- A clock face cut into four quadrants, which is what vanilla draws: Content 540x740 with a 450x450 Wheel in
+       it, Morning top-left through Late Night bottom-left, and an arm on the rim at the current time. Every size
+       below is that prefab divided by 1.6375. -->
+  <div class="veil deal" id="veil-deal">
+    <section class="card deal">
+      <div class="dw-title">Select Deal Time</div>
+      <button class="card-close" id="deal-close"><img src="icon-close.png" alt=""></button>
+      <div class="dw-sub">You can complete the deal any time within the window</div>
+
+      <div class="dw-now">Current Time</div>
+      <div class="dw-now-value" id="deal-now"></div>
+
+      <div class="dw-wheel" id="deal-wheel">
+        <div class="dw-line-h"></div>
+        <div class="dw-line-v"></div>
+        <div class="dw-arm-mark" id="deal-arm"><div class="dw-arm-line"></div></div>
+        <div class="dw-centre"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ---- a supplier's order sheet ------------------------------------------------------------------------ -->
+  <div class="veil order" id="veil-order">
+    <section class="card order">
+      <div class="card-title" id="order-title"></div>
+      <div class="card-sub" id="order-sub"></div>
+      <button class="card-close" id="order-close"><img src="icon-close.png" alt=""></button>
+
+      <div class="order-panel" id="order-panel"></div>
+
+      <div class="order-sums">
+        <div class="sum"><span class="k">Order Total</span><span class="v" id="sum-total"></span></div>
+        <div class="sum"><span class="k">Order Limit</span><span class="v" id="sum-limit"></span></div>
+        <div class="sum"><span class="k">Debt</span><span class="v" id="sum-debt"></span></div>
+        <div class="sum"><span class="k">Item Limit</span><span class="v plain" id="sum-items"></span></div>
+      </div>
+
+      <button class="order-send" id="order-send">Place Order</button>
+    </section>
+  </div>
+
+</div>
+
+<script src="app.js"></script>

@@ -1,0 +1,221 @@
+/* Contacts.
+
+   Measured off Workspace/docs/Reflash/vanilla-shots/12 and 13, with the phone's screen cut out of them and scaled
+   to what this app lays out at: 733.4 x 400 css px on its side.
+
+   Dark, with the regions along the TOP - the first attempt put them at the bottom, where a phone app usually keeps
+   them and where this one does not. */
+
+body {
+  height: 100%;
+  font-family: game-ui;
+  font-size: 12px;
+  color: #e8e8e8;
+  background: #2f2f2f;
+}
+
+.app { height: 100%; flex-direction: row; background: #2f2f2f; }
+
+.graph-pane { flex: 1; min-width: 0; }
+
+/* ---- the regions ------------------------------------------------------------------------------------------ */
+
+.tabs { flex: none; flex-direction: row; align-items: center; height: 28px; background: #262626; }
+
+.tab {
+  position: relative;
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px;
+  background: #ffffff00;
+  border: 0;
+  color: #9a9a9a;
+  font-size: 12px;
+  text-align: center;
+}
+
+.tab:hover { color: #d8d8d8; }
+.tab.on { color: #ffffff; font-weight: bold; }
+.tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 2px; background: #ffffff; }
+
+/* A closed region keeps its name and gains a small red padlock in front of it. */
+.tab.locked::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 9px;
+  background: #c04a4a;
+  border-radius: 2px;
+}
+
+/* ---- the graph -------------------------------------------------------------------------------------------- */
+
+/* The faint squared paper vanilla lays under the graph. */
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #2f2f2f;
+  background-image: linear-gradient(#383838 1px, #00000000 1px), linear-gradient(90deg, #383838 1px, #00000000 1px);
+  background-size: 44px 44px;
+}
+
+/* transform-origin is load-bearing, and its absence is invisible in the game.
+   The renderer scales a box about its TOP-LEFT; a browser scales about its CENTRE. With the board 733 wide shown
+   at 0.55 in a 400-wide window, centre-scaling shoved it 166px to the right and 153px down - so on a real device
+   the graph sat in the bottom corner while the numbers said it was fitted. The edges below already pin this; the
+   board itself did not. */
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+.edges, .nodes { position: absolute; left: 0; top: 0; }
+
+/* An edge is a box turned about its TOP-LEFT corner, which is the only pivot the renderer has - the browser is
+   told the same so both draw it in the same place. */
+.edge {
+  position: absolute;
+  width: 3px;              /* the LENGTH comes in as an inline height, so this is the thickness */
+  background: #444444;
+  transform-origin: 0 0;
+}
+
+/* 61px across, which is what app.js works its positions out from - the two disagreeing puts every circle half a
+   radius off its line. The backing colour is set inline from the customer's dependence. */
+.node {
+  position: absolute;
+  width: 61px;
+  height: 61px;
+  border-radius: 31px;
+  background: #3c3c3c;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The rim sits over the face, not behind it: its middle is transparent, and drawing it last is what puts the
+   relationship scale on top of the picture the way vanilla layers them. */
+.rim { position: absolute; left: 0; top: 0; width: 61px; height: 61px; }
+
+.node:hover .rim { opacity: 0.75; }
+.node.selected { box-shadow: 0 0 0 2px #ffffff; }
+
+.node .face { position: absolute; left: 6px; top: 6px; width: 49px; height: 49px; border-radius: 25px; }
+.node .letter { font-size: 17px; color: #b0b0b0; text-align: center; }
+
+/* Not a missing picture - the same picture, blacked out. */
+.blackout { position: absolute; left: 6px; top: 6px; width: 49px; height: 49px; border-radius: 25px; background: #000000; }
+
+.padlock {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: #c04a4a;
+}
+
+/* The white notch on the rim: where this person sits on the relationship scale. */
+.notch {
+  position: absolute;
+  left: 25px;
+  top: -2px;
+  width: 4px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+.node-label {
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  bottom: -14px;
+  font-size: 10px;
+  color: #c05a5a;
+  text-align: center;
+}
+
+.controls { position: absolute; right: 8px; bottom: 8px; flex-direction: row; gap: 6px; }
+
+.cbtn {
+  height: 20px;
+  padding: 0 10px;
+  background: #3f3f3f;
+  border: 0;
+  border-radius: 3px;
+  color: #c8c8c8;
+  font-size: 11px;
+  text-align: center;
+}
+
+.cbtn.on { background: #5a5a5a; color: #ffffff; }
+.cbtn:hover { background: #4c4c4c; }
+
+/* ---- the detail ------------------------------------------------------------------------------------------- */
+
+.detail { width: 213px; padding: 10px 12px; overflow-y: auto; gap: 9px; background: #383838; }
+
+.d-name { flex: none; font-size: 15px; font-weight: bold; color: #ffffff; }
+.d-type { flex: none; margin-top: -6px; font-size: 11.5px; color: #a8a8a8; }
+
+.d-block { flex: none; gap: 3px; }
+
+/* The heading above each fact, and the fact itself. Vanilla writes the heading in plain white and centres the
+   reading under its bar. */
+.d-head { font-size: 11.5px; font-weight: bold; color: #ffffff; }
+.d-line { font-size: 11.5px; color: #c8c8c8; }
+.d-value { font-size: 11.5px; color: #7fc4ff; text-align: center; }
+
+.d-map {
+  flex: none;
+  margin-top: 4px;
+  height: 22px;
+  justify-content: center;
+  background: #4a4a4a;
+  border: 0;
+  border-radius: 3px;
+  color: #ffffff;
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.d-map:hover { background: #585858; }
+
+/* The relationship scale: five blocks, not a ramp, with a white marker on it - the same shape the messages app
+   puts in its header, because it is the same number. */
+/* width: 100% is load-bearing. The segments are flex:1 with no width of their own, so in a column that does not
+   stretch them the whole bar collapses to nothing - which is what happened upright, where the panel is full width
+   instead of the 213px it has on its side. */
+.d-band { position: relative; flex-direction: row; width: 100%; height: 9px; border-radius: 2px; }
+.d-band .seg { flex: 1; height: 9px; }
+
+/* Addiction runs the other way: one strip, pale at none and red at all of it. The renderer has no gradients, so
+   it is a flat colour at the red end with the marker carrying the reading. */
+.d-ramp { background: #e0a0a0; }
+
+/* The marker on both bars, the handle of the Scrollbar vanilla uses. Pulled half its own width to the left so the
+   middle of the marker sits on the value rather than its left edge. */
+.d-mark { position: absolute; top: -2px; margin-left: -2px; width: 4px; height: 13px; background: #ffffff; border-radius: 1px; }
+
+/* The quality star beside a customer's standards, tinted the colour of the quality it stands for. */
+.d-star { flex-direction: row; align-items: center; gap: 6px; }
+.d-star img { width: 12px; height: 12px; }
+
+.d-empty { font-size: 11.5px; color: #8a8a8a; }
+.d-money { font-size: 12px; color: #4fc44f; }
+
+.d-hint { padding-top: 40px; font-size: 11.5px; color: #8a8a8a; text-align: center; }
+
+/* -------------------------------------------------------------------------------------------------- portrait --
+   Upright there is no room for a panel beside the graph, so the detail is pushed over it. */
+@media (orientation: portrait) {
+  .app { flex-direction: column; }
+  .detail { width: auto; flex: none; max-height: 46%; }
+  .d-name { font-size: 18px; }
+  .d-head, .d-line, .d-type { font-size: 14px; }
+  .tab { font-size: 13px; padding: 0 9px; }
+}

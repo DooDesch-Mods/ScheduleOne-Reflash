@@ -1,0 +1,33 @@
+<link rel="stylesheet" href="app.css">
+
+<!-- Product Manager, rebuilt from Workspace/docs/Reflash/vanilla-shots/05, 06, 22 and 23.
+
+     A dark app under a dark red bar: the products on the left, grouped by drug type under coloured headings, and
+     whichever one is selected written out on the right. -->
+
+<div class="app" id="app">
+
+  <header class="topbar">
+    <button class="back" id="back">&lt;</button>
+    <div class="topbar-title">Product Manager</div>
+    <div class="count" id="count"></div>
+  </header>
+
+  <div class="panes">
+
+    <main class="list-pane">
+      <div class="scroll" id="products"></div>
+      <div class="empty" id="empty">Nothing discovered yet.</div>
+      <div class="pager" id="pager"></div>
+    </main>
+
+    <aside class="detail-pane" id="detail-pane">
+      <div class="instruction on" id="instruction">Select a product to view details</div>
+      <div class="scroll" id="detail"></div>
+    </aside>
+
+  </div>
+
+</div>
+
+<script src="app.js"></script>

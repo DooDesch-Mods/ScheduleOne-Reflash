@@ -1,0 +1,132 @@
+/* Connect. One screen, one job: show a code worth scanning.
+
+   The QR is an <img> fed from the mod at runtime. It could not be drawn out of boxes - a 29x29 code would be
+   over eight hundred of them, against a render budget of about two hundred. */
+
+body {
+  height: 100%;
+  font-family: game-ui;
+  font-size: 14px;
+  color: #ffffff;
+  background: #323232;
+}
+
+.app { height: 100%; }
+
+.bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #242424;
+}
+
+.bar-title { flex: 1; font-size: 15px; font-weight: bold; }
+.devices { color: #5eb23f; font-size: 12px; }
+
+.body {
+  flex: 1;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+}
+
+/* The image needs both dimensions given - the layout runs without the engine and has no idea how big a picture
+   is until it is drawn. */
+.qr {
+  width: 222px;
+  height: 222px;
+  border: 6px solid #FFFFFF;
+  border-radius: 6px;
+}
+
+.side { flex: 1; min-width: 0; gap: 10px; }
+
+.step { flex-direction: row; gap: 8px; }
+.step-num { width: 16px; color: #537e9f; font-size: 13px; }
+.step-text { flex: 1; font-size: 13px; line-height: 18px; }
+
+.url {
+  padding: 7px 10px;
+  background: #202020;
+  border: 1px solid #4a4a4a;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.hint { color: #9a9a9a; font-size: 12px; line-height: 17px; }
+
+.expiry { color: #d8b13d; font-size: 12px; }
+
+.buttons { flex-direction: row; gap: 6px; }
+
+.btn {
+  padding: 7px 12px;
+  background: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.btn:hover { background: #474747; }
+
+.off {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 30px 20px;
+}
+
+.off-title { font-size: 16px; }
+.off-text { max-width: 420px; color: #9a9a9a; font-size: 13px; text-align: center; line-height: 18px; }
+
+/* Why it would not start, in the words the mod used. Amber rather than red: nothing is broken, something else
+   is holding the port. */
+.problem {
+  max-width: 420px;
+  padding: 7px 10px;
+  background: #2b2418;
+  border: 1px solid #6b5324;
+  border-radius: 5px;
+  color: #e0bb63;
+  font-size: 12px;
+  text-align: center;
+  line-height: 17px;
+}
+
+/* The takeover switch, kept quiet and below the fold of attention - the code is what this screen is for. */
+.takeover {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 9px;
+  border-top: 1px solid #3d3d3d;
+}
+
+.takeover-text { flex: 1; min-width: 0; color: #8f8f8f; font-size: 12px; line-height: 16px; }
+
+/* Inside the off screen it sits under a centred column, so it needs a width of its own to line up. */
+.off .takeover { width: 100%; max-width: 420px; margin-top: 10px; }
+
+/* The one button on an otherwise empty screen, so it reads as the thing to press. */
+.off .buttons .btn {
+  margin-top: 4px;
+  padding: 9px 22px;
+  background: #3f7a4a;
+  border: 1px solid #55a163;
+  font-size: 14px;
+}
+
+.off .buttons .btn:hover { background: #4b8f58; }
+
+@media (orientation: portrait) {
+  .body { flex-direction: column; align-items: center; }
+  .qr { width: 200px; height: 200px; }
+  .side { width: 100%; }
+}

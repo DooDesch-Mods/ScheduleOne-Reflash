@@ -1,0 +1,37 @@
+<link rel="stylesheet" href="app.css">
+
+<!-- Journal, rebuilt from Workspace/docs/Reflash/vanilla-shots/04 and 21.
+
+     Landscape, two panes under an orange bar: the tasks on the left, the selected one written out on the right.
+     Vanilla picks the task under the pointer; the phone has no pointer, so a tap picks it there while hovering
+     still picks it in a browser. -->
+
+<div class="app" id="app">
+
+  <header class="bar">
+    <!-- Only ever reached in portrait, which vanilla does not offer at all - there the two panes cannot both fit. -->
+    <button class="back" id="back">&lt;</button>
+    <div class="bar-title" id="topbar-title">Journal</div>
+  </header>
+
+  <div class="panes">
+
+    <aside class="tasks-pane">
+      <div class="section-title">Tasks</div>
+      <div class="panel">
+        <div class="scroll" id="quests">
+          <div class="empty" id="empty">Nothing to do for now...</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="details-pane" id="details-pane">
+      <div class="section-title">Task Details</div>
+      <div class="panel"><div class="detail-box" id="detail"></div></div>
+    </main>
+
+  </div>
+
+</div>
+
+<script src="app.js"></script>
