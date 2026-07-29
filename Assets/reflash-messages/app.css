@@ -187,7 +187,8 @@ body {
    PNG to learn its intrinsic size, so a picture with no CSS size is a box of nothing. */
 .back .icon { width: 14px; height: 20px; }
 .star .icon { width: 14px; height: 14px; }
-.compose .icon { width: 22px; height: 22px; }
+/* Image 40x40 at x -50: 24.4 css, and 30.5 in from the right edge rather than sitting in the padding. */
+.compose .icon { width: 24.4px; height: 24.4px; margin-right: 22.9px; opacity: 0.55; }
 
 /* Icons are PNGs in the bundle, not characters. The font atlases carry Latin-1 and nothing else, so every arrow,
    cross and star typed as a glyph draws as an empty box - and the ones that DO exist ('<', 'x', '*') are letters
@@ -350,24 +351,58 @@ body {
 .reply:active { background: #3f9dcb; }
 
 /* "Send Message" - a supplier's way in, and only shown when there is something to say. */
-.compose-bar { display: none; flex: none; height: 118px; background: #fefefe; }
+/* The send bar, off the dump rather than by eye:
+
+     Menu           655x800   white
+       Shade        655x30    #00000064, a vertical gradient where the thread meets it
+       ComposeButton 615x100  #e6e6e6, Rectangle_RoundedEdges
+         Text        590x100 at 12.5  "Send Message"  size 36  #7b7b7b  MiddleLeft
+         Image        40x40  at -50   sprite=edit     #848484
+
+   Every number here was a guess before, and all of them were small - which is exactly why the bar read as
+   somebody else's app: the text was 21 where vanilla writes 22, the fill was a shade off, the field was inset by
+   twelve on each side instead of the twelve-and-a-half canvas units that make it 375.6 wide, and the pencil sat
+   in the padding rather than 30.5 from the edge. */
+.compose-bar {
+  display: none;
+  position: relative;
+  flex: none;
+  height: 78px;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
 .app.has-compose .compose-bar { display: flex; }
 
+/* Shade 655x30: the thread does not just stop, it fades into the bar. */
+.compose-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18.3px;
+  background: linear-gradient(#00000028, #00000000);
+  pointer-events: none;
+}
+
 .compose {
+  position: relative;
   flex: none;
   flex-direction: row;
   align-items: center;
-  margin: 17px 12px 0 12px;
-  padding: 0 16px;
-  height: 60px;
-  background: #e5e5e5;
+  width: 375.6px;
+  height: 61.1px;
+  padding: 0 7.6px;
+  background: #e6e6e6;
   border: 0;
-  border-radius: 12px;
+  border-radius: 9px;
 }
 
 .compose:hover { background: #dcdcdc; }
 
-.compose-text { flex: 1; font-size: 21px; color: #6e6e6e; text-align: left; }
+.compose-text { flex: 1; font-size: 22px; color: #7b7b7b; text-align: left; }
 
 /* ------------------------------------------------------------------------------------------- the send sheet -- */
 
