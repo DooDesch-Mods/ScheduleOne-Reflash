@@ -422,13 +422,19 @@ function releaseBack() {
 }
 
 window.addEventListener('popstate', function () {
-  // The entry has just been spent. Anything that stays open needs a fresh one, or the next press leaves the page.
+  // The entry has just been spent.
   backHeld = false;
 
   if (!current) return;
 
-  holdBack();
   goBackOneStep();
+
+  // A replacement entry only if something is STILL open, and only after the app has had its say. Pushing one
+  // here and now was a bug you could walk into in four presses: every back added an entry, so the stack grew
+  // instead of shrinking, and once the app had closed those spare entries did nothing visible - the browser
+  // walked back through them and eventually right out of the document. That is the white screen with nothing
+  // but Forward.
+  setTimeout(function () { if (current) holdBack(); }, 0);
 });
 
 // One step back, wherever the phone happens to be. An open app is asked first - it may have a sheet or a thread of

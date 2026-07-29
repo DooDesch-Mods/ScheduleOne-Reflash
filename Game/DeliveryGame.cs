@@ -170,32 +170,72 @@ namespace Reflash.Game
                 {
                     Id = r.DeliveryID,
                     Shop = Text.Clean(r.StoreName),
-                    Destination = Text.Clean(r.DestinationCode),
+                    Destination = PropertyNamed(r.DestinationCode),
                     Dock = "Loading Dock " + (r.LoadingDockIndex + 1),
                     Status = "Delivered",
                     ShopId = shop == null ? "" : ShopId(shop),
                     Total = TotalOf(shop, r.Items),
                 };
 
-                AddItems(view, r.Items);
+                AddItems(view, r.Items, shop);
                 views.Add(view);
             }
 
             return views;
         }
 
+        /// <summary>
+        /// A destination code as the player reads it - "storageunit" becomes "Storage Unit". Vanilla asks the
+        /// PropertyManager for exactly this and shows PropertyName; the raw code is an internal id and looks like
+        /// one on the card.
+        /// </summary>
+        private static string PropertyNamed(string code)
+        {
+            string raw = Text.Clean(code);
+            if (raw.Length == 0) return "";
+
+            try
+            {
+                if (Singleton<Il2CppScheduleOne.Property.PropertyManager>.InstanceExists)
+                {
+                    var property = Singleton<Il2CppScheduleOne.Property.PropertyManager>.Instance.GetProperty(raw);
+                    if (property != null)
+                    {
+                        string name = Text.Clean(property.PropertyName);
+                        if (name.Length > 0) return name;
+                    }
+                }
+            }
+            catch { /* an unknown code is not worth a log line per card */ }
+
+            return raw;
+        }
+
         /// <summary>The lines of an order: an item id and how many of it.</summary>
         private static void AddItems(DeliveryView view,
-                                     Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppScheduleOne.DevUtilities.StringIntPair> items)
+                                     Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppScheduleOne.DevUtilities.StringIntPair> items,
+                                     DeliveryShop shop = null)
         {
             if (items == null) return;
+
+            var entries = shop?.listingEntries;
 
             for (int i = 0; i < items.Length; i++)
             {
                 var pair = items[i];
                 if (pair == null) continue;
 
-                view.Items.Add(Text.Clean(pair.String) + " x" + pair.Int);
+                // A receipt keeps the item's ID, not its name. Vanilla writes "25x Green Crack Seed"; the raw
+                // "greencrackseed x25" is an internal id shown to a player. The shop's own listing knows the name.
+                string name = Text.Clean(pair.String);
+                if (entries != null)
+                {
+                    ListingEntry entry = FindEntry(entries, pair.String);
+                    var item = entry?.MatchingListing?.Item;
+                    if (item != null) name = Text.Clean(item.Name);
+                }
+
+                view.Items.Add(pair.Int + "x " + name);
             }
         }
 
