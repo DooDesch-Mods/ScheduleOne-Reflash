@@ -187,8 +187,8 @@ body {
    PNG to learn its intrinsic size, so a picture with no CSS size is a box of nothing. */
 .back .icon { width: 14px; height: 20px; }
 .star .icon { width: 14px; height: 14px; }
-/* Image 40x40 at x -50: 24.4 css, and 30.5 in from the right edge rather than sitting in the padding. */
-.compose .icon { width: 24.4px; height: 24.4px; margin-right: 22.9px; opacity: 0.55; }
+/* Image 40x40: 24.4 css, ending 19.5 in from the field's right edge. */
+.compose .icon { width: 24.4px; height: 24.4px; margin-right: 11.9px; opacity: 0.55; }
 
 /* Icons are PNGs in the bundle, not characters. The font atlases carry Latin-1 and nothing else, so every arrow,
    cross and star typed as a glyph draws as an empty box - and the ones that DO exist ('<', 'x', '*') are letters
@@ -363,27 +363,33 @@ body {
    somebody else's app: the text was 21 where vanilla writes 22, the fill was a shade off, the field was inset by
    twelve on each side instead of the twelve-and-a-half canvas units that make it 375.6 wide, and the pencil sat
    in the padding rather than 30.5 from the edge. */
+/* The strip a supplier's thread ends in: 200 canvas units of white, which is the height the conversation's scroll
+   view gives up for it (1101 for the whole panel, 901 for the messages). The button does not sit in the middle of
+   it - it is 24 units down from the top with 76 left under it, measured off the running game. Centring it left the
+   field a full 37px lower than vanilla's and the strip too short by the same. */
 .compose-bar {
   display: none;
   position: relative;
   flex: none;
-  height: 78px;
+  height: 122.1px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 14.6px;
   background: #ffffff;
 }
 
 .app.has-compose .compose-bar { display: flex; }
 
-/* Shade 655x30: the thread does not just stop, it fades into the bar. */
+/* Shade 655x30: the thread does not stop at the strip, it darkens into it. Above the white, not inside it, and
+   darkest where the two meet - the strip casts the shadow, it does not carry one. */
 .compose-bar::before {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  top: 0;
+  bottom: 100%;
   height: 18.3px;
-  background: linear-gradient(#00000028, #00000000);
+  background: linear-gradient(#00000000, #00000030);
   pointer-events: none;
 }
 
@@ -394,7 +400,11 @@ body {
   align-items: center;
   width: 375.6px;
   height: 61.1px;
-  padding: 0 7.6px;
+
+  /* Not the same on both sides: the caption's box starts 25 canvas units in, the pencil ends 32 short of the right
+     edge. Measured off the running game, because the dump gives each child an anchored position without saying
+     which edge it is anchored to, and reading them as symmetric put the caption 7px too far left. */
+  padding: 0 7.6px 0 15.3px;
   background: #e6e6e6;
   border: 0;
   border-radius: 9px;
