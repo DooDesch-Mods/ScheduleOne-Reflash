@@ -309,3 +309,18 @@ body {
 @media (orientation: portrait) {
   .card { width: 100%; }
 }
+
+/* Reorder: the word with the order's cost under it, in the blue vanilla uses for the button. */
+.card-again {
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  background: #4a90c8;
+  border: 0;
+  border-radius: 4px;
+}
+
+.card-again:hover { background: #5aa0d8; }
+.card-again-word { font-size: 9.8px; color: #ffffff; }
+.card-again-price { font-size: 8px; color: #b9f5a0; }

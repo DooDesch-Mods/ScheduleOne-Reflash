@@ -204,6 +204,18 @@ function renderDetail() {
   body.appendChild(bullets('Effects', detail.properties));
   body.appendChild(addictiveness());
 
+  // Recipe(s): how this product is made, one line per recipe. Vanilla draws base + mixer + result as three icons;
+  // the names say the same thing and read at this size, where three 20px pictures would not. The block is absent
+  // rather than empty for a base product, which is what vanilla does - it switches the whole row off.
+  if (detail.recipe && detail.recipe.length) {
+    var field = document.createElement('div');
+    field.className = 'field';
+    field.appendChild(text('field-label', detail.recipe.length > 1 ? 'Recipes' : 'Recipe'));
+
+    for (var r = 0; r < detail.recipe.length; r++) field.appendChild(text('recipe', detail.recipe[r]));
+    body.appendChild(field);
+  }
+
   detailEl.appendChild(body);
 }
 

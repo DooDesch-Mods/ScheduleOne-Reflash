@@ -333,6 +333,16 @@ namespace Reflash.Wire
         internal string Destination = "";
         internal string Status = "";
         internal string Eta = "";
+
+        /// <summary>Which loading dock it went to, as vanilla writes it under the destination.</summary>
+        internal string Dock = "";
+
+        /// <summary>The shop's own id, so the same order can be placed again.</summary>
+        internal string ShopId = "";
+
+        /// <summary>What this order would cost at today's prices - the figure on vanilla's Reorder button.</summary>
+        internal int Total;
+
         internal List<string> Items = new List<string>();
     }
 

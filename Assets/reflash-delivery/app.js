@@ -390,10 +390,23 @@ function renderDeliveries() {
     var to = document.createElement('div');
     to.className = 'card-to';
     to.appendChild(text('card-where', d.destination || ''));
-    if (d.eta) to.appendChild(text('card-when', d.eta));
+    if (d.dock) to.appendChild(text('card-when', d.dock));
+    else if (d.eta) to.appendChild(text('card-when', d.eta));
     head.appendChild(to);
 
-    if (d.status) head.appendChild(text('card-status', d.status));
+    // Vanilla's Reorder button: the word, and under it what the same basket costs at today's prices. Only where
+    // the shop could be resolved from the receipt - without it there is nothing to order from.
+    if (tab === 'history' && d.shopId) {
+      var again = document.createElement('button');
+      again.className = 'card-again';
+      again.appendChild(text('card-again-word', 'Reorder'));
+      again.appendChild(text('card-again-price', money(d.total)));
+      again.setAttribute('data-id', d.id);
+      again.addEventListener('click', reorderClicked);
+      head.appendChild(again);
+    } else if (d.status) {
+      head.appendChild(text('card-status', d.status));
+    }
 
     card.appendChild(head);
 
@@ -408,6 +421,34 @@ function renderDeliveries() {
   }
 
   bodyEl.appendChild(grid);
+}
+
+function reorderClicked(e) {
+  var id = e.currentTarget.getAttribute('data-id');
+  if (!id) return;
+
+  var answer = s1.call('reflash-delivery.act', 'reorder' + SEP + id);
+
+  // The same words the order path uses, so a refusal reads the same wherever it came from.
+  if (answer === 'ok') note = 'Ordered again.';
+  else if (answer === 'err:refused') note = 'The shop would not take it - check the money and the dock.';
+  else if (answer === 'err:notfound') note = 'That shop is not open to you.';
+  else note = 'That did not go through.';
+
+  refresh();
+}
+
+function money(value) {
+  var n = Math.round(value || 0);
+  var out = '';
+  var s = String(n);
+
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 === 0) out += ',';
+    out += s[i];
+  }
+
+  return '$' + out;
 }
 
 function findShop(id) {

@@ -96,6 +96,27 @@ namespace Reflash.Game
                             Colour = Colours.Hex(props[i].LabelColor),
                         });
 
+            // How this product is made. Vanilla draws each recipe as three icons - base, mixer, result - and the
+            // pair is not in a fixed order: whichever ingredient IS a product is the base and the other is the
+            // mixer, which is exactly the test ProductAppDetailPanel makes.
+            var recipes = p.Recipes;
+            if (recipes != null)
+                for (int i = 0; i < recipes.Count; i++)
+                {
+                    var recipe = recipes[i];
+                    if (recipe?.Ingredients == null || recipe.Ingredients.Count < 2) continue;
+
+                    var first = recipe.Ingredients[0]?.Item;
+                    var second = recipe.Ingredients[1]?.Item;
+                    if (first == null || second == null) continue;
+
+                    bool firstIsProduct = first.TryCast<ProductDefinition>() != null;
+                    var baseItem = firstIsProduct ? first : second;
+                    var mixer = firstIsProduct ? second : first;
+
+                    view.Recipe.Add(Text.Clean(baseItem.Name) + "  +  " + Text.Clean(mixer.Name));
+                }
+
             return view;
         }
 

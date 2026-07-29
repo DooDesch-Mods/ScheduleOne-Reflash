@@ -164,12 +164,17 @@ namespace Reflash.Game
                 DeliveryReceipt r = receipts[i];
                 if (r == null) continue;
 
+                DeliveryShop shop = ShopNamed(r.StoreName);
+
                 var view = new DeliveryView
                 {
                     Id = r.DeliveryID,
                     Shop = Text.Clean(r.StoreName),
                     Destination = Text.Clean(r.DestinationCode),
+                    Dock = "Loading Dock " + (r.LoadingDockIndex + 1),
                     Status = "Delivered",
+                    ShopId = shop == null ? "" : ShopId(shop),
+                    Total = TotalOf(shop, r.Items),
                 };
 
                 AddItems(view, r.Items);
@@ -499,6 +504,91 @@ namespace Reflash.Game
                 safe.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-');
 
             return safe.ToString();
+        }
+
+        /// <summary>
+        /// The shop a receipt names. A receipt keeps the store's NAME, and everything else here is keyed by the
+        /// interface name, so the two are matched loosely - the pair agree on ordinary shops and a mismatch only
+        /// costs the reorder button, never a wrong order.
+        /// </summary>
+        private static DeliveryShop ShopNamed(string storeName)
+        {
+            string wanted = Text.Clean(storeName);
+            if (wanted.Length == 0) return null;
+
+            foreach (DeliveryShop shop in VanillaShops())
+            {
+                string id = ShopId(shop);
+                if (string.Equals(id, wanted, StringComparison.OrdinalIgnoreCase)) return shop;
+            }
+
+            foreach (DeliveryShop shop in VanillaShops())
+            {
+                string id = ShopId(shop);
+                if (id.Length > 0 && wanted.IndexOf(id, StringComparison.OrdinalIgnoreCase) >= 0) return shop;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// What this order would cost TODAY. The receipt keeps quantities and item ids, not money, so the sum is
+        /// worked out from the shop's current listing prices - which is also the honest number for a button that
+        /// places the order again.
+        /// </summary>
+        private static int TotalOf(DeliveryShop shop,
+                                   Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppScheduleOne.DevUtilities.StringIntPair> items)
+        {
+            if (shop == null || items == null) return 0;
+
+            var entries = shop.listingEntries;
+            if (entries == null) return 0;
+
+            int total = 0;
+            for (int i = 0; i < items.Length; i++)
+            {
+                var pair = items[i];
+                if (pair == null) continue;
+
+                ListingEntry entry = FindEntry(entries, pair.String);
+                if (entry?.MatchingListing == null) continue;
+
+                total += (int)Math.Round(entry.MatchingListing.Price) * pair.Int;
+            }
+
+            return total;
+        }
+
+        /// <summary>
+        /// Place a past order again, exactly as vanilla's Reorder button does: the same shop, the same items and
+        /// quantities, through the same gate as any other order.
+        /// </summary>
+        public string Reorder(string deliveryId)
+        {
+            if (!NetworkSingleton<DeliveryManager>.InstanceExists) return Reply.NotFound;
+
+            var receipts = NetworkSingleton<DeliveryManager>.Instance.DisplayedDeliveryHistory;
+            if (receipts == null) return Reply.NotFound;
+
+            for (int i = 0; i < receipts.Count; i++)
+            {
+                DeliveryReceipt r = receipts[i];
+                if (r == null || r.DeliveryID != deliveryId) continue;
+
+                DeliveryShop shop = ShopNamed(r.StoreName);
+                if (shop == null || r.Items == null) return Reply.NotFound;
+
+                var quantities = new List<KeyValuePair<string, int>>();
+                for (int k = 0; k < r.Items.Length; k++)
+                {
+                    var pair = r.Items[k];
+                    if (pair != null) quantities.Add(new KeyValuePair<string, int>(pair.String, pair.Int));
+                }
+
+                return Order(ShopId(shop), quantities);
+            }
+
+            return Reply.NotFound;
         }
 
         private static DeliveryShop FindShop(string shopId)

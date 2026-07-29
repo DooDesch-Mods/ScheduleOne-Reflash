@@ -105,6 +105,9 @@ namespace Reflash.Wire
         /// because vanilla's SubmitOrder is one transaction - fee, money, delivery and receipt together.</summary>
         string Order(string shopId, IReadOnlyList<KeyValuePair<string, int>> quantities);
 
+        /// <summary>Place a past order again, by its delivery id - vanilla's Reorder button.</summary>
+        string Reorder(string deliveryId);
+
         /// <summary>
         /// Put the quantities into the game's own order panel WITHOUT submitting, so the fee, the total and the
         /// delivery time can be read back off it. That is how the page shows those numbers without owning the

@@ -262,3 +262,6 @@ body {
   .detail-name { font-size: 19px; }
   .field-label, .prop { font-size: 14px; }
 }
+
+/* One recipe per line: "<base>  +  <mixer>". */
+.recipe { font-size: 9.8px; color: #d0d0d0; line-height: 14px; }

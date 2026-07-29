@@ -103,6 +103,9 @@ namespace Reflash.Screens
                     .Add("destination", d.Destination)
                     .Add("status", d.Status)
                     .Add("eta", d.Eta)
+                    .Add("dock", d.Dock)
+                    .Add("shopId", d.ShopId)
+                    .Add("total", d.Total)
                     .Add("items", items));
             }
 
@@ -120,6 +123,15 @@ namespace Reflash.Screens
         {
             switch (cmd.Op)
             {
+                // Vanilla's Reorder button, and deliberately by DELIVERY id rather than by a basket the page
+                // rebuilds: the receipt already holds exactly what was bought, and letting the page restate it
+                // would be a second place for the same order to be wrong.
+                case "reorder":
+                {
+                    string id = cmd.Str(0);
+                    return string.IsNullOrEmpty(id) ? Reply.BadArgs : _game.Reorder(id);
+                }
+
                 case "order":
                 {
                     // shopId, then listingId/quantity pairs. One command for the whole basket, because vanilla's
