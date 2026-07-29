@@ -427,14 +427,14 @@ window.addEventListener('popstate', function () {
 
   if (!current) return;
 
+  // No entry is pushed here. The app answers - `close` if it is done, `held` if it swallowed the press - and the
+  // replacement goes back on the stack only in the second case.
+  //
+  // Two earlier attempts got this wrong in ways worth remembering. Pushing immediately meant every press ADDED an
+  // entry, so the stack grew instead of shrinking and after four presses the browser walked out of the document
+  // entirely: the white screen with only Forward. Pushing after a timer only moved the race - postMessage is
+  // itself a task, so `current` was often still set when the timer looked.
   goBackOneStep();
-
-  // A replacement entry only if something is STILL open, and only after the app has had its say. Pushing one
-  // here and now was a bug you could walk into in four presses: every back added an entry, so the stack grew
-  // instead of shrinking, and once the app had closed those spare entries did nothing visible - the browser
-  // walked back through them and eventually right out of the document. That is the white screen with nothing
-  // but Forward.
-  setTimeout(function () { if (current) holdBack(); }, 0);
 });
 
 // One step back, wherever the phone happens to be. An open app is asked first - it may have a sheet or a thread of
@@ -591,11 +591,15 @@ function open(app) {
 
   buzz(10);
 
-  // The query is a cache-buster, and it earned its place. A bundle file can be replaced under a running app - by a
-  // mod update, or by the folder under Mods/<appId>/ while someone is working on it - and a browser that had
-  // heuristically cached index.html kept serving the old page and its old app.js. The server sends no-store now,
-  // but that only helps once the browser asks; this makes it ask.
-  document.getElementById('frame').src = '/app/' + app.id + '/index.html?r=' + Date.now();
+  // REPLACE, never src =. An iframe's navigations go into the SAME session history as this document, so every
+  // open added an entry of its own - and with the cache-buster below every open is a unique URL, so it always
+  // did. That is what made Back walk through the frame's history instead of reaching the shell, and why the
+  // second round left you inside the app with the press going nowhere.
+  //
+  // The query is a cache-buster and it earned its place: a bundle file can be replaced under a running app, by a
+  // mod update or by the folder under Mods/<appId>/, and a browser that had heuristically cached index.html kept
+  // serving the old page. The server sends no-store now, but that only helps once the browser asks.
+  frameTo('/app/' + app.id + '/index.html?r=' + Date.now());
   show('app');
   fit();
   keepAwake(true);
@@ -604,7 +608,7 @@ function open(app) {
 
 function close() {
   current = null;
-  document.getElementById('frame').src = 'about:blank';
+  frameTo('about:blank');
   buzz(6);
   goHome();
   refreshBadges();
@@ -649,6 +653,17 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && current) keepAwake(true);
 });
 
+// Point the frame somewhere without spending a history entry on it.
+function frameTo(url) {
+  var frame = document.getElementById('frame');
+
+  try {
+    if (frame.contentWindow) { frame.contentWindow.location.replace(url); return; }
+  } catch (e) { /* cross-origin, which this never is - fall through */ }
+
+  frame.src = url;
+}
+
 function goHome() {
   show('home');
   fit();
@@ -660,6 +675,7 @@ window.addEventListener('message', function (e) {
   if (!e.data) return;
 
   if (e.data.k === 'close') close();
+  else if (e.data.k === 'held') { backHeld = false; holdBack(); }
 });
 
 // The event stream. EventSource reconnects on its own, which is most of why this is SSE rather than a socket.
