@@ -112,6 +112,10 @@ namespace Reflash
                 .Register("reflash-connect", "Reflash.Assets.reflash-connect", "Connect", "Connect")
                 .Orientation("landscape", "portrait");
 
+            // Connect replaces nothing, so no prefix routes to it - but it still has to close when a vanilla app
+            // opens, or it sits on top of one.
+            AppHijack.Watch(connect);
+
             _companion = new Runner();
             _running = _companion;
 

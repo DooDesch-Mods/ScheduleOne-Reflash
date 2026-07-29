@@ -81,15 +81,15 @@ body {
   height: 61.1px;
   align-items: center;
   justify-content: center;
-  background: #505050;
-  border: 0;
+  background: #3a3a3a;
+  border: 1px solid #505050;
   border-radius: 4px;
 }
 
-/* The frame IS the state: green while the product is listed for sale, grey while it is not. */
-.tile.listed { background: #4d823b; }
-.tile:hover { background: #5e5e5e; }
-.tile.listed:hover { background: #5a9646; }
+/* ProductSlotBackground is a frame sprite, so its tint is the BORDER: green while the product is listed for sale,
+   grey while it is not. Filling the whole tile green instead made a listed product a solid block. */
+.tile.listed { border-color: #4d823b; }
+.tile:hover { background: #464646; }
 .tile.on { box-shadow: 0 0 0 2px #ffffff; }
 
 /* Shade 96x96 inside the 100 cell: the plate the artwork sits on. */
@@ -106,12 +106,12 @@ body {
 .tile-icon { position: relative; width: 48.9px; height: 48.9px; }
 .tile-name { font-size: 10px; color: #c8c8c8; text-align: center; }
 
-/* Favourite 30x30 at (-15,-15) - the hit box hangs off the tile's top-left corner, and the star inside it is
-   19x19. Grey when it is not a favourite, the title's own yellow when it is. */
+/* Favourite: a 30x30 hit box with a 19x19 star in it, in the tile's TOP RIGHT corner. The dump's anchoredPosition
+   reads as bottom-left and the running game says otherwise - the screenshot wins. */
 .star {
   position: absolute;
-  left: -6px;
-  top: -6px;
+  right: 1px;
+  top: 1px;
   width: 18.3px;
   height: 18.3px;
   align-items: center;
@@ -183,50 +183,55 @@ body {
 .instruction { display: none; padding: 24px 12px; font-size: 11.5px; color: #9a9a9a; text-align: center; }
 .instruction.on { display: block; }
 
-.detail-body { gap: 9px; padding-top: 2px; }
+/* Vanilla's rows sit 40 canvas units apart with 30-unit rows in them - 24.4 and 18.3 in css - and every label is
+   size 16, which is 9.8 here. This panel had 11.5 text at a 9px gap: bigger type packed tighter, which is exactly
+   the "squashed, vanilla has more air" it was reported as. */
+.detail-body { gap: 14px; padding-top: 4px; }
 
-.detail-name { flex: none; font-size: 15px; font-weight: bold; color: #ffffff; }
+.detail-name { flex: none; font-size: 14.7px; font-weight: bold; color: #ffffff; }
 
-.field { flex: none; gap: 3px; }
-.field-label { flex: none; font-size: 11.5px; font-weight: bold; color: #ffffff; }
+.field { flex: none; gap: 4px; }
+.field-label { flex: none; font-size: 9.8px; font-weight: bold; color: #ffffff; }
 
 /* The asking price, its field and the suggestion all on ONE line, which is how vanilla writes it. */
 .price-row { flex: none; flex-direction: row; align-items: center; gap: 8px; }
 
 .price-input {
-  width: 46px;
-  height: 17px;
-  padding: 0 5px;
-  background: #383838;
-  border: 1px solid #5a5a5a;
-  border-radius: 2px;
-  color: #6fdc6f;
-  font-size: 11.5px;
+  width: 36.6px;
+  height: 15.3px;
+  padding: 0 4px;
+  background: #323232;
+  border: 0;
+  border-radius: 3px;
+  color: #63cc37;
+  font-size: 9.8px;
   text-align: left;
 }
 
-.suggested { font-size: 10.5px; color: #9a9a9a; }
+.suggested { font-size: 7.3px; color: #848484; }
 
 .sale-row { flex: none; flex-direction: row; align-items: center; gap: 8px; }
+.sale-label { font-size: 9.8px; color: #ffffff; }
 
-/* A tick, not a switch: vanilla asks a question and answers it with a green check. */
+/* A real checkbox. Vanilla's Toggle is a 25x25 dark rounded square with a 15x15 green tick INSIDE it - the box is
+   there whether or not it is ticked. Drawing only the tick, faded when off, left no box at all, which is what
+   "that is not a checkbox, that is a tick" meant. */
 .tick {
-  width: 17px;
-  height: 17px;
+  width: 15.3px;
+  height: 15.3px;
   align-items: center;
   justify-content: center;
-  background: #00000000;
+  background: #323232;
   border: 0;
-  opacity: 0.25;
+  border-radius: 3px;
 }
 
-.tick img { width: 13px; height: 13px; }
-.tick.on { opacity: 1; }
-.tick:hover { opacity: 0.7; }
-.tick.on:hover { opacity: 0.85; }
+.tick img { width: 9.2px; height: 9.2px; opacity: 0; }
+.tick.on img { opacity: 1; }
+.tick:hover { background: #3c3c3c; }
 
 .chiplist { gap: 1px; }
-.prop { font-size: 11.5px; color: #7bc55c; }
+.prop { font-size: 9.8px; color: #7bc55c; }
 .prop.none { color: #8a8a8a; }
 
 /* Addictiveness: white at nothing, red at all of it, with a marker on it - vanilla's own ramp. */
@@ -239,7 +244,7 @@ body {
 }
 
 .bar-mark { position: absolute; top: -2px; width: 4px; height: 12px; background: #ffffff; border-radius: 1px; }
-.bar-value { font-size: 10.5px; color: #c8c8c8; }
+.bar-value { font-size: 9.8px; color: #ffffff; text-align: center; }
 
 /* -------------------------------------------------------------------------------------------------- portrait --
    Vanilla cannot turn this app; upright is this mod's own, one pane at a time. */

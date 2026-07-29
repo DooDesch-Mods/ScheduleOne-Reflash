@@ -82,7 +82,16 @@ namespace Reflash.Hijack
         {
             if (!open) return true;
 
-            return !AppHijack.Open(which);
+            if (AppHijack.Open(which)) return false;
+
+            // Vanilla is taking this one. Anything of ours that is open has to get out of the way first: the two
+            // hosts each keep their own container active, and Sideload's is the later sibling, so a vanilla app
+            // opened underneath one of ours is drawn behind it and looks like the press did nothing.
+            //
+            // Reproduced with the takeover off: open Connect, then press any vanilla icon, and Connect is still
+            // what you are looking at.
+            AppHijack.StandAside();
+            return true;
         }
 
         // Seven one-line prefixes rather than one shared generic: a Harmony prefix is matched by signature against

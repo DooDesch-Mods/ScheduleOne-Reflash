@@ -264,3 +264,48 @@ body {
   .shop-desc, .listing-name { font-size: 14px; }
   .tab { font-size: 13px; }
 }
+
+/* ---- past and active deliveries, as cards ------------------------------------------------------------------
+
+   Measured off the running game rather than guessed: vanilla puts these in TWO COLUMNS of cards. Each card has a
+   header strip - the shop on the left in its own colour, an arrow, the destination and its dock on the right -
+   and the items underneath in two columns of "10x Name". A flat list of one line per delivery, which is what was
+   here, reads as a different app.
+
+   Not built yet, and it needs new fields on the wire rather than css: vanilla's header also carries a Reorder
+   button with the order total on it. */
+.cards { flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+
+.card {
+  flex: none;
+  width: 49%;
+  background: #3f3f3f;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.card-head {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  background: #363636;
+}
+
+.card-from { flex: 1; min-width: 0; }
+.card-to { flex: 1; min-width: 0; }
+
+.card-shop { font-size: 9.8px; font-weight: bold; color: #7fb8e0; }
+.card-arrow { flex: none; font-size: 9.8px; color: #8a8a8a; }
+.card-where { font-size: 9.8px; color: #ffffff; }
+.card-when { font-size: 8px; color: #9a9a9a; }
+.card-status { flex: none; font-size: 8px; color: #9a9a9a; }
+
+/* The items in two columns, as vanilla wraps them. */
+.card-items { flex-direction: row; flex-wrap: wrap; padding: 5px 7px 7px 7px; }
+.card-item { width: 50%; font-size: 9.8px; color: #e0e0e0; line-height: 14px; }
+
+@media (orientation: portrait) {
+  .card { width: 100%; }
+}

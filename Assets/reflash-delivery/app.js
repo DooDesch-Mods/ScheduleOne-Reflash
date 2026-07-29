@@ -365,23 +365,49 @@ function renderDeliveries() {
     return;
   }
 
+  // Vanilla lays these out as CARDS in two columns, not as a list of lines: a header that reads
+  // "<shop> -> <destination>" with the shop's own colour on the left, and the items under it in two columns.
+  // A single line per delivery was the thing that looked nothing like the game.
+  var grid = document.createElement('div');
+  grid.className = 'cards';
+
   for (var i = 0; i < deliveries.length; i++) {
     var d = deliveries[i];
 
-    var row = document.createElement('div');
-    row.className = 'delivery';
+    var card = document.createElement('div');
+    card.className = 'card';
 
     var head = document.createElement('div');
-    head.className = 'delivery-head';
-    head.appendChild(text('delivery-shop', d.shop));
-    if (d.eta) head.appendChild(text('delivery-eta', d.eta));
-    head.appendChild(text('delivery-status', d.status));
-    row.appendChild(head);
+    head.className = 'card-head';
 
-    if (d.items && d.items.length) row.appendChild(text('delivery-items', d.items.join(', ')));
+    var from = document.createElement('div');
+    from.className = 'card-from';
+    from.appendChild(text('card-shop', d.shop));
+    head.appendChild(from);
 
-    bodyEl.appendChild(row);
+    head.appendChild(text('card-arrow', '>'));
+
+    var to = document.createElement('div');
+    to.className = 'card-to';
+    to.appendChild(text('card-where', d.destination || ''));
+    if (d.eta) to.appendChild(text('card-when', d.eta));
+    head.appendChild(to);
+
+    if (d.status) head.appendChild(text('card-status', d.status));
+
+    card.appendChild(head);
+
+    if (d.items && d.items.length) {
+      var body = document.createElement('div');
+      body.className = 'card-items';
+      for (var k = 0; k < d.items.length; k++) body.appendChild(text('card-item', d.items[k]));
+      card.appendChild(body);
+    }
+
+    grid.appendChild(card);
   }
+
+  bodyEl.appendChild(grid);
 }
 
 function findShop(id) {

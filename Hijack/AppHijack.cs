@@ -22,10 +22,37 @@ namespace Reflash.Hijack
         /// </summary>
         internal static bool Ready { get; private set; }
 
+        /// <summary>Every app this mod registered, replacements and Connect alike, for the one job that has to
+        /// cover all of them: getting out of vanilla's way.</summary>
+        private static readonly List<AppHandle> _ours = new List<AppHandle>();
+
         internal static void Register(VanillaApp vanilla, AppHandle handle)
         {
             if (handle == null) return;
+
             _handles[vanilla] = handle;
+            Watch(handle);
+        }
+
+        /// <summary>An app of ours that replaces nothing - Connect. It still has to stand aside.</summary>
+        internal static void Watch(AppHandle handle)
+        {
+            if (handle != null && !_ours.Contains(handle)) _ours.Add(handle);
+        }
+
+        /// <summary>
+        /// Close whatever of ours is open, because a vanilla app is about to take the screen.
+        ///
+        /// Both hosts activate their own container and neither knows about the other, so without this the vanilla
+        /// panel opens BEHIND ours and the press reads as ignored.
+        /// </summary>
+        internal static void StandAside()
+        {
+            for (int i = 0; i < _ours.Count; i++)
+            {
+                AppHandle handle = _ours[i];
+                if (handle != null && handle.IsOpen) handle.Close();
+            }
         }
 
         /// <summary>
