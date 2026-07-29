@@ -22,9 +22,12 @@ namespace Reflash.Companion
     /// </summary>
     internal static class Wallpaper
     {
-        /// <summary>The screen in CSS pixels, doubled so it still looks drawn rather than blown up on a phone.</summary>
+        /// <summary>
+        /// Twice the screen's width in CSS pixels, so it still looks drawn rather than blown up on a phone that
+        /// packs three device pixels into one. The height follows the background's own rect rather than being
+        /// written down beside it - a second number that has to agree with the first is a number that will not.
+        /// </summary>
         private const int Width = 800;
-        private const int Height = 1418;
 
         private static byte[] _png;
         private static bool _missing;
@@ -95,16 +98,18 @@ namespace Reflash.Companion
 
             if (back.x <= 0 || back.y <= 0 || over.x <= 0 || over.y <= 0) return null;
 
+            int height = Mathf.Max(1, Mathf.RoundToInt(Width * back.y / back.x));
+
             Color32 baseColour = behind.color;
             Color tint = weave.color;
 
-            var pixels = new Color32[Width * Height];
+            var pixels = new Color32[Width * height];
 
-            for (int y = 0; y < Height; y++)
+            for (int y = 0; y < height; y++)
             {
                 // Unity holds a texture bottom row first, and so does the array this hands back, so y counts up
                 // from the bottom of the screen in both.
-                float canvasY = (y + 0.5f) / Height * back.y - back.y * 0.5f;
+                float canvasY = (y + 0.5f) / height * back.y - back.y * 0.5f;
                 float overY = canvasY - shift.y;
 
                 for (int x = 0; x < Width; x++)
@@ -140,7 +145,7 @@ namespace Reflash.Companion
                 }
             }
 
-            return TextureIO.EncodePixels(pixels, Width, Height);
+            return TextureIO.EncodePixels(pixels, Width, height);
         }
 
         private static byte Mix(byte under, float over, float alpha) =>
