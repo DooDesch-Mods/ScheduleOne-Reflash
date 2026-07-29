@@ -40,7 +40,12 @@ namespace Reflash.Companion
         {
             string text = Encoding.UTF8.GetString(html);
 
+            // The colour-scheme declaration has to be a meta tag in the markup, not a rule in compat.css. Android
+            // Chrome decides whether to force-darken a document before the stylesheets arrive, and a page it
+            // decides to darken has its IMAGES dimmed - which turned every app icon grey and, worse, took the QR
+            // code's white quiet zone down to about #c0c0c0, where a camera struggles to read it.
             string inject =
+                "<meta name=\"color-scheme\" content=\"dark\">\n" +
                 "<base href=\"/app/" + appId + "/\">\n" +
                 "<link rel=\"stylesheet\" href=\"/sc/font.css\">\n" +
                 "<link rel=\"stylesheet\" href=\"/sc/compat.css\">\n" +
