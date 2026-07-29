@@ -17,10 +17,9 @@ $target = Join-Path $Game "Mods"
 if (-not (Test-Path $target)) { throw "no Mods folder at $target" }
 
 foreach ($bundle in Get-ChildItem -Path $source -Directory) {
-    # The shell is not a Sideload app - it is the companion's own page, read straight out of the assembly.
-    if ($bundle.Name -eq "shell") { continue }
-
-    $into = Join-Path $target $bundle.Name
+    # The shell is not a Sideload app - it is the companion's own page. A Debug build reads it from
+    # Mods/reflash-shell if that folder is there, so it gets the same treatment under a name of its own.
+    $into = if ($bundle.Name -eq "shell") { Join-Path $target "reflash-shell" } else { Join-Path $target $bundle.Name }
     New-Item -ItemType Directory -Force -Path $into | Out-Null
 
     Copy-Item -Path (Join-Path $bundle.FullName "*") -Destination $into -Recurse -Force

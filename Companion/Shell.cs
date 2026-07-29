@@ -83,6 +83,18 @@ namespace Reflash.Companion
         /// </summary>
         private static byte[] AssetBytes(string name)
         {
+#if DEBUG
+            // The same override the app bundles get, for the one set of files that did not have it. Without it a
+            // one-line change to the shell costs a rebuild AND a full restart, because a resource is baked into the
+            // assembly - and the shell is where the awkward bugs live, so that is the file being changed most.
+            try
+            {
+                string onDisk = Path.Combine(Environment.CurrentDirectory, "Mods", "reflash-shell", name);
+                if (File.Exists(onDisk)) return File.ReadAllBytes(onDisk);
+            }
+            catch { /* fall through to the embedded copy, which is the shipped one anyway */ }
+#endif
+
             string resource = "Reflash.Assets.shell." + name.Replace('/', '.');
 
             using Stream stream = typeof(Shell).Assembly.GetManifestResourceStream(resource);
