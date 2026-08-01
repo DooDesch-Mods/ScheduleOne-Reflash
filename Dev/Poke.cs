@@ -74,7 +74,7 @@ namespace Reflash.Dev
             // fires events, leaving the handset stowed and every app invisible - which looks exactly like an app
             // that failed to render.
             if (Singleton<Il2CppScheduleOne.UI.GameplayMenu>.InstanceExists)
-                Singleton<Il2CppScheduleOne.UI.GameplayMenu>.Instance.SetIsOpen(true);
+                Singleton<Il2CppScheduleOne.UI.GameplayMenu>.Instance.Open();
 
             var phone = PlayerSingleton<Phone>.Instance;
             if (phone == null) { Core.Log.Warning("[Reflash/dev] no Phone."); return; }

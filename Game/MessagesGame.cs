@@ -342,7 +342,7 @@ namespace Reflash.Game
 
             // The game refuses to hide some conversations. Asking first means the page can say "refused" rather
             // than appearing to work and leaving the row where it was.
-            if (hidden && (c.sender == null || !c.sender.ConversationCanBeHidden)) return Reply.Refused;
+            if (hidden && (c.sender == null || !c.sender.NPCData.Messaging.ConversationCanBeHidden)) return Reply.Refused;
 
             c.SetEntryVisibility(!hidden);
             return Reply.Ok;
@@ -436,7 +436,7 @@ namespace Reflash.Game
                 ProductId = product.ID,
                 ProductName = Text.Clean(product.Name),
                 Quantity = c.quantity,
-                Price = (int)Math.Round(c.price),
+                Price = (int)Math.Round(c.PriceSelector.SelectedAmount),
                 FairPrice = (int)Math.Round(product.MarketValue * c.quantity),
                 MaxQuantity = c.MaxQuantity,
             };
@@ -623,12 +623,10 @@ namespace Reflash.Game
 
             c.selectedProduct = product;
             c.quantity = Math.Clamp(quantity, 1, c.MaxQuantity);
-            c.price = Math.Clamp(price, 1, 9999);
-
-            // Send re-reads the field rather than trusting its own number, so the field has to carry it. Invariant
-            // because the parse on the other side is invariant too - the mod runtime has no culture data.
-            if (c.PriceInput != null)
-                c.PriceInput.text = c.price.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+            // The price left the text field in 0.4.6f11 and now lives in an AmountSelector, which Send reads back -
+            // so setting the selector IS setting the price, and the invariant string formatting is no longer needed.
+            if (c.PriceSelector != null)
+                c.PriceSelector.SetAmount(Math.Clamp(price, 1, 9999));
 
             c.Send();
             return Reply.Ok;

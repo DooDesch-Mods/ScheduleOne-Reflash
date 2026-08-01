@@ -39,9 +39,9 @@ namespace Reflash.Game
             Id = d.ID,
             Name = Text.Clean(d.FullName),
             Region = Text.Clean(d.Region.ToString()),
-            Home = Text.Clean(d.HomeName),
+            Home = Text.Clean(d.DealerData.HomeName),
             Cash = (int)Math.Round(d.Cash),
-            CutPercent = (int)Math.Round(d.Cut * 100f),
+            CutPercent = (int)Math.Round(d.DealerData.SalesCutPercentage * 100f),
             CustomerCount = d.AssignedCustomers?.Count ?? 0,
             CustomerLimit = GameDealer.MAX_CUSTOMERS,
         };
@@ -153,7 +153,7 @@ namespace Reflash.Game
             if (d == null) return Reply.NotFound;
             if (percent < 0 || percent > 100) return Reply.BadArgs;
 
-            d.Cut = percent / 100f;
+            d.DealerData.SalesCutPercentage = percent / 100f;
             return Reply.Ok;
         }
 
@@ -176,7 +176,7 @@ namespace Reflash.Game
                         if (d == null || !d.IsRecruited) continue;
 
                         hash = hash * 31 + (int)d.Cash;
-                        hash = hash * 31 + (int)(d.Cut * 100f);
+                        hash = hash * 31 + (int)(d.DealerData.SalesCutPercentage * 100f);
                         hash = hash * 31 + (d.AssignedCustomers?.Count ?? 0);
                     }
 
