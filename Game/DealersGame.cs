@@ -37,7 +37,7 @@ namespace Reflash.Game
         private static DealerView ViewOf(GameDealer d) => new DealerView
         {
             Id = d.ID,
-            Name = Text.Clean(d.fullName),
+            Name = Text.Clean(d.FullName),
             Region = Text.Clean(d.Region.ToString()),
             Home = Text.Clean(d.HomeName),
             Cash = (int)Math.Round(d.Cash),
@@ -190,7 +190,7 @@ namespace Reflash.Game
             var view = new ContactView
             {
                 Id = npc.ID,
-                Name = Text.Clean(npc.fullName),
+                Name = Text.Clean(npc.FullName),
                 Region = Text.Clean(npc.Region.ToString()),
             };
 

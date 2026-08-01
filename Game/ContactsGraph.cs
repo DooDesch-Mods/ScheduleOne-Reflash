@@ -151,7 +151,7 @@ namespace Reflash.Game
             var node = new NodeView
             {
                 Id = npc.ID,
-                Name = Text.Clean(npc.fullName),
+                Name = Text.Clean(npc.FullName),
                 X = x,
                 Y = y,
                 Unlocked = npc.RelationData != null && npc.RelationData.Unlocked,
