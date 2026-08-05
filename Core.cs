@@ -6,7 +6,7 @@ using Reflash.Wire;
 using Sideload.Api;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(Reflash.Core), "Reflash", "1.0.0", "DooDesch", "https://github.com/DooDesch-Mods/ScheduleOne-Reflash")]
+[assembly: MelonInfo(typeof(Reflash.Core), "Reflash", DooDesch.ModVersion.Current, "DooDesch", "https://github.com/DooDesch-Mods/ScheduleOne-Reflash")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 [assembly: MelonOptionalDependencies("Sideload")]
 
