@@ -71,14 +71,14 @@ namespace Reflash.Companion
                 _accept = new Thread(AcceptLoop) { IsBackground = true, Name = "Reflash-Companion" };
                 _accept.Start();
 
-                Core.Log.Msg($"[Reflash] companion server on http://{LanIp}:{port}");
-                Core.Log.Msg("[Reflash] if a phone cannot reach it, Windows Firewall is the usual reason - allow " +
+                Core.Log.Msg($"companion server on http://{LanIp}:{port}");
+                Core.Log.Msg("if a phone cannot reach it, Windows Firewall is the usual reason - allow " +
                              $"TCP {port} on the private network.");
                 return true;
             }
             catch (Exception e)
             {
-                Core.Log.Error($"[Reflash] the companion server could not start on port {port}: {e.Message}");
+                Core.Log.Error($"the companion server could not start on port {port}: {e.Message}");
                 _running = false;
                 return false;
             }
@@ -101,7 +101,7 @@ namespace Reflash.Companion
             while (budget-- > 0 && _mainThread.TryDequeue(out Action work))
             {
                 try { work(); }
-                catch (Exception e) { Core.Log.Error($"[Reflash] companion work failed: {e.Message}"); }
+                catch (Exception e) { Core.Log.Error($"companion work failed: {e.Message}"); }
             }
         }
 
@@ -154,7 +154,7 @@ namespace Reflash.Companion
                 if (Volatile.Read(ref _abandoned) == 0)
                 {
                     try { Result = Work(); }
-                    catch (Exception e) { Core.Log.Error($"[Reflash] companion call failed: {e.Message}"); }
+                    catch (Exception e) { Core.Log.Error($"companion call failed: {e.Message}"); }
                 }
 
                 try { Done.Set(); }
@@ -207,7 +207,7 @@ namespace Reflash.Companion
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] a companion connection failed: {e.Message}");
+                Core.Log.Warning($"a companion connection failed: {e.Message}");
             }
             finally
             {
@@ -295,7 +295,7 @@ namespace Reflash.Companion
             Sessions.Session session = _sessions.Pair(token, device, remote, Clock.Now, out Sessions.Refusal why);
             if (session == null) { Http.Text(stream, 403, Explain(why)); return; }
 
-            Core.Log.Msg($"[Reflash] a device paired from {remote}.");
+            Core.Log.Msg($"a device paired from {remote}.");
 
             // HttpOnly so no script can read it, SameSite=Strict so no other site can cause a request that carries
             // it. No Secure flag - there is no https here and claiming otherwise would just break the cookie.

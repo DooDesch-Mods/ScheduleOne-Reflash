@@ -76,7 +76,7 @@ namespace Reflash.Game
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] reading a sprite failed: {e.Message}");
+                Core.Log.Warning($"reading a sprite failed: {e.Message}");
                 return null;
             }
             finally
@@ -104,7 +104,7 @@ namespace Reflash.Game
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] encoding pixels failed: {e.Message}");
+                Core.Log.Warning($"encoding pixels failed: {e.Message}");
                 return null;
             }
             finally
@@ -211,7 +211,7 @@ namespace Reflash.Game
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] encoding a texture failed: {e.Message}");
+                Core.Log.Warning($"encoding a texture failed: {e.Message}");
                 return null;
             }
             finally

@@ -94,7 +94,7 @@ namespace Reflash.Game
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] reading dealer inventory failed: {e.Message}");
+                Core.Log.Warning($"reading dealer inventory failed: {e.Message}");
             }
         }
 

@@ -114,7 +114,7 @@ namespace Reflash.Game
                 if (_warned) continue;
 
                 _warned = true;
-                Core.Log.Warning($"[Reflash] a picture would not read back ({_prefix}{id}, sprite='{sprite.name}', " +
+                Core.Log.Warning($"a picture would not read back ({_prefix}{id}, sprite='{sprite.name}', " +
                                  $"texture={(sprite.texture == null ? "none" : sprite.texture.width + "x" + sprite.texture.height)}) " +
                                  "- those rows fall back to text.");
             }

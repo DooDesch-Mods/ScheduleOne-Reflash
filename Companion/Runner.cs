@@ -34,7 +34,7 @@ namespace Reflash.Companion
         internal void FollowPreference()
         {
             if (Prefs.CompanionEnabled) TurnOn();
-            else Core.Log.Msg("[Reflash] the phone companion is off. Turn it on in the Connect app on the in-game phone.");
+            else Core.Log.Msg("the phone companion is off. Turn it on in the Connect app on the in-game phone.");
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace Reflash.Companion
             _server.Stop();
             Prefs.SetCompanionEnabled(false);
 
-            Core.Log.Msg("[Reflash] the phone companion is off.");
+            Core.Log.Msg("the phone companion is off.");
         }
 
         internal void Pump() => _server.Pump();

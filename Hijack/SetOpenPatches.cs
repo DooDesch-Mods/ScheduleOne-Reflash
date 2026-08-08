@@ -44,8 +44,8 @@ namespace Reflash.Hijack
 
             // "hooked", not "took over": with the takeover off these prefixes fall straight through, and a startup
             // line claiming seven apps were replaced when none were is the kind of thing a bug report is built on.
-            Core.Log.Msg($"[Reflash] hooked {ok} of 7 phone apps.");
-            if (ok < 7) Core.Log.Warning("[Reflash] the rest keep their vanilla screens whatever the setting says - " +
+            Core.Log.Msg($"hooked {ok} of 7 phone apps.");
+            if (ok < 7) Core.Log.Warning("the rest keep their vanilla screens whatever the setting says - " +
                                          "see the errors above.");
         }
 
@@ -56,7 +56,7 @@ namespace Reflash.Hijack
                 MethodInfo target = AccessTools.Method(appType, "SetOpen", new[] { typeof(bool) });
                 if (target == null)
                 {
-                    Core.Log.Error($"[Reflash] {appType.Name}.SetOpen(bool) not found - that app keeps its vanilla screen.");
+                    Core.Log.Error($"{appType.Name}.SetOpen(bool) not found - that app keeps its vanilla screen.");
                     return false;
                 }
 
@@ -66,7 +66,7 @@ namespace Reflash.Hijack
             }
             catch (Exception e)
             {
-                Core.Log.Error($"[Reflash] patching {appType.Name}.SetOpen failed ({e.Message}) - that app keeps its vanilla screen.");
+                Core.Log.Error($"patching {appType.Name}.SetOpen failed ({e.Message}) - that app keeps its vanilla screen.");
                 return false;
             }
         }

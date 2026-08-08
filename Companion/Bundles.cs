@@ -36,7 +36,7 @@ namespace Reflash.Companion
             try
             {
                 Type bridge = FindBridge();
-                if (bridge == null) { Core.Log.Warning("[Reflash] Sideload is not loaded - no companion."); return false; }
+                if (bridge == null) { Core.Log.Warning("Sideload is not loaded - no companion."); return false; }
 
                 _listApps = Get<Func<string>>(bridge, "ListAppsJson");
                 _readBundleFile = Get<Func<string, string, byte[]>>(bridge, "ReadBundleFile");
@@ -48,14 +48,14 @@ namespace Reflash.Companion
                 Available = _listApps != null && _readBundleFile != null && _invoke != null && _setTaps != null;
 
                 if (!Available)
-                    Core.Log.Warning("[Reflash] this Sideload has no companion seam - it needs 1.1.0 or newer. " +
+                    Core.Log.Warning("this Sideload has no companion seam - it needs 1.1.0 or newer. " +
                                      "The in-game phone is unaffected.");
 
                 return Available;
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] binding the companion seam failed: {e.Message}");
+                Core.Log.Warning($"binding the companion seam failed: {e.Message}");
                 return false;
             }
         }

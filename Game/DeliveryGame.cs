@@ -268,7 +268,7 @@ namespace Reflash.Game
             if (!shop.CanOrder(out string reason))
             {
                 for (int i = 0; i < entries.Count; i++) entries[i]?.SetQuantity(0, false);
-                Core.Log.Msg($"[Reflash] delivery refused by the game: {reason}");
+                Core.Log.Msg($"delivery refused by the game: {reason}");
                 return Reply.Refused;
             }
 

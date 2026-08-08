@@ -67,7 +67,7 @@ namespace Reflash.Companion
                 if (home == null) { _scanned = false; return; }   // the phone is not built yet - try again later
 
                 Walk(home.transform, 0);
-                Core.Log.Msg($"[Reflash] {Cache.Count} of {Order.Count} phone icons available to the companion.");
+                Core.Log.Msg($"{Cache.Count} of {Order.Count} phone icons available to the companion.");
 
                 // An icon that produced nothing may simply have been asked for too early - the phone builds itself
                 // over several frames. Leaving the scan open lets a later request pick up what was missing, which
@@ -77,7 +77,7 @@ namespace Reflash.Companion
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] reading the phone icons failed: {e.Message}");
+                Core.Log.Warning($"reading the phone icons failed: {e.Message}");
             }
         }
 
@@ -145,7 +145,7 @@ namespace Reflash.Companion
             // Worth naming rather than swallowing: an icon that will not read back is the difference between the
             // companion looking like the phone and looking like a list of coloured letters, and which sprite it was
             // is the only thing that says why.
-            Core.Log.Warning($"[Reflash] the icon '{best.name}' would not read back " +
+            Core.Log.Warning($"the icon '{best.name}' would not read back " +
                              $"(texture {best.texture.width}x{best.texture.height}, readable={best.texture.isReadable}, " +
                              $"format={best.texture.format}, rect={best.textureRect}) - that tile falls back to a letter.");
             return null;
