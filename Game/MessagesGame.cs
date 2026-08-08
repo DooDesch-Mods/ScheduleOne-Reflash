@@ -606,7 +606,7 @@ namespace Reflash.Game
             // Straight to the game's own handler, which runs the callback that files the contract and then shuts the
             // window. Pressing the button object instead would need it on screen, and it deliberately is not.
             if (Sheets.Deal.callback == null)
-                Core.Log.Warning("[Reflash] the deal window has no callback - the contract will not be filed.");
+                Core.Log.Warning("the deal window has no callback - the contract will not be filed.");
 
             Sheets.Deal.ButtonClicked(window);
             return Reply.Ok;

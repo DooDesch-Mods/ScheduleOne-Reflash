@@ -74,7 +74,7 @@ namespace Reflash
             AppHijack.Arm(Prefs.TakeOverVanillaApps);
 
             if (!Prefs.TakeOverVanillaApps)
-                Log.Msg("[Reflash] the in-game phone keeps its own apps. The replacements are registered anyway - " +
+                Log.Msg("the in-game phone keeps its own apps. The replacements are registered anyway - " +
                         "that is what the companion serves. Set ReplaceVanillaApps to try them in the game.");
 
             // MelonLoader hands every mod its own Harmony instance and unpatches it on unload, which is one less
@@ -142,7 +142,7 @@ namespace Reflash
             // Guarded on its own. Pump hands work from connection threads to this one, and a mod that can throw out
             // of OnUpdate is a mod that can take a frame - or the session - with it.
             try { _companion?.Pump(); }
-            catch (Exception e) { Log.Error($"[Reflash] companion pump failed: {e.Message}"); }
+            catch (Exception e) { Log.Error($"companion pump failed: {e.Message}"); }
 
 #if DEBUG
             Dev.Poke.Tick(Time.unscaledTime);
@@ -153,7 +153,7 @@ namespace Reflash
         {
             // Logged so a session that ends can be told apart from one that is ENDED. Four times this game vanished
             // with nothing in any log, and without this line there is no way to know whether it quit or was killed.
-            Log.Msg("[Reflash] the game is quitting - shutting the companion down.");
+            Log.Msg("the game is quitting - shutting the companion down.");
 
             _companion?.Shutdown();
         }

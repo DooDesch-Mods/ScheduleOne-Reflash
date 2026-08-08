@@ -37,7 +37,7 @@ namespace Reflash.Companion
                 bool[,] matrix = QrLite.Encode(url);
                 if (matrix == null)
                 {
-                    Core.Log.Warning($"[Reflash] the pairing URL does not fit in a QR code ({url.Length} chars).");
+                    Core.Log.Warning($"the pairing URL does not fit in a QR code ({url.Length} chars).");
                     return null;
                 }
 
@@ -75,7 +75,7 @@ namespace Reflash.Companion
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] building the QR code failed: {e.Message}");
+                Core.Log.Warning($"building the QR code failed: {e.Message}");
                 return null;
             }
         }

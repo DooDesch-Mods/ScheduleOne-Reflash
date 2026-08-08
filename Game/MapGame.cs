@@ -269,23 +269,23 @@ namespace Reflash.Game
                 byte[] png = TextureIO.EncodePng(sprite.texture);
                 if (png == null || png.Length == 0)
                 {
-                    Core.Log.Warning("[Reflash] the map picture could not be read - falling back to region boxes.");
+                    Core.Log.Warning("the map picture could not be read - falling back to region boxes.");
                     return;
                 }
 
                 if (_handle == null)
                 {
-                    Core.Log.Warning("[Reflash] the map has no app handle - the picture cannot be published.");
+                    Core.Log.Warning("the map has no app handle - the picture cannot be published.");
                     return;
                 }
 
                 _handle.Image("map", png);
                 _imageOk = true;
-                Core.Log.Msg($"[Reflash] map image ready ({png.Length / 1024} KB).");
+                Core.Log.Msg($"map image ready ({png.Length / 1024} KB).");
             }
             catch (Exception e)
             {
-                Core.Log.Warning($"[Reflash] extracting the map image failed ({e.Message}) - falling back to region boxes.");
+                Core.Log.Warning($"extracting the map image failed ({e.Message}) - falling back to region boxes.");
             }
         }
 

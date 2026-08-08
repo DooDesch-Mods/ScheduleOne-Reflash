@@ -71,7 +71,7 @@ namespace Reflash
         private static void Save()
         {
             try { _category?.SaveToFile(false); }
-            catch (Exception e) { Core.Log.Warning($"[Reflash] could not save settings: {e.Message}"); }
+            catch (Exception e) { Core.Log.Warning($"could not save settings: {e.Message}"); }
         }
 
         /// <summary>Clamped, because a nonsense port would fail to bind and read as "the mod is broken".</summary>

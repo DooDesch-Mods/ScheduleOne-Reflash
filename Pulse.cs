@@ -50,7 +50,7 @@ namespace Reflash
             {
                 Entry e = _entries[i];
                 try { TickOne(e); }
-                catch (Exception ex) { Core.Log.Error($"[Reflash] pulse for '{e.Port.Id}' failed: {ex.Message}"); }
+                catch (Exception ex) { Core.Log.Error($"pulse for '{e.Port.Id}' failed: {ex.Message}"); }
             }
         }
 

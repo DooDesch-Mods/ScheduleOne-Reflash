@@ -67,7 +67,7 @@ namespace Reflash.Companion
                 _png = Composite(behind, weave, backRect, weaveRect);
                 if (_png == null) return null;
 
-                Core.Log.Msg($"[Reflash] wallpaper ready ({_png.Length / 1024} KB).");
+                Core.Log.Msg($"wallpaper ready ({_png.Length / 1024} KB).");
                 return _png;
             }
             catch (Exception e)
@@ -84,7 +84,7 @@ namespace Reflash.Companion
         private static void Give(string why)
         {
             _missing = true;
-            Core.Log.Warning($"[Reflash] {why} - the companion falls back to a plain background.");
+            Core.Log.Warning($"{why} - the companion falls back to a plain background.");
         }
 
         private static byte[] Composite(Image behind, Image weave, RectTransform backRect, RectTransform weaveRect)
