@@ -1,5 +1,16 @@
 /* The renderer's own defaults, restated for a browser.
 
+   The same restatement for the DESKTOP PREVIEW lives in Workspace/tools/sideload-preview/sideload-preview.css,
+   where it is checked against the engine by a test. This file cannot simply be that one: it is served to a real
+   phone, and the bundles it wraps are fragments with no element to hang `data-sideload` on, so it is scoped to the
+   whole document instead.
+
+   Two rules the shared file has and this one does not, both corrections and both left for a pass with a phone in
+   hand: every box gets `position: relative` (in the engine an absolute child is placed against its DIRECT parent,
+   always), and a scroll container gets its `flex-shrink` back (it is the one box the engine allows to shrink below
+   its content). Adding either here moves the layout of an app already on somebody's home screen.
+
+
    Without these three rules the browser lays out every box differently from the game, and the same bundle looks
    like a different app on each screen. In the Sideload renderer EVERY element is a flex container, the default
    direction is column, and box-sizing is always border-box - none of which is true in CSS.
