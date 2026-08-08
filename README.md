@@ -2,6 +2,8 @@
 
 > 🛟 **Need help or found a bug?** Get support at [support.doodesch.de/reflash](https://support.doodesch.de/reflash).
 
+📖 **Documentation:** [docs.doodesch.de/mods/reflash/](https://docs.doodesch.de/mods/reflash/)
+
 > The seven apps on the in game phone, rebuilt as web pages and served to the phone in your pocket. Open
 > Connect, scan the code, and messages, the map, deliveries, products, dealers, contacts and the journal are
 > on a second screen - same save, same moment, while the game keeps the whole monitor.
