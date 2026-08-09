@@ -28,8 +28,8 @@ body {
 .compass img { width: 14px; height: 18px; }
 
 /* The window: Scroll View 1205x617, the whole screen under the strip.
-   touch-action so a phone browser pans the MAP rather than the page - the game's renderer has no such notion and
-   ignores the property. */
+   touch-action so the MAP pans rather than the page around it. A browser has always read this; the game's renderer
+   reads it from Sideload 1.29.0, where a drag listener became passive unless the box claims the gesture. */
 .viewport { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; }
 
 /* Content 2048x2048 canvas units = 1250.8 css px at zoom 1. Vanilla's zoom runs 0.8 to 2.0 over this.
