@@ -21,6 +21,8 @@ namespace Reflash.Game
         /// </summary>
         internal static byte[] EncodeSpritePng(Sprite sprite)
         {
+            if (TryEncodeWhole(sprite, out byte[] whole)) return whole;
+
             Color32[] pixels = SpritePixels(sprite, out int width, out int height);
             if (pixels == null) return null;
 
@@ -89,6 +91,147 @@ namespace Reflash.Game
                 if (rt != null) RenderTexture.ReleaseTemporary(rt);
                 if (readable != null) UnityEngine.Object.Destroy(readable);
             }
+        }
+
+        /// <summary>
+        /// The longest side a whole-texture picture is handed over at. The largest face a page draws is 61 css px,
+        /// about 93 screen pixels at 1080p, and a mugshot is 512 x 512: shipping it at full size made every face a
+        /// 100 KB PNG and the encode the most expensive thing the pulse did. The PNG encode scales with the pixel
+        /// count, so this is also the knob for how long a face takes.
+        /// </summary>
+        private const int MaxSide = 160;
+
+        /// <summary>
+        /// A sprite that is its whole texture - every mugshot, most icons - encoded without the general path's two
+        /// pixel copies.
+        ///
+        /// The general path copies the picture into a managed array and back into a fresh texture before encoding,
+        /// and each copy crosses the interop boundary pixel by pixel. With four 512 x 512 faces per tick that was a
+        /// hitch of up to 200 ms whenever a contacts region filled in. Here a readable, uncompressed texture is
+        /// encoded as it is; anything else is drawn on the GPU at no more than <see cref="MaxSide"/> and that
+        /// readback is encoded directly.
+        ///
+        /// True when this path gave the answer, including "not drawn yet" (null); false when the sprite needs the
+        /// general path.
+        /// </summary>
+        private static bool TryEncodeWhole(Sprite sprite, out byte[] png)
+        {
+            png = null;
+            Texture2D texture = sprite != null ? sprite.texture : null;
+            if (texture == null || sprite.packed) return false;
+
+            Rect rect = sprite.rect;
+            if (Mathf.RoundToInt(rect.x) != 0 || Mathf.RoundToInt(rect.y) != 0 ||
+                Mathf.RoundToInt(rect.width) != texture.width || Mathf.RoundToInt(rect.height) != texture.height)
+                return false;
+
+            // EncodeToPNG writes uncompressed formats only, and reads the stored bytes exactly - see SpritePixels for
+            // why that matters for a runtime texture.
+            TextureFormat format = texture.format;
+            bool direct = texture.isReadable &&
+                          (format == TextureFormat.RGBA32 || format == TextureFormat.ARGB32 ||
+                           format == TextureFormat.RGB24 || format == TextureFormat.BGRA32);
+
+            // A readable compressed texture is copied exactly by the general path; the GPU round trip below is for
+            // the ones that cannot be read any other way.
+            if (!direct && texture.isReadable) return false;
+
+            try
+            {
+                if (direct)
+                {
+                    if (LooksBlank(texture)) return true;
+
+                    png = ImageConversion.EncodeToPNG(texture);
+                }
+                else
+                {
+                    png = EncodeScaled(texture, out bool blank);
+                    if (blank) { png = null; return true; }
+                }
+
+                if (png != null && png.Length > 0) return true;
+
+                Core.Log.Warning($"'{sprite.name}' ({format}) did not encode as a whole - copying its pixels instead.");
+                png = null;
+                return false;
+            }
+            catch (Exception e)
+            {
+                Core.Log.Warning($"encoding '{sprite.name}' as a whole failed ({e.Message}) - copying its pixels instead.");
+                png = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// The texture drawn into a render texture no larger than <see cref="MaxSide"/>, read back and encoded as it
+        /// is. Same blit and colour space as <see cref="SpritePixels"/>, so a face looks the same either way.
+        /// </summary>
+        private static byte[] EncodeScaled(Texture2D source, out bool blank)
+        {
+            blank = false;
+
+            float fit = Mathf.Min(1f, (float)MaxSide / Mathf.Max(source.width, source.height));
+            int width = Mathf.Max(1, Mathf.RoundToInt(source.width * fit));
+            int height = Mathf.Max(1, Mathf.RoundToInt(source.height * fit));
+
+            RenderTexture rt = null;
+            RenderTexture previous = RenderTexture.active;
+            Texture2D readable = null;
+
+            try
+            {
+#if SNITCH
+                using (Snitch.Api.Profiler.Sample("Reflash.face.Read"))
+#endif
+                {
+                    rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+                    Graphics.Blit(source, rt);
+
+                    RenderTexture.active = rt;
+
+                    // No Apply: EncodeToPNG reads the CPU copy, and uploading it back to the GPU is wasted work.
+                    readable = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                    readable.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                }
+
+#if SNITCH
+                using (Snitch.Api.Profiler.Sample("Reflash.face.Blank"))
+#endif
+                if (LooksBlank(readable)) { blank = true; return null; }
+
+#if SNITCH
+                using (Snitch.Api.Profiler.Sample("Reflash.face.Png"))
+#endif
+                return ImageConversion.EncodeToPNG(readable);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                if (rt != null) RenderTexture.ReleaseTemporary(rt);
+                if (readable != null) UnityEngine.Object.Destroy(readable);
+            }
+        }
+
+        /// <summary>
+        /// <see cref="Blank"/> for a texture that has not been copied out: the same prime-stride walk, one pixel read at
+        /// a time, so a picture that is not there yet costs a few hundred reads rather than the whole texture.
+        /// </summary>
+        private static bool LooksBlank(Texture2D texture)
+        {
+            int w = texture.width, h = texture.height, length = w * h;
+            if (length == 0) return true;
+
+            const int stride = 1093;
+            const int samples = 256;
+
+            Color first = texture.GetPixel(0, 0);
+
+            for (int n = 1, i = stride % length; n < samples; n++, i = (i + stride) % length)
+                if (texture.GetPixel(i % w, i / w) != first) return false;
+
+            return true;
         }
 
         /// <summary>A block of pixels as a PNG. Bottom row first, the way Unity holds them.</summary>

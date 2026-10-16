@@ -65,6 +65,9 @@ namespace Reflash.Game
         /// </summary>
         internal bool Has(string id) => id != null && _ok.Contains(id);
 
+        /// <summary>Whether this id needs nothing more: published, or given up on.</summary>
+        internal bool Tried(string id) => id != null && _tried.Contains(id);
+
         /// <summary>
         /// Publish up to <see cref="PerTick"/> of the given pictures. Safe to call every tick with the same list -
         /// anything already tried is skipped, and an entry whose sprite is not ready yet comes round again.
@@ -91,7 +94,12 @@ namespace Reflash.Game
 
                 done++;
 
-                byte[] png = TextureIO.EncodeSpritePng(sprite);
+                byte[] png;
+#if SNITCH
+                using (Snitch.Api.Profiler.Sample("Reflash.face.Encode"))
+#endif
+                png = TextureIO.EncodeSpritePng(sprite);
+
                 if (png != null && png.Length > 0)
                 {
                     _tried.Add(id);

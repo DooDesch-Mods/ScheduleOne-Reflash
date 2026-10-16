@@ -376,8 +376,13 @@ function apply() {
   var wide = Math.max(6, v.w / span * (v.w - BAR));
   var tall = Math.max(6, v.h / span * (v.h - BAR));
 
-  gripH.setAttribute('style', 'left:' + (-tx / span * (v.w - BAR)).toFixed(1) + 'px;width:' + wide.toFixed(1) + 'px');
-  gripV.setAttribute('style', 'top:' + (-ty / span * (v.h - BAR)).toFixed(1) + 'px;height:' + tall.toFixed(1) + 'px');
+  // The length changes with the zoom only, and an unchanged value is not a write. The place goes through transform,
+  // which Sideload repaints on the box already there; left or top would lay the whole page out again on every step
+  // of a pan.
+  gripH.style.width = wide.toFixed(1) + 'px';
+  gripV.style.height = tall.toFixed(1) + 'px';
+  gripH.style.transform = 'translate(' + (-tx / span * (v.w - BAR)).toFixed(1) + 'px, 0px)';
+  gripV.style.transform = 'translate(0px, ' + (-ty / span * (v.h - BAR)).toFixed(1) + 'px)';
 }
 
 // Zoom about a point of the WINDOW, so whatever is under the cursor or between two fingers stays put - the same

@@ -71,15 +71,14 @@ namespace Reflash.Game
         {
             var views = new List<PoiView>();
 
-            var all = UnityEngine.Object.FindObjectsOfType<POI>();
-            if (all == null) return views;
+            List<POI> all = PoiRegistry.Live();
 
             // Nearest first, so a cut list is the useful half rather than whatever the scene happened to enumerate.
             GamePlayer local = GamePlayer.Local;
             Vector3 from = local != null ? local.transform.position : Vector3.zero;
 
             var candidates = new List<(float Distance, POI Poi)>();
-            for (int i = 0; i < all.Length; i++)
+            for (int i = 0; i < all.Count; i++)
             {
                 POI poi = all[i];
 
@@ -129,23 +128,42 @@ namespace Reflash.Game
         /// </summary>
         public void WarmFaces()
         {
-            var all = UnityEngine.Object.FindObjectsOfType<POI>();
-            if (all == null) return;
-
-            var wanted = new List<KeyValuePair<string, Sprite>>();
-
-            for (int i = 0; i < all.Length; i++)
+            // The people behind the markers change only when a marker comes or goes, so they are collected again
+            // only then. Their sprites are read fresh every time: a mugshot the game has not drawn yet is null now
+            // and there later.
+            if (_facesVersion != PoiRegistry.Version)
             {
-                POI poi = all[i];
-                if (poi == null || !poi.isActiveAndEnabled) continue;
+                _facesVersion = PoiRegistry.Version;
+                _faceNpcs.Clear();
 
-                NPC npc = NpcBehind(poi);
-                if (npc == null || string.IsNullOrEmpty(npc.ID)) continue;
+                List<POI> all = PoiRegistry.Live();
+                for (int i = 0; i < all.Count; i++)
+                {
+                    POI poi = all[i];
+                    if (poi == null || !poi.isActiveAndEnabled) continue;
 
-                wanted.Add(new KeyValuePair<string, Sprite>(npc.ID, npc.MugshotSprite));
+                    NPC npc = NpcBehind(poi);
+                    if (npc == null || string.IsNullOrEmpty(npc.ID)) continue;
+
+                    _faceNpcs.Add(npc);
+                }
             }
 
-            _faces.Warm(wanted);
+            _faces.Warm(FacesOf(_faceNpcs));
+        }
+
+        private readonly List<NPC> _faceNpcs = new List<NPC>();
+        private int _facesVersion = -1;
+
+        private static IEnumerable<KeyValuePair<string, Sprite>> FacesOf(List<NPC> npcs)
+        {
+            for (int i = 0; i < npcs.Count; i++)
+            {
+                NPC npc = npcs[i];
+                if (npc == null) continue;
+
+                yield return new KeyValuePair<string, Sprite>(npc.ID, npc.MugshotSprite);
+            }
         }
 
         /// <summary>The NPC a marker stands for, or null for a place.</summary>

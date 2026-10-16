@@ -81,6 +81,7 @@ namespace Reflash
             // lifetime to get wrong than creating one here. Applied even with the takeover off: the prefixes ask
             // AppHijack.Ready every time, so they cost a branch and can be switched on without a restart.
             SetOpenPatches.ApplyAll(HarmonyInstance);
+            Game.PoiRegistry.Apply(HarmonyInstance);
 
             StartCompanion();
         }
@@ -141,7 +142,13 @@ namespace Reflash
 
             // Guarded on its own. Pump hands work from connection threads to this one, and a mod that can throw out
             // of OnUpdate is a mod that can take a frame - or the session - with it.
-            try { _companion?.Pump(); }
+            try
+            {
+#if SNITCH
+                using (Snitch.Api.Profiler.Sample("Reflash.Companion"))
+#endif
+                _companion?.Pump();
+            }
             catch (Exception e) { Log.Error($"companion pump failed: {e.Message}"); }
 
         }

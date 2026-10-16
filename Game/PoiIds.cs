@@ -27,10 +27,8 @@ namespace Reflash.Game
                               System.Globalization.CultureInfo.InvariantCulture, out int instanceId))
                 return null;
 
-            var all = UnityEngine.Object.FindObjectsOfType<POI>();
-            if (all == null) return null;
-
-            for (int i = 0; i < all.Length; i++)
+            List<POI> all = PoiRegistry.Live();
+            for (int i = 0; i < all.Count; i++)
                 if (all[i] != null && all[i].gameObject.GetInstanceID() == instanceId) return all[i];
 
             return null;
