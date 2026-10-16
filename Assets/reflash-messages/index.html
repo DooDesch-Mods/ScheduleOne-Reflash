@@ -18,16 +18,16 @@
 
     <!-- Back arrow, round mugshot, name, and then whatever this contact is measured by: a customer's relationship
          band with the standards star, a supplier's debt. -->
-    <header class="chat-head">
+    <header class="chat-head" id="chat-head">
       <button class="back" id="back"><img class="icon" src="icon-back.png" alt=""></button>
       <div class="head-face" id="head-face"></div>
 
+      <!-- The band and the star hang off the name's left edge, as vanilla parents them to it. -->
       <div class="head-mid">
         <div class="head-name" id="head-name"></div>
         <div class="head-band" id="head-band"><div class="seg s1"></div><div class="seg s2"></div><div class="seg s3"></div><div class="seg s4"></div><div class="seg s5"></div><div class="head-marker" id="head-marker"></div></div>
+        <div class="star" id="head-star"><img class="icon" src="icon-star.png" alt=""></div>
       </div>
-
-      <div class="star" id="head-star"><img class="icon" src="icon-star.png" alt=""></div>
 
       <div class="debt" id="head-debt">
         <div class="debt-label">Debt</div>
@@ -62,45 +62,50 @@
       <div class="card-title">Counter-offer</div>
       <button class="card-close" id="counter-close"><img src="icon-close.png" alt=""></button>
 
-      <div class="co-label">Customer Receives</div>
-      <div class="co-row">
-        <button class="step" id="qty-down">-</button>
+      <div class="co-group">
+        <div class="co-label">Customer Receives</div>
 
-        <!-- A div, not a button, however much it behaves like one. The picker below carries buttons of its own, and
-             a button inside a button is something the HTML parser refuses: it closes the outer one where the inner
-             one starts, which tore the rest of this card out of the card. -->
+        <!-- A div, not a button: the picker's own buttons sit on top of it, and the page must not read a press on
+             them as a press on the product. -->
         <div class="co-product" id="co-product">
           <img id="co-icon" src="" alt="">
           <span class="name" id="co-name"></span>
-
-          <!-- The picker hangs off the product box, the width of the box, exactly as vanilla drops it. -->
-          <div class="picker" id="picker">
-            <div class="picker-search" id="picker-search">Search products...</div>
-            <div class="picker-grid" id="picker-grid"></div>
-            <div class="picker-foot">
-              <button class="turn" id="page-prev">Previous</button>
-              <span class="page" id="page-label"></span>
-              <button class="turn" id="page-next">Next</button>
-            </div>
-          </div>
         </div>
 
-        <button class="step" id="qty-up">+</button>
+        <div class="co-row">
+          <button class="step" id="qty-down">-</button>
+          <div class="co-qty" id="co-qty"></div>
+          <button class="step" id="qty-up">+</button>
+        </div>
       </div>
 
-      <div class="co-label">You Receive</div>
-      <div class="co-money" id="co-money">
-        <button class="money-step" data-d="-100">-100</button>
-        <button class="money-step" data-d="-10">-10</button>
-        <button class="money-step" data-d="-1">-1</button>
-        <div class="co-price" id="co-price"></div>
-        <button class="money-step" data-d="1">+1</button>
-        <button class="money-step" data-d="10">+10</button>
-        <button class="money-step" data-d="100">+100</button>
+      <div class="co-group">
+        <div class="co-label">You Receive</div>
+        <div class="co-money" id="co-money">
+          <button class="money-step w1" data-d="-1">-1</button>
+          <button class="money-step w2" data-d="-10">-10</button>
+          <button class="money-step w3" data-d="-100">-100</button>
+          <div class="co-price" id="co-price"></div>
+          <button class="money-step w1" data-d="1">+1</button>
+          <button class="money-step w2" data-d="10">+10</button>
+          <button class="money-step w3" data-d="100">+100</button>
+        </div>
+        <div class="co-fair" id="co-fair"></div>
       </div>
 
-      <div class="co-fair" id="co-fair"></div>
       <button class="co-send" id="co-send">Send</button>
+
+      <!-- The picker drops from under the product box, as wide as it. It is the card's last child so it is drawn
+           over the amount row rather than under it. -->
+      <div class="picker" id="picker">
+        <div class="picker-search" id="picker-search">Search products...</div>
+        <div class="picker-grid" id="picker-grid"></div>
+        <div class="picker-foot">
+          <button class="turn" id="page-prev">Previous</button>
+          <span class="page" id="page-label"></span>
+          <button class="turn" id="page-next">Next</button>
+        </div>
+      </div>
     </section>
   </div>
 

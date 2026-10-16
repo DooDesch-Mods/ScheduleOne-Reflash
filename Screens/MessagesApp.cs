@@ -67,7 +67,9 @@ namespace Reflash.Screens
                     .Add("name", t.Name)
                     .Add("known", t.Known)
                     .Add("unread", t.Unread)
-                    .Add("preview", Text.Ellipsis(t.Preview, 60))
+                    // Vanilla cuts the preview where its two-line box ends, without dots; the page's box does the
+                    // same. The cap only keeps a long message out of the payload.
+                    .Add("preview", Text.Ellipsis(t.Preview, 160))
                     .Add("face", t.HasFace)
                     .Add("offer", t.OfferLeft)
                     .Add("offerColour", t.OfferColour)

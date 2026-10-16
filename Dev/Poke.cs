@@ -67,6 +67,7 @@ namespace Reflash.Dev
             if (cmd.StartsWith("takeover ")) { TakeOver(cmd.Substring(9).Trim()); return; }
             if (cmd == "fonts") { Fonts(); return; }
             if (cmd.StartsWith("sprite ")) { SpriteProbe(cmd.Substring(7).Trim()); return; }
+            if (cmd.StartsWith("export ")) { ExportSprite(cmd.Substring(7).Trim()); return; }
 
             switch (cmd)
             {
@@ -85,7 +86,29 @@ namespace Reflash.Dev
         {
             Core.Log.Msg("[Reflash/dev] reflash phone | close | home | icons | buttons | pair | click <icon|index> | "
                        + "tap <path>[#n] | press <name> | takeover on|off | fonts | dump <label> | dumpname <name> | "
-                       + "sprite <npc id | product id>");
+                       + "sprite <npc id | product id> | export <sprite name>");
+        }
+
+        /// <summary>
+        /// Write one of the game's sprites, found by its asset name, to reflash-dumps as a PNG. This is where the
+        /// pages' glyphs come from: the marker icons are the game's own pictures, not redrawn ones.
+        /// </summary>
+        private static void ExportSprite(string name)
+        {
+            Sprite found = null;
+            foreach (Sprite s in Resources.FindObjectsOfTypeAll<Sprite>())
+                if (s != null && string.Equals(s.name, name, StringComparison.OrdinalIgnoreCase)) { found = s; break; }
+
+            if (found == null) { Core.Log.Warning($"[Reflash/dev] no loaded sprite named '{name}'."); return; }
+
+            byte[] png = Game.TextureIO.EncodeSpritePng(found);
+            if (png == null || png.Length == 0) { Core.Log.Warning($"[Reflash/dev] '{found.name}' did not read back."); return; }
+
+            string dir = System.IO.Path.Combine(Environment.CurrentDirectory, "Mods", "reflash-dumps");
+            System.IO.Directory.CreateDirectory(dir);
+            string file = System.IO.Path.Combine(dir, found.name + ".png");
+            System.IO.File.WriteAllBytes(file, png);
+            Core.Log.Msg($"[Reflash/dev] exported '{found.name}' {found.rect.width}x{found.rect.height} to {file}");
         }
 
         /// <summary>

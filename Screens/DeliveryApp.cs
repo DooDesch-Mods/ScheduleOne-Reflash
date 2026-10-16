@@ -95,17 +95,28 @@ namespace Reflash.Screens
             foreach (DeliveryView d in deliveries)
             {
                 var items = Json.Array();
-                foreach (string i in d.Items) items.Item(i);
+                foreach (DeliveryItemView i in d.Items)
+                    items.Item(Json.Object()
+                        .Add("id", i.Id)
+                        .Add("name", i.Name)
+                        .Add("qty", i.Quantity)
+                        .Add("icon", i.HasIcon));
 
                 list.Item(Json.Object()
                     .Add("id", d.Id)
                     .Add("shop", d.Shop)
                     .Add("destination", d.Destination)
                     .Add("status", d.Status)
-                    .Add("eta", d.Eta)
                     .Add("dock", d.Dock)
                     .Add("shopId", d.ShopId)
                     .Add("total", d.Total)
+                    .Add("shopColour", d.ShopColour)
+                    .Add("description", d.Description)
+                    .Add("statusColour", d.StatusColour)
+                    .Add("afford", d.Affordable)
+                    .Add("priceColour", d.PriceColour)
+                    .Add("canReorder", d.CanReorder)
+                    .Add("reason", d.Reason)
                     .Add("items", items));
             }
 

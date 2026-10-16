@@ -1,3 +1,4 @@
+using System.Linq;
 using Reflash.Wire;
 using Il2CppScheduleOne.Delivery;
 using Il2CppScheduleOne.DevUtilities;
@@ -130,24 +131,53 @@ namespace Reflash.Game
             var deliveries = NetworkSingleton<DeliveryManager>.Instance.Deliveries;
             if (deliveries == null) return views;
 
+            DeliveryStatusDisplay look = PlayerSingleton<DeliveryApp>.Instance?._deliveryStatusDisplayPrefab;
+            if (look == null) Core.Log.Warning("[Reflash/delivery] no status display prefab - active orders drawn without colours");
+
+            var order = new List<KeyValuePair<int, DeliveryView>>();
+
             for (int i = 0; i < deliveries.Count; i++)
             {
                 DeliveryInstance d = deliveries[i];
                 if (d == null) continue;
 
+                DeliveryShop shop = ShopNamed(d.StoreName);
+
                 var view = new DeliveryView
                 {
                     Id = d.DeliveryID,
                     Shop = Text.Clean(d.StoreName),
-                    Destination = Text.Clean(d.DestinationCode),
-                    Status = Text.Clean(d.Status.ToString()),
-                    Eta = d.TimeUntilArrival > 0 ? d.TimeUntilArrival + " min" : "",
+                    Destination = d.Destination != null ? Text.Clean(d.Destination.PropertyName) : PropertyNamed(d.DestinationCode),
+                    Dock = "Loading Dock " + (d.LoadingDockIndex + 1),
+                    ShopId = shop == null ? "" : ShopId(shop),
+                    ShopColour = ColourOf(look?._shopTextColorFont, d.StoreName),
+                    Description = DescriptionOf(shop),
                 };
 
+                // Vanilla's DeliveryStatusDisplay.RefreshStatus, word for word.
+                if (d.Status == EDeliveryStatus.InTransit)
+                {
+                    view.Status = d.TimeUntilArrival / 60 + "h " + d.TimeUntilArrival % 60 + "m";
+                    if (look != null) view.StatusColour = Hex(look.StatusColor_Transit);
+                }
+                else if (d.Status == EDeliveryStatus.Waiting)
+                {
+                    view.Status = "Waiting";
+                    if (look != null) view.StatusColour = Hex(look.StatusColor_Waiting);
+                }
+                else if (d.Status == EDeliveryStatus.Arrived)
+                {
+                    view.Status = "Arrived";
+                    if (look != null) view.StatusColour = Hex(look.StatusColor_Arrived);
+                }
+
                 AddItems(view, d.Items);
-                views.Add(view);
+                order.Add(new KeyValuePair<int, DeliveryView>(d.GetTimeStatus(), view));
             }
 
+            // Arrived first, then waiting, then the soonest - vanilla's SortStatusDisplays. OrderBy is stable, so two
+            // orders due at the same minute keep the order they were placed in.
+            foreach (var pair in order.OrderBy(p => p.Key)) views.Add(pair.Value);
             return views;
         }
 
@@ -156,13 +186,23 @@ namespace Reflash.Game
             var views = new List<DeliveryView>();
             if (!NetworkSingleton<DeliveryManager>.InstanceExists) return views;
 
-            var receipts = NetworkSingleton<DeliveryManager>.Instance.DisplayedDeliveryHistory;
+            DeliveryManager mgr = NetworkSingleton<DeliveryManager>.Instance;
+            var receipts = mgr.DisplayedDeliveryHistory;
             if (receipts == null) return views;
 
-            for (int i = 0; i < receipts.Count; i++)
+            var looks = PlayerSingleton<DeliveryApp>.Instance?._pastDeliveries;
+            DeliveryReceiptDisplay look = looks != null && looks.Length > 0 ? looks[0] : null;
+            if (look == null) Core.Log.Warning("[Reflash/delivery] no receipt display - past orders drawn without colours");
+
+            int balance = Balance;
+
+            // Newest first: vanilla reverses the list before it fills its cards.
+            for (int i = receipts.Count - 1; i >= 0; i--)
             {
                 DeliveryReceipt r = receipts[i];
-                if (r == null) continue;
+
+                // Vanilla's IsValidReceipt: an order still on its way belongs to the other tab.
+                if (r == null || string.IsNullOrEmpty(r.DeliveryID) || IsActive(mgr, r.DeliveryID)) continue;
 
                 DeliveryShop shop = ShopNamed(r.StoreName);
 
@@ -174,14 +214,65 @@ namespace Reflash.Game
                     Dock = "Loading Dock " + (r.LoadingDockIndex + 1),
                     Status = "Delivered",
                     ShopId = shop == null ? "" : ShopId(shop),
-                    Total = TotalOf(shop, r.Items),
+                    ShopColour = ColourOf(look?._shopTextColorFont, r.StoreName),
+                    Description = DescriptionOf(shop),
                 };
 
-                AddItems(view, r.Items, shop);
+                // The price on the button is vanilla's GetDeliveryCost - the goods at today's prices plus the delivery
+                // fee - and the button is enabled by vanilla's own CanReorder.
+                if (shop != null)
+                {
+                    try
+                    {
+                        float cost = shop.GetDeliveryCost(r);
+                        view.Total = (int)Math.Round(cost);
+                        view.Affordable = cost <= balance;
+                        view.PriceColour = ColourOf(look?._generalColorFont, view.Affordable ? "Cash" : "Debt");
+                        view.CanReorder = shop.CanReorder(r, out string reason);
+                        view.Reason = view.CanReorder ? "" : Text.Clean(reason);
+                    }
+                    catch (Exception e)
+                    {
+                        Core.Log.Warning($"[Reflash/delivery] could not price receipt {r.DeliveryID}: {e.Message}");
+                    }
+                }
+
+                AddItems(view, r.Items);
                 views.Add(view);
             }
 
             return views;
+        }
+
+        private static bool IsActive(DeliveryManager mgr, string id)
+        {
+            var deliveries = mgr.Deliveries;
+            if (deliveries == null) return false;
+
+            for (int i = 0; i < deliveries.Count; i++)
+                if (deliveries[i] != null && deliveries[i].DeliveryID == id) return true;
+
+            return false;
+        }
+
+        /// <summary>A named colour from one of vanilla's ColorFont tables, or "" where there is no table.</summary>
+        private static string ColourOf(ColorFont font, string name)
+        {
+            if (font == null) return "";
+
+            try { return Hex(font.GetColour(name)); }
+            catch (Exception e)
+            {
+                Core.Log.Warning($"[Reflash/delivery] no colour for '{name}': {e.Message}");
+                return "";
+            }
+        }
+
+        /// <summary>The line vanilla prints under the shop name - the shop interface's own description.</summary>
+        private static string DescriptionOf(DeliveryShop shop)
+        {
+            if (shop?.MatchingShop == null) return "";
+            return Text.Clean(shop.MatchingShop.ShopDescription);
         }
 
         /// <summary>
@@ -206,36 +297,57 @@ namespace Reflash.Game
                     }
                 }
             }
-            catch { /* an unknown code is not worth a log line per card */ }
+            catch (Exception e)
+            {
+                Core.Log.Warning($"[Reflash/delivery] no property for '{raw}', showing the code: {e.Message}");
+            }
 
             return raw;
         }
 
-        /// <summary>The lines of an order: an item id and how many of it.</summary>
-        private static void AddItems(DeliveryView view,
-                                     Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppScheduleOne.DevUtilities.StringIntPair> items,
-                                     DeliveryShop shop = null)
+        /// <summary>Vanilla's receipt and status cards hold eight item rows; the last one turns into "+N more...".</summary>
+        private const int MaxItemsShown = 8;
+
+        /// <summary>
+        /// The lines of an order: quantity, name and picture, the way vanilla's ItemEntryUI shows them. An order keeps
+        /// only item ids; the registry knows the name, and the picture is the one the shops tab already published
+        /// under the same id.
+        /// </summary>
+        private void AddItems(DeliveryView view,
+                              Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppScheduleOne.DevUtilities.StringIntPair> items)
         {
             if (items == null) return;
 
-            var entries = shop?.listingEntries;
-
-            for (int i = 0; i < items.Length; i++)
+            int count = items.Length;
+            for (int i = 0; i < count && i < MaxItemsShown; i++)
             {
+                if (i == MaxItemsShown - 1 && count > MaxItemsShown)
+                {
+                    view.Items.Add(new DeliveryItemView { Name = "+" + (count - i) + " more..." });
+                    break;
+                }
+
                 var pair = items[i];
                 if (pair == null) continue;
 
-                // A receipt keeps the item's ID, not its name. Vanilla writes "25x Green Crack Seed"; the raw
-                // "greencrackseed x25" is an internal id shown to a player. The shop's own listing knows the name.
                 string name = Text.Clean(pair.String);
-                if (entries != null)
+                try
                 {
-                    ListingEntry entry = FindEntry(entries, pair.String);
-                    var item = entry?.MatchingListing?.Item;
+                    var item = Il2CppScheduleOne.Registry.GetItem(pair.String);
                     if (item != null) name = Text.Clean(item.Name);
                 }
+                catch (Exception e)
+                {
+                    Core.Log.Warning($"[Reflash/delivery] no registry item '{pair.String}', showing the id: {e.Message}");
+                }
 
-                view.Items.Add(pair.Int + "x " + name);
+                view.Items.Add(new DeliveryItemView
+                {
+                    Id = pair.String ?? "",
+                    Name = name,
+                    Quantity = pair.Int,
+                    HasIcon = _icons.Has(pair.String),
+                });
             }
         }
 
@@ -572,34 +684,6 @@ namespace Reflash.Game
         }
 
         /// <summary>
-        /// What this order would cost TODAY. The receipt keeps quantities and item ids, not money, so the sum is
-        /// worked out from the shop's current listing prices - which is also the honest number for a button that
-        /// places the order again.
-        /// </summary>
-        private static int TotalOf(DeliveryShop shop,
-                                   Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<Il2CppScheduleOne.DevUtilities.StringIntPair> items)
-        {
-            if (shop == null || items == null) return 0;
-
-            var entries = shop.listingEntries;
-            if (entries == null) return 0;
-
-            int total = 0;
-            for (int i = 0; i < items.Length; i++)
-            {
-                var pair = items[i];
-                if (pair == null) continue;
-
-                ListingEntry entry = FindEntry(entries, pair.String);
-                if (entry?.MatchingListing == null) continue;
-
-                total += (int)Math.Round(entry.MatchingListing.Price) * pair.Int;
-            }
-
-            return total;
-        }
-
-        /// <summary>
         /// Place a past order again, exactly as vanilla's Reorder button does: the same shop, the same items and
         /// quantities, through the same gate as any other order.
         /// </summary>
@@ -616,16 +700,28 @@ namespace Reflash.Game
                 if (r == null || r.DeliveryID != deliveryId) continue;
 
                 DeliveryShop shop = ShopNamed(r.StoreName);
-                if (shop == null || r.Items == null) return Reply.NotFound;
-
-                var quantities = new List<KeyValuePair<string, int>>();
-                for (int k = 0; k < r.Items.Length; k++)
+                if (shop == null || r.Items == null)
                 {
-                    var pair = r.Items[k];
-                    if (pair != null) quantities.Add(new KeyValuePair<string, int>(pair.String, pair.Int));
+                    Core.Log.Warning($"[Reflash/delivery] reorder {deliveryId}: no shop named '{r.StoreName}'");
+                    return Reply.NotFound;
                 }
 
-                return Order(ShopId(shop), quantities);
+                if (!shop.CanReorder(r, out string reason))
+                {
+                    Core.Log.Msg($"delivery reorder refused by the game: {reason}");
+                    return Reply.Refused;
+                }
+
+                // A basket the shops tab left in the panel would ride along with the reorder.
+                var entries = shop.listingEntries;
+                if (entries != null)
+                    for (int k = 0; k < entries.Count; k++) entries[k]?.SetQuantity(0, false);
+
+                // Vanilla's own Reorder: it takes the receipt's destination and dock along with its items, which a
+                // plain order through the panel does not - that one was refused with "Select a destination".
+                shop.Reorder(r);
+                Core.Log.Msg($"delivery reordered: {r.StoreName} -> {r.DestinationCode}, dock {r.LoadingDockIndex + 1}");
+                return Reply.Ok;
             }
 
             return Reply.NotFound;
