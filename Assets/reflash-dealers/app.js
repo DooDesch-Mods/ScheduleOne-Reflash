@@ -10,6 +10,7 @@ var SEP = String.fromCharCode(31);
 var bodyEl = document.getElementById('body');
 var emptyEl = document.getElementById('empty');
 var optionsEl = document.getElementById('options');
+var blockerEl = document.getElementById('blocker');
 
 var dealers = [];
 var detail = null;
@@ -74,6 +75,7 @@ function dropdown(d) {
 function renderOptions() {
   optionsEl.replaceChildren();
   optionsEl.className = open && dealers.length ? 'options on' : 'options';
+  blockerEl.className = open && dealers.length ? 'blocker on' : 'blocker';
   if (!open) return;
 
   for (var i = 0; i < dealers.length; i++) {
@@ -267,6 +269,8 @@ function act(command) {
   readDetail();
   render();
 }
+
+blockerEl.addEventListener('click', function () { open = false; render(); });
 
 // Back closes what is open on top first: the dropdown's list, then the customer list.
 document.addEventListener('back', function (e) {

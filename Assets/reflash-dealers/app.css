@@ -98,6 +98,15 @@ img { color: #ffffff; }
 
 .options.on { display: flex; }
 
+/* Turned on its side the screen is 400 tall, and the list starts 110 down: 300 would run off the bottom edge, where
+   it can neither be seen nor scrolled. */
+@media (orientation: landscape) {
+  .options { max-height: 278px; }
+}
+
+.blocker { display: none; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.blocker.on { display: flex; }
+
 .option { background: #202020; }
 .option:hover { background: #2c2c2c; }
 .option.on { background: #303030; }
