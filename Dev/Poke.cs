@@ -64,6 +64,7 @@ namespace Reflash.Dev
             if (cmd.StartsWith("dump ")) { UiDump.Active(cmd.Substring(5).Trim()); return; }
             if (cmd.StartsWith("dumpname ")) { UiDump.ByName(cmd.Substring(9).Trim()); return; }
             if (cmd.StartsWith("press ")) { PressAnywhere(cmd.Substring(6).Trim()); return; }
+            if (cmd.StartsWith("takeover ")) { TakeOver(cmd.Substring(9).Trim()); return; }
 
             switch (cmd)
             {
@@ -81,7 +82,18 @@ namespace Reflash.Dev
         private static void Help()
         {
             Core.Log.Msg("[Reflash/dev] reflash phone | close | home | icons | buttons | pair | click <icon|index> | "
-                       + "tap <path>[#n] | press <name> | dump <label> | dumpname <name>");
+                       + "tap <path>[#n] | press <name> | takeover on|off | dump <label> | dumpname <name>");
+        }
+
+        /// <summary>
+        /// Flip which screen the phone icons open, the same live switch the Connect app has. Saved like it, so a
+        /// test that turns it on should turn it off again.
+        /// </summary>
+        private static void TakeOver(string arg)
+        {
+            bool on = arg == "on" || arg == "1" || arg == "true";
+            Hijack.AppHijack.SetTakeOver(on);
+            Core.Log.Msg($"[Reflash/dev] takeover {(on ? "on" : "off")}, ready={Hijack.AppHijack.Ready}");
         }
 
         private static void OpenPhone()
