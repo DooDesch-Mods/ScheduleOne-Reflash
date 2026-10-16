@@ -95,6 +95,17 @@ function view() {
   return portrait ? { w: 400, h: 733.4 - bar } : { w: 733.4, h: 400 - bar };
 }
 
+// Where an event happened inside the window, in the same css pixels as tx and ty. e.offsetX cannot be used: it is
+// measured from the element the pointer is over, and over the map that is a layer inside the moved and scaled world.
+function spot(e) {
+  if (typeof e.clientX !== 'number') return null;
+
+  var box = viewportEl.getBoundingClientRect();
+  var k = viewportEl.offsetWidth ? box.width / viewportEl.offsetWidth : 1;
+
+  return { x: (e.clientX - box.left) / k, y: (e.clientY - box.top) / k };
+}
+
 function centreOn(x, y) {
   var v = view();
   tx = v.w / 2 - x * WORLD * zoom;
@@ -376,8 +387,9 @@ function hover(hit) {
 
 if (!RICH) {
   viewportEl.addEventListener('mousemove', function (e) {
-    if (dragging || typeof e.offsetX !== 'number') return;
-    hover(pickAt(e.offsetX, e.offsetY));
+    var at = spot(e);
+    if (dragging || !at) return;
+    hover(pickAt(at.x, at.y));
   });
 
   viewportEl.addEventListener('mouseleave', function () { hover(null); });
@@ -386,9 +398,10 @@ if (!RICH) {
 // A phone has no pointer to rest, so there the name is what a tap gets - the same information by the only gesture a
 // thumb has.
 if (RICH) viewportEl.addEventListener('click', function (e) {
-  if (typeof e.offsetX !== 'number') { clearPick(); return; }
+  var at = spot(e);
+  if (!at) { clearPick(); return; }
 
-  var hit = pickAt(e.offsetX, e.offsetY);
+  var hit = pickAt(at.x, at.y);
   if (!hit || !hit.poi.label) { clearPick(); return; }
 
   if (picked === hit.el) { clearPick(); return; }
@@ -467,6 +480,11 @@ var vx = 0;
 var vy = 0;
 var gliding = false;
 
+// When the pointer last moved. Drag events only arrive while it moves, so a pointer that rests before letting go
+// would otherwise release the speed it had before it stopped and throw the map.
+var movedAt = 0;
+var REST_MS = 80;
+
 viewportEl.addEventListener('dragstart', function () {
   dragging = true;
   hover(null);
@@ -485,6 +503,7 @@ viewportEl.addEventListener('drag', function (e) {
   // Kept for the glide. Blended rather than replaced so one stuttering frame does not decide the whole throw.
   vx = vx * 0.6 + e.deltaX * 0.4;
   vy = vy * 0.6 + e.deltaY * 0.4;
+  movedAt = Date.now();
 
   apply();
 });
@@ -492,6 +511,10 @@ viewportEl.addEventListener('drag', function (e) {
 viewportEl.addEventListener('dragend', function () {
   dragging = false;
   busy(false);
+  if (Date.now() - movedAt > REST_MS) {
+    vx = 0;
+    vy = 0;
+  }
   glide();
 });
 
@@ -525,14 +548,14 @@ function glide() {
 
 function stopGlide() { gliding = false; }
 
-// One wheel notch, positive away from the reader, which is zooming out. Anchored at the cursor: e.offsetX/offsetY
-// are where in the window the pointer was.
+// One wheel notch, positive away from the reader, which is zooming out. Anchored at the cursor.
 viewportEl.addEventListener('wheel', function (e) {
   stopGlide();
 
   var v = view();
-  var px = typeof e.offsetX === 'number' ? e.offsetX : v.w / 2;
-  var py = typeof e.offsetY === 'number' ? e.offsetY : v.h / 2;
+  var at = spot(e);
+  var px = at ? at.x : v.w / 2;
+  var py = at ? at.y : v.h / 2;
 
   zoomAt(zoom + (e.wheelDelta > 0 ? -WHEEL_STEP : WHEEL_STEP), px, py);
 });
