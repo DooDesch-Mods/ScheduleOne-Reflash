@@ -1,5 +1,6 @@
 using Reflash.Wire;
 using Il2CppScheduleOne.Economy;
+using UnityEngine;
 
 // The IDealersSource method Dealer(string) hides the type of the same name, so the type gets an alias rather
 // than every use getting a namespace.
@@ -14,27 +15,107 @@ namespace Reflash.Game
     /// take an NPC id and do not require ownership. The ten-customer cap is checked here as well as there, not to
     /// be clever but so the page can say "full" instead of watching a press do nothing.
     /// </summary>
-    internal sealed class DealersGame : IDealersSource
+    internal sealed class DealersGame : IDealersSource, INeedsAppHandle
     {
-        public List<DealerView> Dealers()
+        private readonly SpriteFeed _faces = new SpriteFeed("face-");
+        private readonly SpriteFeed _icons = new SpriteFeed("item-");
+
+        public void UseHandle(Sideload.Api.AppHandle handle)
         {
-            var views = new List<DealerView>();
+            _faces.UseHandle(handle);
+            _icons.UseHandle(handle);
+        }
+
+        /// <summary>
+        /// The dealers' faces, their customers' faces, everyone a dealer could be given, and the icons of what the
+        /// dealers carry - the pictures the vanilla screen shows, a few per tick.
+        /// </summary>
+        public void WarmIcons()
+        {
+            _faces.Warm(Faces());
+            _icons.Warm(ItemIcons());
+        }
+
+        private static IEnumerable<KeyValuePair<string, Sprite>> Faces()
+        {
+            foreach (GameDealer d in Recruited())
+            {
+                yield return new KeyValuePair<string, Sprite>(d.ID, d.MugshotSprite);
+
+                Il2CppSystem.Collections.Generic.List<Customer> customers = d.AssignedCustomers;
+                if (customers == null) continue;
+
+                for (int i = 0; i < customers.Count; i++)
+                {
+                    Customer c = customers[i];
+                    if (c == null || c.NPC == null) continue;
+
+                    yield return new KeyValuePair<string, Sprite>(c.NPC.ID, c.NPC.MugshotSprite);
+                }
+            }
+
+            Il2CppSystem.Collections.Generic.List<Customer> unlocked = Customer.UnlockedCustomers;
+            if (unlocked == null) yield break;
+
+            for (int i = 0; i < unlocked.Count; i++)
+            {
+                Customer c = unlocked[i];
+                if (c == null || c.NPC == null || c.AssignedDealer != null) continue;
+
+                yield return new KeyValuePair<string, Sprite>(c.NPC.ID, c.NPC.MugshotSprite);
+            }
+        }
+
+        private static IEnumerable<KeyValuePair<string, Sprite>> ItemIcons()
+        {
+            foreach (GameDealer d in Recruited())
+            {
+                var slots = d.GetAllSlots();
+                if (slots == null) continue;
+
+                for (int i = 0; i < slots.Count; i++)
+                {
+                    var slot = slots[i];
+                    if (slot == null || slot.ItemInstance == null) continue;
+
+                    var item = Il2CppScheduleOne.Registry.GetItem(slot.ItemInstance.ID);
+                    if (item == null) continue;
+
+                    yield return new KeyValuePair<string, Sprite>(item.ID, item.Icon);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The recruited dealers in vanilla's order: sorted by region, which is the order of its dropdown.
+        /// </summary>
+        private static List<GameDealer> Recruited()
+        {
+            var list = new List<GameDealer>();
 
             Il2CppSystem.Collections.Generic.List<GameDealer> all = GameDealer.AllPlayerDealers;
-            if (all == null) return views;
+            if (all == null) return list;
 
             for (int i = 0; i < all.Count; i++)
             {
                 GameDealer d = all[i];
                 if (d == null || !d.IsRecruited) continue;
 
-                views.Add(ViewOf(d));
+                list.Add(d);
             }
 
+            // Stable, so dealers of one region keep the order the game recruited them in, as OrderBy does there.
+            return list.Select((d, i) => (d, i)).OrderBy(p => (int)p.d.Region).ThenBy(p => p.i).Select(p => p.d).ToList();
+        }
+
+        public List<DealerView> Dealers()
+        {
+            var views = new List<DealerView>();
+            foreach (GameDealer d in Recruited()) views.Add(ViewOf(d));
             return views;
         }
 
-        private static DealerView ViewOf(GameDealer d) => new DealerView
+        private DealerView ViewOf(GameDealer d) => new DealerView
         {
             Id = d.ID,
             Name = Text.Clean(d.FullName),
@@ -44,6 +125,7 @@ namespace Reflash.Game
             CutPercent = (int)Math.Round(d.DealerData.SalesCutPercentage * 100f),
             CustomerCount = d.AssignedCustomers?.Count ?? 0,
             CustomerLimit = GameDealer.MAX_CUSTOMERS,
+            HasFace = _faces.Has(d.ID),
         };
 
         public DealerDetailView Dealer(string dealerId)
@@ -61,7 +143,10 @@ namespace Reflash.Game
                     Customer c = customers[i];
                     if (c == null || c.NPC == null) continue;
 
-                    view.Customers.Add(ContactOf(c.NPC));
+                    ContactView contact = ContactOf(c.NPC);
+                    contact.HasFace = _faces.Has(c.NPC.ID);
+                    contact.StandardsColour = Colours.OfStandards(c.CustomerData.Standards.ToString());
+                    view.Customers.Add(contact);
                 }
             }
 
@@ -70,10 +155,10 @@ namespace Reflash.Game
         }
 
         /// <summary>
-        /// What the dealer is carrying. Empty slots are skipped rather than shown as blanks - a dealer with two
-        /// items and eight empty slots is eight rows of nothing on a screen with a two-hundred-box budget.
+        /// What the dealer is carrying, summed the way vanilla sums it: one line per item and quality, a product
+        /// counted in units (a jar of twenty is twenty), empty slots left out.
         /// </summary>
-        private static void FillInventory(GameDealer d, DealerDetailView view)
+        private void FillInventory(GameDealer d, DealerDetailView view)
         {
             try
             {
@@ -83,12 +168,30 @@ namespace Reflash.Game
                 for (int i = 0; i < slots.Count; i++)
                 {
                     var slot = slots[i];
-                    if (slot == null || slot.ItemInstance == null) continue;
+                    if (slot == null || slot.ItemInstance == null || slot.Quantity == 0) continue;
 
+                    int quantity = slot.Quantity;
+                    int quality = -1;
+
+                    var product = slot.ItemInstance.TryCast<Il2CppScheduleOne.Product.ProductItemInstance>();
+                    if (product != null)
+                    {
+                        quantity *= product.Amount;
+                        quality = (int)product.Quality;
+                    }
+
+                    string id = slot.ItemInstance.ID;
+                    SlotView same = view.Inventory.Find(s => s.Id == id && s.Quality == quality);
+                    if (same != null) { same.Quantity += quantity; continue; }
+
+                    var item = Il2CppScheduleOne.Registry.GetItem(id);
                     view.Inventory.Add(new SlotView
                     {
-                        Name = Text.Clean(slot.ItemInstance.Name),
-                        Quantity = slot.Quantity,
+                        Id = id,
+                        Name = Text.Clean(item != null ? item.Name : slot.ItemInstance.Name),
+                        Quantity = quantity,
+                        Quality = quality,
+                        HasIcon = _icons.Has(id),
                     });
                 }
             }
@@ -116,7 +219,10 @@ namespace Reflash.Game
                 if (c == null || c.NPC == null) continue;
                 if (c.AssignedDealer != null) continue;
 
-                candidates.Add(ContactOf(c.NPC));
+                ContactView contact = ContactOf(c.NPC);
+                contact.HasFace = _faces.Has(c.NPC.ID);
+                contact.StandardsColour = Colours.OfStandards(c.CustomerData.Standards.ToString());
+                candidates.Add(contact);
             }
 
             return candidates;

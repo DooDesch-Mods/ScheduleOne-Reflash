@@ -1,23 +1,17 @@
 <link rel="stylesheet" href="app.css">
 
+<!-- Dealer Management, as vanilla lays it out: one dealer at a time, picked from a dropdown under the title, then
+     their cash and cut, what they carry, and who they sell to. -->
 <div class="app" id="app">
 
-  <aside class="list-pane">
-    <header class="bar"><div class="bar-title">Dealer Management</div></header>
+  <div class="title">Dealer Management</div>
 
-    <!-- Above the list, not after it: the list is flex:1, so anything below it is pushed to the bottom edge, and
-         vanilla puts this line directly under the title. Same words vanilla uses. -->
-    <div class="empty" id="empty">You haven't recruited any dealers</div>
-    <div class="scroll" id="dealers"></div>
-  </aside>
+  <div class="empty" id="empty">You haven't recruited any dealers</div>
 
-  <main class="detail-pane" id="detail-pane">
-    <header class="bar">
-      <button class="back" id="back">&lt;</button>
-      <div class="bar-title" id="detail-title">Dealer</div>
-    </header>
-    <div class="scroll" id="detail"></div>
-  </main>
+  <div class="scroll" id="body"></div>
+
+  <!-- The dropdown's list, over the page rather than in it, so opening it does not push the dealer down. -->
+  <div class="options" id="options"></div>
 
 </div>
 

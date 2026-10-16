@@ -82,6 +82,14 @@ namespace Reflash.Wire
         /// </summary>
         internal double OfferLeft = -1;
 
+        /// <summary>The offer bar's colour, from the game's own red-to-green gradient, or null without an offer.</summary>
+        internal string OfferColour;
+
+        /// <summary>The category badge as vanilla draws it: its letter and colour, from MessagesApp.categoryInfos.
+        /// Null when the conversation has no category.</summary>
+        internal string BadgeLetter;
+        internal string BadgeColour;
+
         /// <summary>Whether vanilla offers the little cross that hides the row.</summary>
         internal bool CanHide;
     }
@@ -357,6 +365,7 @@ namespace Reflash.Wire
         internal int CustomerCount;
         internal int CustomerLimit;
         internal string Avatar = "";
+        internal bool HasFace;
     }
 
     internal sealed class DealerDetailView
@@ -368,8 +377,15 @@ namespace Reflash.Wire
 
     internal sealed class SlotView
     {
+        internal string Id = "";
         internal string Name = "";
         internal int Quantity;
+
+        /// <summary>The product's quality as the game numbers it, Trash 0 to Heavenly 4; -1 for anything that has
+        /// none.</summary>
+        internal int Quality = -1;
+
+        internal bool HasIcon;
     }
 
     internal sealed class ContactView
@@ -384,6 +400,10 @@ namespace Reflash.Wire
         internal double Relationship;
         internal string RelationshipLabel = "";
         internal bool Unlocked;
+
+        /// <summary>The colour of the customer's standards, the tint vanilla puts on the star by their face.</summary>
+        internal string StandardsColour = "";
+        internal bool HasFace;
     }
 
     internal sealed class ContactDetailView
@@ -489,5 +509,34 @@ namespace Reflash.Wire
         /// <summary>Whether this marker's mugshot has been published yet. They arrive a few per tick, so a "no" is
         /// usually a "not yet".</summary>
         internal bool HasFace;
+
+        /// <summary>Which way the marker faces, in degrees counter-clockwise from north, the way vanilla turns its
+        /// icon. Only the player's turns.</summary>
+        internal double Heading;
+
+        /// <summary>The disc colour of a group's camp, "#rrggbb"; empty for everything else.</summary>
+        internal string Colour = "";
+
+        /// <summary>Whether vanilla shows this marker's name all the time rather than on hover.</summary>
+        internal bool AlwaysLabelled;
+    }
+
+    /// <summary>
+    /// A name printed on the map - a building, a park, the canal. Vanilla lays these over the picture as text rather
+    /// than baking them in, and fades them in as the map is zoomed.
+    ///
+    /// Position and sizes are fractions of the map's width, the same space a pin is in.
+    /// </summary>
+    internal sealed class PlaceNameView
+    {
+        internal string Text = "";
+        internal double X;
+        internal double Y;
+        internal double Width;
+        internal double Height;
+        internal double Size;
+        internal string Colour = "#7d7d7d";
+        internal bool Top;
+        internal double Rotation;
     }
 }

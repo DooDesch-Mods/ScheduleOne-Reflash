@@ -1,33 +1,35 @@
-/* Product Manager.
+/* Products.
 
-   Measured off Workspace/docs/Reflash/vanilla-shots/05, 06, 22 and 23, with the phone's screen cut out of them and
-   scaled to what this app lays out at: 733.4 x 400 css px on its side.
-
-   The only dark app on the phone, and the reason the first attempt looked wrong everywhere: every screen here was
-   built in the light palette the messages list uses. Vanilla gives each app its own. */
+   Laid out from the 0.4.7 dump (Workspace/docs/Reflash/vanilla-dumps-047/vanilla-products.txt), whose "pos=" is every
+   box's top-left in canvas units. The screen is 1201 x 655 units and this app 733.4 x 400 css px on its side, so one
+   unit is 0.6107 px. The detail panel is still measured off vanilla-shots/22 and 23. */
 
 body {
   height: 100%;
   font-family: game-ui;
   font-size: 12px;
   color: #e8e8e8;
-  background: #3a3a3a;
+  background: #323232;
 }
 
-.app { height: 100%; background: #3a3a3a; }
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
+
+.app { height: 100%; background: #323232; }
 
 .topbar {
   position: relative;
   flex: none;
   flex-direction: row;
   align-items: center;
-  height: 30px;
-  padding: 0 8px;
-  background: #7d2020;
+  gap: 6.1px;
+  height: 36.6px;
+  padding: 0 9.2px;
+  background: #722323;
 }
 
-.topbar-title { flex: 1; font-size: 13px; font-weight: bold; color: #ffffff; }
-.count { flex: none; font-size: 11px; color: #e0b0b0; }
+.topbar-title { flex: 1; font-size: 14.7px; font-weight: bold; color: #ffebeb; }
 
 .back {
   display: none;
@@ -43,37 +45,63 @@ body {
 .panes { flex: 1; min-height: 0; flex-direction: row; }
 
 .list-pane { flex: 1; min-width: 0; }
-.detail-pane { width: 255px; background: #454545; }
+.detail-pane { width: 238.8px; background: #3c3c3c; }
 
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 10px; }
+/* The list: 20 units above and below, 20 between the groups, and a thin dark scrollbar 5 units in from the edge. */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: #4f4f4f transparent;
+  padding: 12.2px 3px 12.2px 0;
+  gap: 12.2px;
+}
 
 .empty { display: none; padding: 20px; font-size: 12px; color: #9a9a9a; text-align: center; }
 .empty.on { display: block; }
 
-/* Each drug type gets its own heading in its own colour, and says "None" when it has nothing. */
-.cat-title { flex: none; margin-top: 6px; font-size: 13px; font-weight: bold; }
-.cat-title.marijuana { color: #7bc55c; }
-.cat-title.meth { color: #d96a5a; }
-.cat-title.shrooms { color: #c46ad9; }
-.cat-title.cocaine { color: #4aa3dd; }
-.cat-title.other { color: #b0b0b0; }
+/* One group: its heading, then its tiles or "None". 20 units in from the left, 10 between heading and tiles. */
+.section { flex: none; padding-left: 12.2px; gap: 6.1px; }
 
-.cat-none { flex: none; font-size: 11px; color: #8a8a8a; }
+/* The heading is a button that folds the group: a chevron, the name, and for favourites a star, all in the group's
+   colour on a plate the colour of the page. */
+.sec-head {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6.1px;
+  height: 21.4px;
+  padding: 0 1.2px;
+  background: #2f3230;
+  border: 0;
+  border-radius: 4px;
+}
 
-/* Grid cell 100x100, spacing 10x10 - so 61.1 and 6.1 in css px. */
-.tiles { flex: none; flex-direction: row; flex-wrap: wrap; gap: 6.1px; margin: 6px 0 4px 0; }
+.sec-head:hover { background: #3a3d3b; }
 
-/* A tile, straight off the vanilla dump:
-     ProductEntry  100x100          the cell
-       Shade        96x96           a rounded plate
-       Icon         80x80           the artwork
-       Frame       100x100          ProductSlotBackground, #4d823b listed / #505050 not
-       Tick/Cross   16x16 / 15x15   bottom right
-       Favourite    30x30 at -15,-15  a star, TOP LEFT and outside the tile's corner
+/* A 15 x 30 slot. Open, vanilla turns the same arrow a quarter to point down and leaves the slot where it was. */
+/* 15 units wide in a 15 x 30 box; vanilla keeps the sprite's aspect, so it is 22 tall. */
+.sec-arrow { flex: none; width: 9.2px; height: 13.5px; margin: 2.4px 0; }
+.sec-arrow.open { transform: rotate(90deg); }
+.sec-star { flex: none; width: 11.6px; height: 11.6px; }
 
-   What was here before was a guess at all five: the icon filled 46 of 60 where vanilla gives it 80 of 100 at a
-   smaller cell, the frame colour was a grey border rather than the green plate, and the star sat top RIGHT at
-   two thirds of its size. */
+.sec-title { flex: none; font-size: 14.7px; font-weight: bold; }
+.sec-title.favourites { color: #ffde55; }
+.sec-title.marijuana { color: #67b04b; }
+.sec-title.meth { color: #c55e55; }
+.sec-title.shrooms { color: #c356c8; }
+.sec-title.cocaine { color: #578dc3; }
+.sec-title.other { color: #b0b0b0; }
+
+.cat-none { flex: none; height: 15.3px; justify-content: center; font-size: 9.8px; font-weight: 600; color: #717171; }
+
+/* Grid cell 100 x 100 at 10 apart: seven to a row. */
+.tiles { flex: none; flex-direction: row; flex-wrap: wrap; gap: 6.1px; }
+
+/* A tile, as ProductEntry draws it: the ProductSlotBackground frame, grey or green while listed, with a filled
+   square in its bottom-right corner that carries the cross or the money; the 80-unit icon in the middle; and the
+   favourite star top right, grey or yellow. */
 .tile {
   position: relative;
   flex: none;
@@ -81,107 +109,65 @@ body {
   height: 61.1px;
   align-items: center;
   justify-content: center;
-  background: #3a3a3a;
-  border: 1px solid #505050;
-  border-radius: 4px;
+  border: 1.8px solid #505050;
+  border-radius: 4.3px;
+  background: #323232;
 }
 
-/* ProductSlotBackground is a frame sprite, so its tint is the BORDER: green while the product is listed for sale,
-   grey while it is not. Filling the whole tile green instead made a listed product a solid block. */
 .tile.listed { border-color: #4d823b; }
-.tile:hover { background: #464646; }
-.tile.on { box-shadow: 0 0 0 2px #ffffff; }
+.tile:hover { background: #3a3a3a; }
+.tile.on { background: #404040; }
 
-/* Shade 96x96 inside the 100 cell: the plate the artwork sits on. */
-.tile-shade {
-  position: absolute;
-  left: 1.5px;
-  top: 1.5px;
-  width: 58.6px;
-  height: 58.6px;
-  border-radius: 3px;
-  background: #00000030;
-}
+.tile-icon { width: 48.9px; height: 48.9px; }
+.tile-name { font-size: 8.5px; color: #c8c8c8; text-align: center; }
 
-.tile-icon { position: relative; width: 48.9px; height: 48.9px; }
-.tile-name { font-size: 10px; color: #c8c8c8; text-align: center; }
-
-/* Favourite: a 30x30 hit box with a 19x19 star in it, in the tile's TOP RIGHT corner. The dump's anchoredPosition
-   reads as bottom-left and the running game says otherwise - the screenshot wins. */
 .star {
   position: absolute;
-  right: 1px;
-  top: 1px;
-  width: 18.3px;
-  height: 18.3px;
+  right: 1.6px;
+  top: 1.6px;
+  width: 15px;
+  height: 15px;
   align-items: center;
   justify-content: center;
   background: #00000000;
   border: 0;
 }
 
-.star img { width: 11.6px; height: 11.6px; }
-.star.on img { width: 11.6px; height: 11.6px; }
+.star img { width: 11.2px; height: 11.2px; }
 .star:hover { opacity: 0.75; }
 
-/* Bottom right: a note of money while it is listed, a red cross while it is not. Vanilla draws sprites there and
-   these are the same two shapes built out of boxes - a glyph would be a tofu box, the atlases carry Latin-1. */
 .tile-badge {
   position: absolute;
-  right: 3.5px;
-  bottom: 3.5px;
-  width: 9.8px;
-  height: 9.8px;
+  right: 0;
+  bottom: 0;
+  width: 17.5px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  background: #505050;
+  border-radius: 4.8px 0 2.5px 0;
 }
 
-.tile-badge .bar {
-  position: absolute;
-  left: 0.5px;
-  top: 3.9px;
-  width: 8.8px;
-  height: 2px;
-  border-radius: 1px;
-  background: #ff645d;
-  transform-origin: 0 0;
-}
-
-/* Two bars crossed. transform-origin because the renderer turns a box about its top-left and a browser about its
-   middle, and a cross drawn for one lands off the tile in the other. */
-.tile-badge .bar.a { transform: rotate(45deg); left: 1.9px; top: 1.4px; }
-.tile-badge .bar.b { transform: rotate(-45deg); left: 1.4px; top: 8.1px; }
-
-/* Listed: a small note rather than a cross. */
-.tile.listed .tile-badge .bar { display: none; }
-
-.tile-badge .note { display: none; }
-
-.tile.listed .tile-badge .note {
-  display: flex;
-  position: absolute;
-  left: 0;
-  top: 1.4px;
-  width: 9.8px;
-  height: 7px;
-  border-radius: 1px;
-  background: #ffffff;
-}
-
-.tile.listed .tile-badge .note-eye {
-  position: absolute;
-  left: 3.4px;
-  top: 3.4px;
-  width: 3px;
-  height: 3px;
-  border-radius: 2px;
-  background: #4d823b;
-}
+.tile.listed .tile-badge { background: #4d823b; }
+.tile-badge img { width: 9.2px; height: 9.2px; }
 
 .pager { flex: none; flex-direction: row; justify-content: center; gap: 8px; padding-bottom: 4px; }
 
 /* ---- the detail ------------------------------------------------------------------------------------------- */
 
-.instruction { display: none; padding: 24px 12px; font-size: 11.5px; color: #9a9a9a; text-align: center; }
-.instruction.on { display: block; }
+/* 140 units tall at the top of the panel, its sentence centred in it. */
+.instruction {
+  display: none;
+  flex: none;
+  flex-direction: column;   /* display: flex resets the direction to row, which would centre it sideways only */
+  height: 85.5px;
+  justify-content: center;
+  font-size: 9.8px;
+  font-weight: 600;
+  color: #787878;
+  text-align: center;
+}
+.instruction.on { display: flex; }
 
 /* Vanilla's rows sit 40 canvas units apart with 30-unit rows in them - 24.4 and 18.3 in css - and every label is
    size 16, which is 9.8 here. This panel had 11.5 text at a 9px gap: bigger type packed tighter, which is exactly
@@ -258,7 +244,7 @@ body {
 
   .tile { width: 78px; height: 78px; }
   .tile-icon { width: 60px; height: 60px; }
-  .cat-title { font-size: 16px; }
+  .sec-title { font-size: 16px; }
   .detail-name { font-size: 19px; }
   .field-label, .prop { font-size: 14px; }
 }

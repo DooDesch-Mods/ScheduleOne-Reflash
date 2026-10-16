@@ -16,6 +16,10 @@ body {
   background: #2b2b2b;
 }
 
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
+
 .app { height: 100%; background: #2b2b2b; }
 
 /* Topbar 1201x40 #414141, title size 24 white. */
@@ -73,7 +77,6 @@ body {
   height: 12.2px;
   border-radius: 6.1px;
   background: #4a9cf3;
-  border: 1px solid #ffffff;
   align-items: center;
   justify-content: center;
 }
@@ -83,20 +86,30 @@ body {
 /* DeaddropPoI_Red/Outline 20x20 #a14d4d with a white briefcase glyph. */
 .pin.stash { background: #a14d4d; }
 
-/* PlayerPoI: an 80x80 #ffffff26 halo, a 15x15 white outline, a 12x12 #4ea7ff fill, and an arrow 11x11 parked 13
-   units above the middle that spins with the player's heading. */
-.player { position: absolute; width: 48.9px; height: 48.9px; border-radius: 24.4px; background: #ffffff26; }
+/* PlayerPoI: a 15x15 white outline on a soft shade, a 12x12 #4ea7ff fill, and an arrow 11x11 parked 13 units off
+   the middle, all in a box that turns with the player. The prefab's 80x80 halo never shows in the game. */
+.player { position: absolute; width: 27.5px; height: 27.5px; }
 
-.player .dot {
-  position: absolute;
-  left: 19.8px;
-  top: 19.8px;
-  width: 9.2px;
-  height: 9.2px;
-  border-radius: 4.6px;
-  background: #4ea7ff;
-  border: 1px solid #ffffff;
-}
+.player .shade { position: absolute; left: 7.9px; top: 7.9px; width: 11.6px; height: 11.6px; border-radius: 5.8px; background: #00000040; }
+.player .outline { position: absolute; left: 9.15px; top: 9.15px; width: 9.2px; height: 9.2px; border-radius: 4.6px; background: #ffffff; }
+.player .fill { position: absolute; left: 10.1px; top: 10.1px; width: 7.3px; height: 7.3px; border-radius: 3.65px; background: #4ea7ff; }
+.player .arrow { position: absolute; left: 10.4px; top: 2.5px; width: 6.7px; height: 6.7px; }
+
+/* OwnedVehiclePoI/Unowned 20x20 #8c8c8c with a white car 12x12. */
+.pin.vehicle { background: #8c8c8c; }
+
+/* SpecialCustomerGroupPoI: a 140x140 disc in the group's colour, its name across it at size 32. */
+.group-name { flex: 1; justify-content: center; font-size: 19.5px; font-weight: 600; color: #ffffff; text-align: center; }
+
+/* MainLabel 500x120, 46 units under the marker, size 32 white - for a marker that always shows its name. */
+.caption { position: absolute; font-size: 19.5px; font-weight: 600; color: #ffffff; text-align: center; }
+
+/* The place names: size 24 at their own colour, centred in boxes of about 248x99 units, some reading from the top. */
+.places { position: absolute; left: 0; top: 0; width: 1250.8px; height: 1250.8px; }
+.places.off { display: none; }
+
+.place { position: absolute; justify-content: center; font-weight: 600; text-align: center; white-space: nowrap; }
+.place.top { justify-content: flex-start; }
 
 /* MainLabel 500x120 at 0,-46, size 32 white, centred. Vanilla shows it while the pointer is over the marker; here
    it appears when a marker is tapped, which is the same gesture a phone has. */
@@ -114,12 +127,13 @@ body {
 
 .poi-name.on { display: block; }
 
-/* Scrollbar Horizontal 1188x15 and Vertical 15x600: track invisible, handle #e7e7e7. */
-.bar-h { position: absolute; left: 6px; right: 12px; bottom: 3px; height: 4px; }
-.bar-v { position: absolute; top: 6px; bottom: 12px; right: 3px; width: 4px; }
+/* Scrollbar Horizontal and Vertical: track invisible, handle flush with the edge. The prefab says #e7e7e7; the
+   scrollbar's own tint takes it to #7e7e7e in the game. */
+.bar-h { position: absolute; left: 0; right: 8px; bottom: 0; height: 7px; }
+.bar-v { position: absolute; top: 0; bottom: 8px; right: 0; width: 7.5px; }
 
-.bar-h .grip { position: absolute; top: 0; height: 4px; border-radius: 2px; background: #e7e7e7; }
-.bar-v .grip { position: absolute; left: 0; width: 4px; border-radius: 2px; background: #e7e7e7; }
+.bar-h .grip { position: absolute; top: 0; height: 7px; border-radius: 1.5px; background: #7e7e7e; }
+.bar-v .grip { position: absolute; left: 0; width: 7.5px; border-radius: 1.5px; background: #7e7e7e; }
 
 /* -------------------------------------------------------------------------------------------------- portrait --
    Same map, taller window - nothing changes except how much of it fits. */

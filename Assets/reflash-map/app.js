@@ -26,6 +26,7 @@ var viewportEl = document.getElementById('viewport');
 var nameEl = document.getElementById('poi-name');
 var gripH = document.getElementById('grip-h');
 var gripV = document.getElementById('grip-v');
+var placesEl = document.getElementById('places');
 
 var state = { pins: [], player: null, image: false, focus: '' };
 
@@ -101,6 +102,11 @@ function render() {
 // pickAt - so nothing else holds on to them.
 var marks = [];
 
+// The player's marker and what the rest was drawn from: when only the player moved or turned, only the player is
+// redrawn, not every pin on the map.
+var meEl = null;
+var pinsKey = '';
+
 function renderPins() {
   pinsEl.replaceChildren();
   marks = [];
@@ -116,7 +122,9 @@ function renderPins() {
   }
 
   for (var i = 0; i < state.pins.length; i++) marker(state.pins[i]);
-  if (state.player) pinsEl.appendChild(player(state.player));
+  meEl = state.player ? player(state.player) : null;
+  if (meEl) pinsEl.appendChild(meEl);
+  pinsKey = JSON.stringify(state.pins) + state.image;
 }
 
 // Position written as ONE style attribute, not as two style properties.
@@ -130,6 +138,8 @@ function place(el, x, y, w, h) {
                          + (y * WORLD - h / 2).toFixed(1) + 'px');
 }
 
+var GLYPHS = { stash: 'glyph-stash.png', vehicle: 'glyph-vehicle.png' };
+
 function marker(p) {
   // A potential customer or dealer is an AREA - vanilla draws the disc they can be found somewhere inside, and the
   // disc is the useful half of the marker.
@@ -140,7 +150,20 @@ function marker(p) {
     var d = p.radius * 2 * WORLD;
     area.setAttribute('style', 'left:' + (p.x * WORLD - d / 2).toFixed(1) + 'px;top:'
                              + (p.y * WORLD - d / 2).toFixed(1) + 'px;width:' + d.toFixed(1)
-                             + 'px;height:' + d.toFixed(1) + 'px');
+                             + 'px;height:' + d.toFixed(1) + 'px'
+                             + (p.colour ? ';background:' + p.colour : ''));
+
+    // A camp is nothing but its disc and its name across the middle of it.
+    if (p.kind === 'group') {
+      var title = document.createElement('div');
+      title.className = 'group-name';
+      title.textContent = p.label;
+      area.appendChild(title);
+      marks.push({ el: area, poi: p });
+      pinsEl.appendChild(area);
+      return;
+    }
+
     pinsEl.appendChild(area);
   }
 
@@ -161,12 +184,21 @@ function marker(p) {
     // A round badge with a white glyph in it - a house for a property, a briefcase for a supplier's stash - which
     // is what the vanilla prefabs carry.
     el = document.createElement('div');
-    el.className = 'pin' + (p.kind === 'stash' ? ' stash' : '');
+    el.className = 'pin' + (p.kind === 'stash' || p.kind === 'vehicle' ? ' ' + p.kind : '');
     place(el, p.x, p.y, 12.2, 12.2);
 
     var glyph = document.createElement('img');
-    glyph.setAttribute('src', p.kind === 'stash' ? 'glyph-stash.png' : 'glyph-home.png');
+    glyph.setAttribute('src', GLYPHS[p.kind] || 'glyph-home.png');
     el.appendChild(glyph);
+  }
+
+  // A marker whose name vanilla never hides, printed under it.
+  if (p.always && p.label) {
+    var caption = document.createElement('div');
+    caption.className = 'caption';
+    caption.textContent = p.label;
+    place(caption, p.x, p.y + 46 / 2048, 305.3, 24);
+    pinsEl.appendChild(caption);
   }
 
   // Remembered rather than given a click listener of its own - see pickAt for why.
@@ -175,16 +207,89 @@ function marker(p) {
   pinsEl.appendChild(el);
 }
 
+// Vanilla's PlayerPoI: a white ring round a blue dot, and an arrow just off it that turns with the player. The whole
+// icon turns, so the arrow swings round the dot.
 function player(p) {
   var el = document.createElement('div');
   el.className = 'player';
-  place(el, p.x, p.y, 48.9, 48.9);
+  turnPlayer(el, p);
 
-  var dot = document.createElement('div');
-  dot.className = 'dot';
-  el.appendChild(dot);
+  var parts = ['shade', 'outline', 'fill'];
+  for (var i = 0; i < parts.length; i++) {
+    var part = document.createElement('div');
+    part.className = parts[i];
+    el.appendChild(part);
+  }
+
+  var arrow = document.createElement('img');
+  arrow.className = 'arrow';
+  arrow.setAttribute('src', 'player-arrow.png');
+  el.appendChild(arrow);
 
   return el;
+}
+
+// Place and heading in one style write. Unity turns counter-clockwise, css clockwise.
+function turnPlayer(el, p) {
+  el.setAttribute('style', 'left:' + (p.x * WORLD - 13.75).toFixed(1) + 'px;top:' + (p.y * WORLD - 13.75).toFixed(1)
+                         + 'px;transform:rotate(' + (-(p.heading || 0)).toFixed(0) + 'deg)');
+}
+
+// ---- place names --------------------------------------------------------------------------------------------
+
+// Vanilla fades the names in between these two zooms (MapApp.LabelScrollMin and LabelScrollMax). The page is told the
+// prefab's values along with the names; these are the fields' defaults until then.
+var PLACES_FROM = 1.2;
+var PLACES_FULL = 1.5;
+var placesShown = -1;
+
+function readPlaces() {
+  var raw = s1.call('reflash-map.state', 'labels');
+  var data = null;
+  try { data = raw ? JSON.parse(raw) : null; } catch (e) { s1.log('place names did not parse: ' + e); }
+
+  var list = data && data.labels ? data.labels : [];
+  if (!list.length) { s1.log('map: no place names yet'); return false; }
+
+  if (data.full > data.from) { PLACES_FROM = data.from; PLACES_FULL = data.full; placesShown = -1; shadePlaces(); }
+  s1.log('map: ' + list.length + ' place names, shown from zoom ' + PLACES_FROM + ' to ' + PLACES_FULL);
+
+  placesEl.replaceChildren();
+  for (var i = 0; i < list.length; i++) placesEl.appendChild(placeName(list[i]));
+  return true;
+}
+
+// One name, its lines stacked in a box the size vanilla gives it, turned the way vanilla turns it.
+function placeName(l) {
+  var w = l.w * WORLD;
+  var h = l.h * WORLD;
+
+  var el = document.createElement('div');
+  el.className = l.top ? 'place top' : 'place';
+  el.setAttribute('style', 'left:' + (l.x * WORLD - w / 2).toFixed(1) + 'px;top:' + (l.y * WORLD - h / 2).toFixed(1)
+                         + 'px;width:' + w.toFixed(1) + 'px;height:' + h.toFixed(1) + 'px;font-size:'
+                         + (l.size * WORLD).toFixed(1) + 'px;color:' + l.colour
+                         + (l.rot ? ';transform:rotate(' + (-l.rot).toFixed(1) + 'deg)' : ''));
+
+  var lines = l.text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = document.createElement('div');
+    line.textContent = lines[i].trim();
+    el.appendChild(line);
+  }
+
+  return el;
+}
+
+// How strongly the names show at this zoom, in twentieths so a pan does not rewrite the style every frame.
+function shadePlaces() {
+  var a = (zoom - PLACES_FROM) / (PLACES_FULL - PLACES_FROM);
+  a = Math.round(Math.max(0, Math.min(1, a)) * 20) / 20;
+  if (a === placesShown) return;
+
+  placesShown = a;
+  placesEl.className = a > 0 ? 'places' : 'places off';
+  placesEl.setAttribute('style', 'opacity:' + a.toFixed(2));
 }
 
 var picked = null;
@@ -249,6 +354,9 @@ function clearPick() {
 
 // Keep the window inside the picture, which is exactly what vanilla's ScrollRect clamp does: the viewport rect may
 // never leave the content rect.
+// How much of each track the other bar takes off its end, as in app.css.
+var BAR = 8;
+
 function apply() {
   var v = view();
 
@@ -262,13 +370,14 @@ function apply() {
 
   worldEl.style.transform = 'translate(' + tx.toFixed(1) + 'px, ' + ty.toFixed(1) + 'px) scale('
                           + zoom.toFixed(3) + ')';
+  shadePlaces();
 
   // The two hairline scrollbars, which are the only chrome vanilla's map has.
-  var wide = Math.max(6, v.w / span * (v.w - 18));
-  var tall = Math.max(6, v.h / span * (v.h - 18));
+  var wide = Math.max(6, v.w / span * (v.w - BAR));
+  var tall = Math.max(6, v.h / span * (v.h - BAR));
 
-  gripH.setAttribute('style', 'left:' + (-tx / span * (v.w - 18)).toFixed(1) + 'px;width:' + wide.toFixed(1) + 'px');
-  gripV.setAttribute('style', 'top:' + (-ty / span * (v.h - 18)).toFixed(1) + 'px;height:' + tall.toFixed(1) + 'px');
+  gripH.setAttribute('style', 'left:' + (-tx / span * (v.w - BAR)).toFixed(1) + 'px;width:' + wide.toFixed(1) + 'px');
+  gripV.setAttribute('style', 'top:' + (-ty / span * (v.h - BAR)).toFixed(1) + 'px;height:' + tall.toFixed(1) + 'px');
 }
 
 // Zoom about a point of the WINDOW, so whatever is under the cursor or between two fingers stays put - the same
@@ -367,11 +476,21 @@ document.addEventListener('orientationchange', apply);
 
 s1.on('reflash-map.changed', function () {
   read();
+
+  if (meEl && state.player && JSON.stringify(state.pins) + state.image === pinsKey) {
+    turnPlayer(meEl, state.player);
+    return;
+  }
+
   render();
+  if (!placesRead) placesRead = readPlaces();
 });
+
+var placesRead = false;
 
 read();
 render();
+placesRead = readPlaces();
 
 // ---- the phone -----------------------------------------------------------------------------------------------
 //

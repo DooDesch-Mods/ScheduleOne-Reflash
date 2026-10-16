@@ -1,7 +1,8 @@
-// Products. Rebuilt against the real screen - vanilla-dumps/vanilla-products.txt.
+// Products. Rebuilt against the real screen - vanilla-dumps-047/vanilla-products.txt.
 //
 // Vanilla groups the products by drug type, each group under its own coloured title, as 100x100 tiles whose frame
-// says whether the product is listed. Favourites come first. The detail column sits on the LEFT.
+// says whether the product is listed. A favourite shows twice: in the Favourites group at the top and in its own.
+// Every heading folds its group. The detail column sits on the RIGHT.
 //
 // The price field commits on ENTER or with the step buttons: the renderer dispatches no blur and no change, so
 // "leave the field and it takes the value" does not exist here and has to be something you can see.
@@ -16,7 +17,6 @@ var appEl = document.getElementById('app');
 var listEl = document.getElementById('products');
 var emptyEl = document.getElementById('empty');
 var pagerEl = document.getElementById('pager');
-var countEl = document.getElementById('count');
 var detailEl = document.getElementById('detail');
 var instructionEl = document.getElementById('instruction');
 
@@ -24,6 +24,9 @@ var state = { rev: 0, products: [] };
 var detail = null;
 var selectedId = null;
 var page = 0;
+
+// Groups the player folded, by class. Vanilla starts every group open and forgets on close; so does this.
+var folded = {};
 
 // The drug types vanilla names, with the class that carries each title colour.
 // In vanilla's own order, which is not alphabetical, and every one of them is shown whether or not the player has
@@ -62,14 +65,14 @@ function renderList() {
   listEl.replaceChildren();
   emptyEl.className = state.products.length ? 'empty' : 'empty on';
 
-  // One group per drug type, always, with favourites first inside their own type. Vanilla has no separate
-  // favourites heading - a product only ever appears once.
+  group('Favourites', 'favourites', state.products.filter(function (p) { return p.fav; }));
+
+  // One group per drug type, always, in the order the game made the products.
   var used = {};
   for (var c = 0; c < CATEGORIES.length; c++) {
     var cat = CATEGORIES[c];
     var members = state.products.filter(function (p) { return p.quality === cat.key; });
 
-    members.sort(function (a, b) { return (b.fav ? 1 : 0) - (a.fav ? 1 : 0); });
     for (var m = 0; m < members.length; m++) used[members[m].id] = true;
 
     group(cat.label, cat.cls, members);
@@ -84,16 +87,29 @@ function renderList() {
 }
 
 function group(label, cls, products) {
-  var title = document.createElement('div');
-  title.className = 'cat-title ' + cls;
-  title.textContent = label;
-  listEl.appendChild(title);
+  var section = document.createElement('div');
+  section.className = 'section';
+
+  var open = !folded[cls];
+
+  var head = document.createElement('button');
+  head.className = 'sec-head';
+  head.appendChild(picture(open ? 'sec-arrow open' : 'sec-arrow', 'chevron-' + cls + '.png'));
+  head.appendChild(text('sec-title ' + cls, label));
+  if (cls === 'favourites') head.appendChild(picture('sec-star', 'star-on.png'));
+
+  head.addEventListener('click', function () {
+    folded[cls] = open;
+    renderList();
+  });
+  section.appendChild(head);
+  listEl.appendChild(section);
+
+  // Folded, vanilla hides the tiles and the "None" alike and keeps only the heading.
+  if (!open) return;
 
   if (!products.length) {
-    var none = document.createElement('div');
-    none.className = 'cat-none';
-    none.textContent = 'None';
-    listEl.appendChild(none);
+    section.appendChild(text('cat-none', 'None'));
     return;
   }
 
@@ -103,14 +119,16 @@ function group(label, cls, products) {
   var max = Math.min(products.length, PAGE);
   for (var i = 0; i < max; i++) tiles.appendChild(tile(products[i]));
 
-  listEl.appendChild(tiles);
+  section.appendChild(tiles);
 
-  if (products.length > max) {
-    var more = document.createElement('div');
-    more.className = 'cat-none';
-    more.textContent = 'and ' + (products.length - max) + ' more';
-    listEl.appendChild(more);
-  }
+  if (products.length > max) section.appendChild(text('cat-none', 'and ' + (products.length - max) + ' more'));
+}
+
+function picture(cls, src) {
+  var img = document.createElement('img');
+  img.className = cls;
+  img.setAttribute('src', src);
+  return img;
 }
 
 function tile(p) {
@@ -118,14 +136,11 @@ function tile(p) {
   el.className = 'tile' + (p.listed ? ' listed' : '') + (p.id === selectedId ? ' on' : '');
   el.setAttribute('data-id', p.id);
 
-  // Vanilla puts a star on every tile and fills it in for a favourite - it is not only there once it is on.
+  // Vanilla puts a star on every tile, grey, and turns it yellow for a favourite.
   var star = document.createElement('button');
   star.className = 'star' + (p.fav ? ' on' : '');
   star.setAttribute('data-id', p.id);
-
-  var glyph = document.createElement('img');
-  glyph.setAttribute('src', 'icon-star.png');
-  star.appendChild(glyph);
+  star.appendChild(picture('', p.fav ? 'star-on.png' : 'star-off.png'));
 
   star.addEventListener('click', function (e) {
     if (e.stopPropagation) e.stopPropagation();
@@ -155,20 +170,10 @@ function tile(p) {
   }
 
   // The corner mark says whether the product is for sale, not what it costs - vanilla keeps the price in the
-  // detail panel and nowhere else. Built out of boxes rather than typed as a character: the font atlases carry
-  // Latin-1 only, so a proper cross or a currency glyph would draw as an empty square.
-  function box(cls) { var b = document.createElement('div'); b.className = cls; return b; }
-
+  // detail panel. Money while it is listed, a red cross while it is not.
   var badge = document.createElement('div');
   badge.className = 'tile-badge';
-
-  var note = document.createElement('div');
-  note.className = 'note';
-  note.appendChild(box('note-eye'));
-  badge.appendChild(note);
-
-  badge.appendChild(box('bar a'));
-  badge.appendChild(box('bar b'));
+  badge.appendChild(picture('', p.listed ? 'icon-money.png' : 'icon-cross.png'));
   el.appendChild(badge);
 
   el.addEventListener('click', pick);

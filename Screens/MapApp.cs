@@ -49,6 +49,8 @@ namespace Reflash.Screens
 
         public string State(string section)
         {
+            if (section == "labels") return LabelsJson();
+
             bool hasImage = _game.ImageReady;
 
             var pins = Json.Array();
@@ -61,7 +63,9 @@ namespace Reflash.Screens
                     .Add("x", p.X)
                     .Add("y", p.Y)
                     .Add("radius", p.Radius)
-                    .Add("face", p.HasFace));
+                    .Add("face", p.HasFace)
+                    .Add("colour", p.Colour)
+                    .Add("always", p.AlwaysLabelled));
 
             var regions = Json.Array();
             foreach (RegionView r in _game.Regions())
@@ -77,7 +81,8 @@ namespace Reflash.Screens
                 .Add("regions", regions);
 
             PoiView player = _game.Player();
-            if (player != null) root.Add("player", Json.Object().Add("x", player.X).Add("y", player.Y));
+            if (player != null)
+                root.Add("player", Json.Object().Add("x", player.X).Add("y", player.Y).Add("heading", player.Heading));
             else root.AddNull("player");
 
             // What the app was opened WITH, if anything. Quest's "show on map" and the contacts detail panel both
@@ -86,6 +91,24 @@ namespace Reflash.Screens
             root.Add("focus", Hijack.AppHijack.TakePendingArg(VanillaApp.Map));
 
             return root.Close();
+        }
+
+        private string LabelsJson()
+        {
+            var labels = Json.Array();
+            foreach (PlaceNameView l in _game.Labels())
+                labels.Item(Json.Object()
+                    .Add("text", l.Text)
+                    .Add("x", l.X)
+                    .Add("y", l.Y)
+                    .Add("w", l.Width)
+                    .Add("h", l.Height)
+                    .Add("size", l.Size)
+                    .Add("colour", l.Colour)
+                    .Add("top", l.Top)
+                    .Add("rot", l.Rotation));
+
+            return Json.Object().Add("labels", labels).Add("from", _game.LabelsFrom).Add("full", _game.LabelsFull).Close();
         }
 
         /// <summary>Nothing to do. The map changes the world's view of itself, never the world.</summary>

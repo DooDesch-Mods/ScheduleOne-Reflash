@@ -63,12 +63,11 @@ namespace Reflash.Game
             ContactView brief = DealersGame.ContactOf(npc);
             brief.Kind = KindOf(npc);
 
-            // "Can the map show them" is answered by whether their position maps onto it, not by a POI reference -
-            // an NPC carries none, and vanilla reaches its POI through the detail panel rather than the NPC.
+            // The button shows where vanilla's does, and only where the map can then find them.
             var view = new ContactDetailView
             {
                 Contact = brief,
-                HasPoi = MapSpace.FocusArg(npc.transform.position).Length > 0,
+                HasPoi = VanillaShowsOnMap(npc) && MapSpace.FocusArg(npc.transform.position).Length > 0,
             };
 
             var customer = npc.GetComponent<Customer>();
@@ -237,6 +236,23 @@ namespace Reflash.Game
                 // honest answer either way.
                 return 0;
             }
+        }
+
+        /// <summary>
+        /// Whether vanilla's detail panel offers "Show on map" for this person: it does when it has a marker to point
+        /// at - a supplier's stash once unlocked, a dealer once recommended, and a known customer still to be won
+        /// over (the "somewhere around here" disc). A customer already unlocked has none.
+        /// </summary>
+        private static bool VanillaShowsOnMap(NPC npc)
+        {
+            var dealer = npc.GetComponent<Dealer>();
+            if (dealer != null) return dealer.IsRecruited || dealer.HasBeenRecommended;
+
+            if (npc.GetComponent<Supplier>() != null) return npc.RelationData != null && npc.RelationData.Unlocked;
+
+            if (npc.GetComponent<Customer>() == null || npc.RelationData == null) return false;
+            return npc.RelationData.IsMutuallyKnown() && !npc.RelationData.Unlocked
+                && !GameManager.IS_TUTORIAL;
         }
 
         private static string KindOf(NPC npc)

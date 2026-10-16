@@ -41,7 +41,11 @@ namespace Reflash.Game
             height = 0;
             if (sprite == null || sprite.texture == null) return null;
 
-            Rect region = sprite.textureRect;
+            // The sprite's whole rect, transparent margin included, because that is the box vanilla's Image fills. A
+            // sprite with a tight mesh reports only its opaque part as textureRect - 265 x 341 of a 512 x 512 product
+            // icon - and that crop, stretched over the same box, drew every product half as large again as vanilla.
+            // A packed sprite is the exception: its rect is not a place in the atlas, its textureRect is.
+            Rect region = sprite.packed ? sprite.textureRect : sprite.rect;
             width = Mathf.Max(1, Mathf.RoundToInt(region.width));
             height = Mathf.Max(1, Mathf.RoundToInt(region.height));
 

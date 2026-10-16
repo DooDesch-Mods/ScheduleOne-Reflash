@@ -103,6 +103,8 @@ namespace Reflash.Screens
                 .Add("region", regionId)
                 .Add("w", graph.Width)
                 .Add("h", graph.Height)
+                .Add("ox", -graph.MinX)
+                .Add("oy", -graph.MinY)
                 .Add("nodes", nodes)
                 .Add("edges", edges)
                 .Close();

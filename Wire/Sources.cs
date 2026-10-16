@@ -152,6 +152,9 @@ namespace Reflash.Wire
     {
         List<DealerView> Dealers();
 
+        /// <summary>Publish a few faces and item icons per call. Spread over ticks - see SpriteFeed.</summary>
+        void WarmIcons();
+
         DealerDetailView Dealer(string dealerId);
 
         /// <summary>Customers that could be assigned to this dealer - already filtered to the ones the game would
@@ -175,6 +178,13 @@ namespace Reflash.Wire
 
         /// <summary>Where the player is, in the same 0..1 map space as a pin.</summary>
         PoiView Player();
+
+        /// <summary>The place names vanilla prints over the map. They never move, so the page asks once.</summary>
+        List<PlaceNameView> Labels();
+
+        /// <summary>The zooms between which vanilla fades the place names in, read off its map app with them.</summary>
+        float LabelsFrom { get; }
+        float LabelsFull { get; }
 
         /// <summary>
         /// Makes the map image available to the page as <c>s1://map</c>, once. EXPENSIVE - a full texture readback

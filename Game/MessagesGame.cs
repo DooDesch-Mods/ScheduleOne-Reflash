@@ -124,6 +124,9 @@ namespace Reflash.Game
                 if (cats != null)
                     for (int k = 0; k < cats.Count; k++) view.Categories.Add(cats[k].ToString());
 
+                if (cats != null && cats.Count > 0) Badge(view, cats[0]);
+                if (view.OfferLeft >= 0) view.OfferColour = OfferColour(view.OfferLeft);
+
                 views.Add(view);
             }
 
@@ -137,6 +140,51 @@ namespace Reflash.Game
         /// the row counts that down. Recomputing it here rather than reading the slider off the vanilla UI, because
         /// that UI is the thing being replaced.
         /// </summary>
+        private static bool _badgeWarned, _gradientWarned, _offerWarned;
+
+        /// <summary>
+        /// The badge after the name, read from the same table vanilla's row reads: the first letter of the category's
+        /// name and its colour.
+        /// </summary>
+        private static void Badge(ThreadView view, EConversationCategory category)
+        {
+            try
+            {
+                if (!PlayerSingleton<MessagesApp>.InstanceExists) return;
+
+                MessagesApp.CategoryInfo info = PlayerSingleton<MessagesApp>.Instance.GetCategoryInfo(category);
+                if (info == null || string.IsNullOrEmpty(info.Name)) return;
+
+                view.BadgeLetter = info.Name.Substring(0, 1);
+                view.BadgeColour = Colours.Hex(info.Color);
+            }
+            catch (Exception e)
+            {
+                if (_badgeWarned) return;
+                _badgeWarned = true;
+                Core.Log.Warning($"[Reflash/messages] category badge unreadable, the page falls back to its own: {e.Message}");
+            }
+        }
+
+        /// <summary>The colour vanilla gives the offer bar: HUD.RedGreenGradient at the time left.</summary>
+        private static string OfferColour(double left)
+        {
+            try
+            {
+                if (!Singleton<Il2CppScheduleOne.UI.HUD>.InstanceExists) return null;
+                return Colours.Hex(Singleton<Il2CppScheduleOne.UI.HUD>.Instance.RedGreenGradient.Evaluate((float)left));
+            }
+            catch (Exception e)
+            {
+                if (!_gradientWarned)
+                {
+                    _gradientWarned = true;
+                    Core.Log.Warning($"[Reflash/messages] offer gradient unreadable, the page falls back to its own: {e.Message}");
+                }
+                return null;
+            }
+        }
+
         private static double OfferLeft(NPC npc)
         {
             var customer = npc.GetComponent<Customer>();
@@ -151,8 +199,13 @@ namespace Reflash.Game
 
                 return Math.Clamp(1.0 - (now - made) / 600.0, 0.0, 1.0);
             }
-            catch
+            catch (Exception e)
             {
+                if (!_offerWarned)
+                {
+                    _offerWarned = true;
+                    Core.Log.Warning($"[Reflash/messages] offer time unreadable, the row shows no bar: {e.Message}");
+                }
                 return -1;
             }
         }

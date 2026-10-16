@@ -113,15 +113,18 @@ function row(t) {
     var hide = document.createElement('button');
     hide.className = 'row-hide';
     hide.setAttribute('data-id', t.id);
-    hide.appendChild(picture('icon-x.png'));
+    hide.appendChild(picture('icon-close.png'));
     hide.addEventListener('click', hideClicked);
     el.appendChild(hide);
   }
 
-  // How long the offer still stands, as a hairline along the bottom, red as it runs out.
+  // How long the offer still stands, as a hairline along the bottom. The colour is the game's own gradient at the
+  // time left; the classes are the fallback when the mod could not read it.
   if (typeof t.offer === 'number' && t.offer >= 0) {
     var bar = div('row-offer' + (t.offer < 0.15 ? ' gone' : t.offer < 0.45 ? ' low' : ''));
-    bar.setAttribute('style', 'width:' + Math.round(t.offer * 100) + '%');
+    var style = 'width:' + (t.offer * 100).toFixed(1) + '%';
+    if (t.offerColour) style += '; background:' + t.offerColour;
+    bar.setAttribute('style', style);
     el.appendChild(bar);
   }
 
@@ -135,7 +138,9 @@ function categoryOf(t) {
   var kind = String(t.cats[0]).toLowerCase();
   var known = kind === 'customer' || kind === 'supplier' || kind === 'dealer';
 
-  return text('cat ' + (known ? kind : 'dealer'), kind.charAt(0).toUpperCase());
+  var badge = text('cat ' + (known ? kind : 'dealer'), t.badge || kind.charAt(0).toUpperCase());
+  if (t.badgeColour) badge.setAttribute('style', 'background:' + t.badgeColour);
+  return badge;
 }
 
 function rowClicked(e) {

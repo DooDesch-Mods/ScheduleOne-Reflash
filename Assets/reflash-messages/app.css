@@ -1,20 +1,20 @@
 /* Messages.
 
-   Every number here was measured off the vanilla screenshots in Workspace/docs/Reflash/vanilla-shots, after cutting
-   the phone's screen out of them and scaling it to the size the app actually lays out at - 400 x 733.4 css px
-   upright. That step is what makes a measurement mean anything: the screenshots were taken at whatever size the
-   window happened to be, so a distance in screenshot pixels is a distance in nothing.
-
-   The screenshots decide WHERE things go. Reading the object dump instead is how the first attempt ended up with
-   invented filter chips, the category badge on the wrong side and no hide button at all. */
+   The list is laid out from the 0.4.7 dump (Workspace/docs/Reflash/vanilla-dumps-047/vanilla-messages.txt), whose
+   "pos=" is every box's top-left in canvas units. The screen is 655 x 1201 units and this app 400 x 733.4 css px,
+   so one unit is 0.6107 px. The thread view below is still measured off the screenshots in vanilla-shots. */
 
 body {
   height: 100%;
   font-family: game-ui;
   font-size: 12px;
-  color: #2b2b2b;
+  color: #323232;
   background: #f0f0f0;
 }
+
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
 
 .app { height: 100%; background: #f0f0f0; }
 
@@ -24,17 +24,25 @@ body {
 .app.on-thread .list { display: none; }
 
 /* "Messages", large and heavy, over the list rather than in a coloured bar. */
+/* The title's box is 100 units tall, 15 down from the top, and the list starts at 120. */
 .list-head {
   flex: none;
-  height: 75px;
-  padding: 0 31px;
+  height: 73.3px;
+  padding: 9.2px 0 3.1px 30.5px;
   justify-content: center;
-  font-size: 36px;
+  font-size: 32.4px;
   font-weight: bold;
-  color: #2b2b2b;
+  color: #323232;
 }
 
-.rows { flex: 1; min-height: 0; overflow-y: auto; }
+/* Rows sit straight on the page grey; the scrollbar is a light grey handle in a 12-unit strip on the right. */
+.rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: #c3c3c3 transparent;
+  padding-right: 8.5px;
+}
 
 /* A row is a plain box and everything in it is placed absolutely, because vanilla places it that way: the
    separator spans only part of the width, the unread dot sits left of the mugshot, and the category badge sits
@@ -42,39 +50,39 @@ body {
 .row {
   position: relative;
   flex: none;
-  height: 91px;
+  height: 91.6px;
 }
 
-.row:hover { background: #e9e9e9; }
+.row:hover { background: #e5e5e5; }
 
 /* The separator is inset on both sides - it is not the row's edge. */
 .row-line {
   position: absolute;
-  left: 31px;
-  right: 39px;
+  left: 30.5px;
+  right: 30.6px;
   top: 0;
-  height: 2px;
-  background: #dcdcdc;
+  height: 1.8px;
+  background: #e6e6e6;
 }
 
 .row-dot {
   position: absolute;
-  left: 20px;
-  top: 42px;
-  width: 9px;
-  height: 9px;
-  border-radius: 5px;
-  background: #2196f3;
+  left: 19.8px;
+  top: 41.2px;
+  width: 9.2px;
+  height: 9.2px;
+  border-radius: 4.6px;
+  background: #00a3ff;
 }
 
 .row-face {
   position: absolute;
-  left: 42px;
-  top: 18px;
-  width: 57px;
-  height: 57px;
-  border-radius: 29px;
-  background: #e2e2e2;
+  left: 39.7px;
+  top: 15.3px;
+  width: 61px;
+  height: 61px;
+  border-radius: 30.5px;
+  background: #dcdcdc;
   align-items: center;
   justify-content: center;
   color: #9a9a9a;
@@ -90,33 +98,35 @@ body {
 
    object-fit: contain is what the in-game renderer does with an <img> anyway, so this is the line that makes the
    two screens agree rather than a browser-only tweak. */
-.row-face img { width: 57px; height: 57px; border-radius: 29px; object-fit: contain; }
+.row-face img { width: 61px; height: 61px; border-radius: 30.5px; object-fit: contain; }
 
 .row-name {
   position: absolute;
   left: 116px;
-  top: 13px;
+  top: 1.2px;
+  height: 36.6px;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.row-name-text { font-size: 21px; font-weight: bold; color: #2b2b2b; }
+.row-name-text { font-size: 19.5px; font-weight: 600; color: #323232; }
 
-/* The letter after the name: C for a customer, S for a supplier, D for a dealer. */
+/* The letter after the name: C for a customer, S for a supplier, D for a dealer. The colour comes from the game;
+   these are the fallback. */
 .cat {
-  width: 26px;
-  height: 20px;
-  border-radius: 5px;
-  justify-content: center;
+  width: 24.4px;
+  height: 24.4px;
+  border-radius: 4px;
+  align-items: center;
   color: #ffffff;
-  font-size: 15px;
-  font-weight: bold;
+  font-size: 16.5px;
+  font-weight: 600;
   text-align: center;
 }
 
-.cat.customer { background: #5cb85c; }
-.cat.supplier { background: #d9534f; }
+.cat.customer { background: #7cbe72; }
+.cat.supplier { background: #db6960; }
 .cat.dealer { background: #8a82e5; }
 
 /* Two lines and then it stops - vanilla clips there, and without the ceiling a long message grew a third line that
@@ -125,20 +135,20 @@ body {
   display: block;      /* as .bubble - a coloured price is an inline span and must stay in the sentence */
   position: absolute;
   left: 116px;
-  right: 46px;
-  top: 40px;
-  height: 44px;
+  right: 30.6px;
+  top: 34.8px;
+  height: 50.7px;
   overflow: hidden;
-  font-size: 19px;
+  font-size: 16.5px;
+  font-weight: 500;
   color: #939393;
-  line-height: 1.18;
 }
 
 /* Vanilla only puts the cross on a customer's row. */
 .row-hide {
   position: absolute;
-  right: 8px;
-  top: 33px;
+  right: 5.3px;
+  top: 7.2px;
   width: 26px;
   height: 26px;
   background: #ffffff00;
@@ -147,15 +157,15 @@ body {
   justify-content: center;
 }
 
-.row-hide img { width: 16px; height: 16px; }
+.row-hide img { width: 15.3px; height: 15.3px; }
 .row-hide:hover { background: #00000010; border-radius: 13px; }
 
 /* How long an offer still stands, as a hairline along the bottom of the row. */
 .row-offer {
   position: absolute;
   left: 0;
-  bottom: 0;
-  height: 3px;
+  top: 90.4px;
+  height: 2.4px;
   background: #61c828;
 }
 

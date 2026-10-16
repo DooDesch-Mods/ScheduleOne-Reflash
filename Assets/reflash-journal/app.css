@@ -15,6 +15,10 @@ body {
   background: #f0f0f0;
 }
 
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
+
 .app { height: 100%; background: #f0f0f0; }
 
 /* The one coloured thing on the screen: an orange bar with the app's name in it. */

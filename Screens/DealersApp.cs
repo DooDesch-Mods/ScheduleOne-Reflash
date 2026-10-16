@@ -10,8 +10,17 @@ namespace Reflash.Screens
     /// would be several hundred boxes on one screen, and the render budget is about two hundred - so the
     /// virtualisation here is the selection itself rather than anything clever about scrolling.
     /// </summary>
-    internal sealed class DealersApp : IAppPort
+    internal sealed class DealersApp : IAppPort, INeedsAppHandle, IWarmUp
     {
+        /// <summary>Handed on to the source, which publishes the faces and item icons the page shows.</summary>
+        public void UseHandle(Sideload.Api.AppHandle handle)
+        {
+            if (_game is INeedsAppHandle needs) needs.UseHandle(handle);
+        }
+
+        /// <summary>A few pictures per tick. Reading them all back at once is a stutter; this is not.</summary>
+        public void WarmUp() => _game.WarmIcons();
+
         private readonly IDealersSource _game;
 
         internal DealersApp(IDealersSource game) => _game = game;
@@ -47,7 +56,8 @@ namespace Reflash.Screens
             .Add("cut", d.CutPercent)
             .Add("customers", d.CustomerCount)
             .Add("limit", d.CustomerLimit)
-            .Add("avatar", d.Avatar);
+            .Add("avatar", d.Avatar)
+            .Add("face", d.HasFace);
 
         private string DetailJson(string dealerId)
         {
@@ -56,7 +66,12 @@ namespace Reflash.Screens
 
             var inventory = Json.Array();
             foreach (SlotView s in d.Inventory)
-                inventory.Item(Json.Object().Add("name", s.Name).Add("qty", s.Quantity));
+                inventory.Item(Json.Object()
+                    .Add("id", s.Id)
+                    .Add("name", s.Name)
+                    .Add("qty", s.Quantity)
+                    .Add("quality", s.Quality)
+                    .Add("icon", s.HasIcon));
 
             var customers = Json.Array();
             foreach (ContactView c in d.Customers)
@@ -65,7 +80,9 @@ namespace Reflash.Screens
                     .Add("name", c.Name)
                     .Add("region", c.Region)
                     .Add("rel", c.Relationship)
-                    .Add("relLabel", c.RelationshipLabel));
+                    .Add("relLabel", c.RelationshipLabel)
+                    .Add("standards", c.StandardsColour)
+                    .Add("face", c.HasFace));
 
             return Json.Object()
                 .Add("rev", Revision)
@@ -82,7 +99,9 @@ namespace Reflash.Screens
                 list.Item(Json.Object()
                     .Add("id", c.Id)
                     .Add("name", c.Name)
-                    .Add("region", c.Region));
+                    .Add("region", c.Region)
+                    .Add("standards", c.StandardsColour)
+                    .Add("face", c.HasFace));
 
             return Json.Object().Add("rev", Revision).Add("candidates", list).Close();
         }

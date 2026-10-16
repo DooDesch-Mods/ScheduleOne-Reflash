@@ -66,6 +66,7 @@ namespace Reflash.Dev
             if (cmd.StartsWith("press ")) { PressAnywhere(cmd.Substring(6).Trim()); return; }
             if (cmd.StartsWith("takeover ")) { TakeOver(cmd.Substring(9).Trim()); return; }
             if (cmd == "fonts") { Fonts(); return; }
+            if (cmd.StartsWith("sprite ")) { SpriteProbe(cmd.Substring(7).Trim()); return; }
 
             switch (cmd)
             {
@@ -83,7 +84,45 @@ namespace Reflash.Dev
         private static void Help()
         {
             Core.Log.Msg("[Reflash/dev] reflash phone | close | home | icons | buttons | pair | click <icon|index> | "
-                       + "tap <path>[#n] | press <name> | takeover on|off | fonts | dump <label> | dumpname <name>");
+                       + "tap <path>[#n] | press <name> | takeover on|off | fonts | dump <label> | dumpname <name> | "
+                       + "sprite <npc id | product id>");
+        }
+
+        /// <summary>
+        /// What the mod hands a page for one NPC's mugshot or one product's icon: the texture's flags, the sprite's
+        /// full rect against the region its pixels are read from, and the pixel in its middle as the published PNG
+        /// carries it. Set against the same picture in a vanilla screenshot, this says whether a face that looks too
+        /// dark or an icon that looks too big was read wrong or drawn wrong.
+        /// </summary>
+        private static void SpriteProbe(string id)
+        {
+            Sprite sprite = null;
+
+            Il2CppScheduleOne.NPCs.NPC npc = Il2CppScheduleOne.NPCs.NPCManager.GetNPC(id);
+            if (npc != null) sprite = npc.MugshotSprite;
+            else
+            {
+                var item = Il2CppScheduleOne.Registry.GetItem(id);
+                if (item == null) { Core.Log.Warning($"[Reflash/dev] no NPC or item '{id}'."); return; }
+                sprite = item.Icon;
+            }
+
+            if (sprite == null || sprite.texture == null) { Core.Log.Warning($"[Reflash/dev] '{id}' has no picture."); return; }
+
+            Texture2D t = sprite.texture;
+            Core.Log.Msg($"[Reflash/dev] sprite '{sprite.name}' tex '{t.name}' {t.width}x{t.height} format={t.format} "
+                       + $"graphics={t.graphicsFormat} readable={t.isReadable} rect={sprite.rect} "
+                       + $"textureRect={sprite.textureRect} offset={sprite.textureRectOffset} packed={sprite.packed}");
+
+            Color32[] px = Game.TextureIO.SpritePixels(sprite, out int w, out int h);
+            if (px == null) { Core.Log.Warning("[Reflash/dev] pixels unreadable."); return; }
+
+            for (int row = 0; row < 5; row++)
+            {
+                int y = h * (row + 3) / 10;
+                Color32 c = px[y * w + w / 2];
+                Core.Log.Msg($"[Reflash/dev] pixel x={w / 2} y={y} (from top {h - 1 - y}) = {c.r},{c.g},{c.b},{c.a}");
+            }
         }
 
         /// <summary>
