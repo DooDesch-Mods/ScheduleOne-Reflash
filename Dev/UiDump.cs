@@ -137,6 +137,9 @@ namespace Reflash.Dev
                   .Append(" size=").Append(legacy.fontSize)
                   .Append(" colour=").Append(Hex(legacy.color))
                   .Append(" align=").Append(legacy.alignment);
+
+                if (legacy.fontStyle != FontStyle.Normal) sb.Append(" style=").Append(legacy.fontStyle);
+                if (legacy.font != null) sb.Append(" font=").Append(legacy.font.name);
             }
 
             var tmp = node.GetComponent<TextMeshProUGUI>();
@@ -147,6 +150,7 @@ namespace Reflash.Dev
                   .Append(" colour=").Append(Hex(tmp.color))
                   .Append(" align=").Append(tmp.alignment);
 
+                if (tmp.fontStyle != FontStyles.Normal) sb.Append(" style=").Append(tmp.fontStyle);
                 if (tmp.font != null) sb.Append(" font=").Append(tmp.font.name);
             }
 

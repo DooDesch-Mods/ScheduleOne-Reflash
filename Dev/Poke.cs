@@ -65,6 +65,7 @@ namespace Reflash.Dev
             if (cmd.StartsWith("dumpname ")) { UiDump.ByName(cmd.Substring(9).Trim()); return; }
             if (cmd.StartsWith("press ")) { PressAnywhere(cmd.Substring(6).Trim()); return; }
             if (cmd.StartsWith("takeover ")) { TakeOver(cmd.Substring(9).Trim()); return; }
+            if (cmd == "fonts") { Fonts(); return; }
 
             switch (cmd)
             {
@@ -82,13 +83,21 @@ namespace Reflash.Dev
         private static void Help()
         {
             Core.Log.Msg("[Reflash/dev] reflash phone | close | home | icons | buttons | pair | click <icon|index> | "
-                       + "tap <path>[#n] | press <name> | takeover on|off | dump <label> | dumpname <name>");
+                       + "tap <path>[#n] | press <name> | takeover on|off | fonts | dump <label> | dumpname <name>");
         }
 
         /// <summary>
         /// Flip which screen the phone icons open, the same live switch the Connect app has. Saved like it, so a
         /// test that turns it on should turn it off again.
         /// </summary>
+        private static void Fonts()
+        {
+            foreach (var f in UnityEngine.Resources.FindObjectsOfTypeAll<Il2CppTMPro.TMP_FontAsset>())
+                if (f != null) Core.Log.Msg($"[Reflash/dev] tmp font '{f.name}'");
+            foreach (var f in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Font>())
+                if (f != null) Core.Log.Msg($"[Reflash/dev] legacy font '{f.name}'");
+        }
+
         private static void TakeOver(string arg)
         {
             bool on = arg == "on" || arg == "1" || arg == "true";
