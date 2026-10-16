@@ -108,8 +108,9 @@ namespace Reflash.Game
                 {
                     Id = npc != null ? npc.ID : PoiIds.Of(poi),
                     // A deal's label is the whole order and its place, "1x Girl Scout Monkey, Behind the Post
-                    // Office", which vanilla prints in full.
-                    Label = Text.Ellipsis(Text.Clean(poi.MainText), 64),
+                    // Office", which vanilla prints in full. Line breaks stay: vanilla's "Potential Customer" sits on
+                    // a line above the name.
+                    Label = Lines(poi.MainText),
                     Kind = KindOf(poi, npc),
                     Region = RegionAt(poi.transform.position),
                     X = x,
@@ -122,6 +123,22 @@ namespace Reflash.Game
             }
 
             return views;
+        }
+
+        /// <summary>A marker's name line by line, each line as the phone can draw it, joined by newlines.</summary>
+        private static string Lines(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+
+            string[] lines = text.Split('\n');
+            var kept = new List<string>(lines.Length);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = Text.Clean(lines[i]).Trim();
+                if (line.Length > 0) kept.Add(Text.Ellipsis(line, 64));
+            }
+
+            return string.Join("\n", kept);
         }
 
         /// <summary>
@@ -272,6 +289,35 @@ namespace Reflash.Game
         public float LabelsFrom { get; private set; } = 1.2f;
         public float LabelsFull { get; private set; } = 1.5f;
 
+        /// <summary>
+        /// The size a place name is actually drawn at. Vanilla's are best-fit, so the size the fit settles on is the
+        /// one that counts, not the prefab's fontSize.
+        /// </summary>
+        private static float DrawnSize(UnityEngine.UI.Text text)
+        {
+            if (!text.resizeTextForBestFit) return text.fontSize;
+
+            try
+            {
+                TextGenerationSettings settings = text.GetGenerationSettings(text.rectTransform.rect.size);
+                settings.scaleFactor = 1f;
+
+                var generator = new TextGenerator();
+                generator.Populate(text.text, settings);
+
+                int used = generator.fontSizeUsedForBestFit;
+                if (used > 0) return used;
+
+                Core.Log?.Warning($"Map: no best-fit size for '{text.text.Trim()}' - drawn at its set size {text.fontSize}.");
+            }
+            catch (Exception e)
+            {
+                Core.Log?.Warning($"Map: best-fit size of '{text.text.Trim()}' could not be measured ({e.Message}) - drawn at {text.fontSize}.");
+            }
+
+            return text.fontSize;
+        }
+
         public List<PlaceNameView> Labels()
         {
             if (_labels != null) return _labels;
@@ -319,7 +365,7 @@ namespace Reflash.Game
                     Y = (area.yMax - local.y) / area.height,
                     Width = rt.rect.width * k / area.width,
                     Height = rt.rect.height * k / area.width,
-                    Size = text.fontSize * k / area.width,
+                    Size = DrawnSize(text) * k / area.width,
                     Colour = Hex(text.color),
                     Top = text.alignment.ToString().StartsWith("Upper"),
                     Rotation = Mathf.DeltaAngle(content.eulerAngles.z, rt.eulerAngles.z),
@@ -329,7 +375,9 @@ namespace Reflash.Game
             if (labels.Count > 0)
             {
                 _labels = labels;
-                Core.Log?.Msg($"Map: {labels.Count} place names read off the vanilla map.");
+                UnityEngine.UI.Text first = texts[0];
+                Core.Log?.Msg($"Map: {labels.Count} place names read off the vanilla map. The first, '{first.text.Trim()}', "
+                    + $"is set at {first.fontSize} and drawn at {DrawnSize(first)}.");
             }
             else Core.Log?.Warning("Map: the vanilla map's label layer holds no text - no place names this time.");
 

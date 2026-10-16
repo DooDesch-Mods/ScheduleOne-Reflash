@@ -107,8 +107,9 @@ img { color: #ffffff; }
 /* SpecialCustomerGroupPoI: a 140x140 disc in the group's colour, its name across it at size 32. */
 .group-name { flex: 1; justify-content: center; font-size: 19.5px; font-weight: 600; color: #ffffff; text-align: center; }
 
-/* MainLabel 500x120, 46 units under the marker, size 32 white - for a marker that always shows its name. */
-.caption { position: absolute; font-size: 19.5px; font-weight: 600; color: #ffffff; text-align: center; }
+/* MainLabel 500x120 at 0,-46, size 32 white, upper centre - drawn at half that in the game: its first line starts 16
+   units under the marker's middle and is about half a face high. So 250 units wide and size 16. */
+.caption { position: absolute; width: 152.7px; align-items: center; font-size: 9.8px; font-weight: 600; color: #ffffff; text-align: center; }
 
 /* The place names: size 24 at their own colour, centred in boxes of about 248x99 units, some reading from the top. */
 .places { position: absolute; left: 0; top: 0; width: 1250.8px; height: 1250.8px; }

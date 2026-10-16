@@ -27,6 +27,7 @@ var nameEl = document.getElementById('poi-name');
 var gripH = document.getElementById('grip-h');
 var gripV = document.getElementById('grip-v');
 var placesEl = document.getElementById('places');
+var tipsEl = document.getElementById('tips');
 
 var state = { pins: [], player: null, image: false, focus: '' };
 
@@ -36,15 +37,16 @@ var ty = 0;
 var zoom = ZOOM_FOCUS;
 var placed = false;            // has the view been put somewhere yet
 
+// Returns true when the view was moved to a place the app was opened with.
 function read() {
   var raw = s1.call('reflash-map.state', '');
-  if (!raw) return;
+  if (!raw) return false;
 
   try {
     state = JSON.parse(raw);
   } catch (e) {
     s1.log('state did not parse: ' + e);
-    return;
+    return false;
   }
 
   if (!state.pins) state.pins = [];
@@ -59,7 +61,11 @@ function read() {
       zoom = ZOOM_FOCUS;
       centreOn(fx, fy);
       placed = true;
+      s1.log('map: opened at ' + fx + ', ' + fy);
+      return true;
     }
+
+    s1.log('map: opened with a place that does not parse: ' + state.focus);
   }
 
   // Vanilla centres on the player the FIRST time the app opens in a session and keeps the view every time after -
@@ -69,6 +75,8 @@ function read() {
     centreOn(state.player.x, state.player.y);
     placed = true;
   }
+
+  return false;
 }
 
 // The window the map is seen through, in css pixels. An element's geometry cannot be read back here, so it is
@@ -109,8 +117,10 @@ var pinsKey = '';
 
 function renderPins() {
   pinsEl.replaceChildren();
+  tipsEl.replaceChildren();
   marks = [];
   picked = null;
+  tipped = null;
   nameEl.className = 'poi-name';
 
   if (!state.image) {
@@ -158,7 +168,7 @@ function marker(p) {
     if (p.kind === 'group') {
       var title = document.createElement('div');
       title.className = 'group-name';
-      title.textContent = p.label;
+      setLines(title, p.label);
       area.appendChild(title);
       marks.push({ el: area, poi: p });
       pinsEl.appendChild(area);
@@ -197,18 +207,41 @@ function marker(p) {
   }
 
   // A marker whose name vanilla never hides, printed under it.
-  if (p.always && p.label) {
-    var caption = document.createElement('div');
-    caption.className = 'caption';
-    caption.textContent = p.label;
-    place(caption, p.x, p.y + 46 / 2048, 305.3, 24);
-    pinsEl.appendChild(caption);
+  if (p.always && p.label) pinsEl.appendChild(caption(p));
+
+  // Every other name shows while the pointer rests on its marker, as vanilla's does. Built now and shrunk to nothing,
+  // because a pointer passing over a marker then only writes a transform, which repaints one box; adding the name
+  // when it is needed would rebuild the whole map each time.
+  var tip = null;
+  if (!RICH && !p.always && p.label) {
+    tip = caption(p);
+    tip.setAttribute('style', tip.getAttribute('style') + ';transform:scale(0)');
+    tipsEl.appendChild(tip);
   }
 
   // Remembered rather than given a click listener of its own - see pickAt for why.
-  marks.push({ el: el, poi: p });
+  marks.push({ el: el, poi: p, tip: tip });
 
   pinsEl.appendChild(el);
+}
+
+// MainLabel: white, its first line starting 16 units under the marker's middle, one line per line of the marker's
+// text.
+function caption(p) {
+  var el = document.createElement('div');
+  el.className = 'caption';
+  setLines(el, p.label);
+  place(el, p.x, p.y + 16 / 2048, 152.7, 0);
+  return el;
+}
+
+function setLines(el, text) {
+  var lines = text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = document.createElement('div');
+    line.textContent = lines[i];
+    el.appendChild(line);
+  }
 }
 
 // Vanilla's PlayerPoI: a white ring round a blue dot, and an arrow just off it that turns with the player. The whole
@@ -328,9 +361,31 @@ function pickAt(px, py) {
   return best;
 }
 
-// Vanilla names a marker while the pointer rests on it. A phone has no pointer to rest, so the name is what a tap
-// gets - the same information by the only gesture a thumb has.
-viewportEl.addEventListener('click', function (e) {
+// Vanilla names a marker while the pointer rests on it, and so does the game here.
+var tipped = null;
+var dragging = false;
+
+function hover(hit) {
+  var next = hit && hit.tip ? hit : null;
+  if (next === tipped) return;
+
+  if (tipped) tipped.tip.style.transform = 'scale(0)';
+  tipped = next;
+  if (tipped) tipped.tip.style.transform = 'scale(1)';
+}
+
+if (!RICH) {
+  viewportEl.addEventListener('mousemove', function (e) {
+    if (dragging || typeof e.offsetX !== 'number') return;
+    hover(pickAt(e.offsetX, e.offsetY));
+  });
+
+  viewportEl.addEventListener('mouseleave', function () { hover(null); });
+}
+
+// A phone has no pointer to rest, so there the name is what a tap gets - the same information by the only gesture a
+// thumb has.
+if (RICH) viewportEl.addEventListener('click', function (e) {
   if (typeof e.offsetX !== 'number') { clearPick(); return; }
 
   var hit = pickAt(e.offsetX, e.offsetY);
@@ -342,7 +397,7 @@ viewportEl.addEventListener('click', function (e) {
   picked = hit.el;
   hit.el.className = hit.el.className + ' picked';
 
-  nameEl.textContent = hit.poi.label;
+  nameEl.textContent = hit.poi.label.replace(/\n/g, ' ');
   nameEl.className = 'poi-name on';
 
   buzz(8);
@@ -413,6 +468,8 @@ var vy = 0;
 var gliding = false;
 
 viewportEl.addEventListener('dragstart', function () {
+  dragging = true;
+  hover(null);
   vx = 0;
   vy = 0;
   gliding = false;
@@ -433,6 +490,7 @@ viewportEl.addEventListener('drag', function (e) {
 });
 
 viewportEl.addEventListener('dragend', function () {
+  dragging = false;
   busy(false);
   glide();
 });
@@ -484,10 +542,13 @@ viewportEl.addEventListener('wheel', function (e) {
 document.addEventListener('orientationchange', apply);
 
 s1.on('reflash-map.changed', function () {
-  read();
+  // Opened at a place - by a contact's or a quest's "Show on map" - moves the view, which only apply() writes.
+  var focused = read();
+  if (focused) hover(null);
 
   if (meEl && state.player && JSON.stringify(state.pins) + state.image === pinsKey) {
     turnPlayer(meEl, state.player);
+    if (focused) apply();
     return;
   }
 

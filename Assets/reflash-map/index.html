@@ -16,6 +16,8 @@
       <!-- The place names, which vanilla lays over the picture and fades in as the map is zoomed. -->
       <div class="places off" id="places"></div>
       <div class="pins" id="pins"></div>
+      <!-- The names shown while the pointer rests on a marker, above every marker. -->
+      <div class="pins" id="tips"></div>
     </div>
 
     <!-- North, which never moves: vanilla's map is not rotatable, and its compass is a static sprite. -->
@@ -29,7 +31,7 @@
     <div class="bar-h"><div class="grip" id="grip-h"></div></div>
     <div class="bar-v"><div class="grip" id="grip-v"></div></div>
 
-    <!-- The name of the marker that was last tapped. Vanilla shows this on hover, which a phone cannot do. -->
+    <!-- On a phone, the name of the marker that was last tapped. A phone has no hover. -->
     <div class="poi-name" id="poi-name"></div>
   </div>
 

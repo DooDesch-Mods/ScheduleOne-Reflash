@@ -67,7 +67,7 @@ namespace Reflash.Game
             var view = new ContactDetailView
             {
                 Contact = brief,
-                HasPoi = VanillaShowsOnMap(npc) && MapSpace.FocusArg(npc.transform.position).Length > 0,
+                HasPoi = FocusOf(npc).Length > 0,
             };
 
             var customer = npc.GetComponent<Customer>();
@@ -162,8 +162,12 @@ namespace Reflash.Game
             NPC npc = FindNpc(npcId);
             if (npc == null) return Reply.NotFound;
 
-            string focus = MapSpace.FocusArg(npc.transform.position);
-            if (focus.Length == 0) return Reply.Refused;
+            string focus = FocusOf(npc);
+            if (focus.Length == 0)
+            {
+                Core.Log?.Warning($"Contacts: {npc.ID} has no marker on the map to show.");
+                return Reply.Refused;
+            }
 
             return AppHijack.Open(VanillaApp.Map, focus) ? Reply.Ok : Reply.Refused;
         }
@@ -239,20 +243,39 @@ namespace Reflash.Game
         }
 
         /// <summary>
-        /// Whether vanilla's detail panel offers "Show on map" for this person: it does when it has a marker to point
-        /// at - a supplier's stash once unlocked, a dealer once recommended, and a known customer still to be won
-        /// over (the "somewhere around here" disc). A customer already unlocked has none.
+        /// Where "Show on map" looks for this person, or empty when vanilla's detail panel offers no such button.
+        ///
+        /// The MARKER, as ContactsDetailPanel.ShowOnMap does, not the person: a supplier's stash once unlocked, a
+        /// recruited dealer's own marker or a recommended one's disc, and a known customer still to be won over's
+        /// "somewhere around here" disc. The person can be anywhere - asleep at home, inside a shop - and the map
+        /// looked at that spot rather than at the marker the player was sent to find.
         /// </summary>
-        private static bool VanillaShowsOnMap(NPC npc)
+        private static string FocusOf(NPC npc)
+        {
+            POI poi = MarkerOf(npc);
+            return poi != null ? MapSpace.FocusArg(poi.transform.position) : "";
+        }
+
+        private static POI MarkerOf(NPC npc)
         {
             var dealer = npc.GetComponent<Dealer>();
-            if (dealer != null) return dealer.IsRecruited || dealer.HasBeenRecommended;
+            if (dealer != null)
+            {
+                if (dealer.IsRecruited) return dealer.DealerPoI;
+                return dealer.HasBeenRecommended ? dealer.PotentialDealerPoI : null;
+            }
 
-            if (npc.GetComponent<Supplier>() != null) return npc.RelationData != null && npc.RelationData.Unlocked;
+            var supplier = npc.GetComponent<Supplier>();
+            if (supplier != null)
+            {
+                bool unlocked = npc.RelationData != null && npc.RelationData.Unlocked;
+                return unlocked && supplier.Stash != null ? supplier.Stash.StashPoI : null;
+            }
 
-            if (npc.GetComponent<Customer>() == null || npc.RelationData == null) return false;
-            return npc.RelationData.IsMutuallyKnown() && !npc.RelationData.Unlocked
-                && !GameManager.IS_TUTORIAL;
+            var customer = npc.GetComponent<Customer>();
+            if (customer == null || npc.RelationData == null) return null;
+            if (!npc.RelationData.IsMutuallyKnown() || npc.RelationData.Unlocked || GameManager.IS_TUTORIAL) return null;
+            return customer.potentialCustomerPoI;
         }
 
         private static string KindOf(NPC npc)
