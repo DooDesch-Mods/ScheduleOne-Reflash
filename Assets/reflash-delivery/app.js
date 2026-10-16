@@ -11,7 +11,6 @@ var bodyEl = document.getElementById('body');
 var basketEl = document.getElementById('basket');
 var shadeEl = document.getElementById('shade');
 var balanceEl = document.getElementById('balance');
-var activeCountEl = document.getElementById('active-count');
 
 var tab = 'shops';
 var shops = { shops: [], balance: 0, active: 0 };
@@ -43,7 +42,6 @@ function refresh() {
 
 function render() {
   balanceEl.textContent = '$' + shops.balance;
-  activeCountEl.textContent = shops.active ? '(' + shops.active + ')' : '';
 
   bodyEl.replaceChildren();
   if (note) bodyEl.appendChild(text('note', note));
@@ -367,13 +365,13 @@ function submit() {
 
 function renderDeliveries() {
   if (!deliveries.length) {
-    bodyEl.appendChild(text('empty', tab === 'active' ? 'Nothing on the way.' : 'No past deliveries.'));
+    bodyEl.appendChild(text('empty cards-empty', tab === 'active' ? 'There are no active deliveries' : 'There are no past deliveries'));
     return;
   }
 
-  // Vanilla lays these out as CARDS in two columns, not as a list of lines: a header that reads
-  // "<shop> -> <destination>" with the shop's own colour on the left, and the items under it in two columns.
-  // A single line per delivery was the thing that looked nothing like the game.
+  // Vanilla's DeliveryReceipt card, two to a row: a dark strip with the shop in its own colour over its
+  // description, an arrow, the destination over its dock, and at the right edge the Reorder button (past) or the
+  // status pill (active). Under it up to eight items, "10x" + picture + name, filled left to right.
   var grid = document.createElement('div');
   grid.className = 'cards';
 
@@ -381,47 +379,53 @@ function renderDeliveries() {
     var d = deliveries[i];
 
     var card = document.createElement('div');
-    card.className = 'card';
+    card.className = tab === 'active' ? 'card on-way' : 'card';
 
     var head = document.createElement('div');
     head.className = 'card-head';
 
     var from = document.createElement('div');
     from.className = 'card-from';
-    from.appendChild(text('card-shop', d.shop));
+    var shopName = text('card-shop', d.shop);
+    if (d.shopColour) shopName.setAttribute('style', 'color:' + d.shopColour);
+    from.appendChild(shopName);
+    if (d.description) from.appendChild(text('card-desc', d.description));
     head.appendChild(from);
 
-    head.appendChild(text('card-arrow', '>'));
+    var arrow = document.createElement('img');
+    arrow.className = 'card-arrow';
+    arrow.setAttribute('src', 'arrow.png');
+    head.appendChild(arrow);
 
     var to = document.createElement('div');
     to.className = 'card-to';
     to.appendChild(text('card-where', d.destination || ''));
-    if (d.dock) to.appendChild(text('card-when', d.dock));
-    else if (d.eta) to.appendChild(text('card-when', d.eta));
+    if (d.dock) to.appendChild(text('card-dock', d.dock));
     head.appendChild(to);
 
-    // Vanilla's Reorder button: the word, and under it what the same basket costs at today's prices. Only where
-    // the shop could be resolved from the receipt - without it there is nothing to order from.
     if (tab === 'history' && d.shopId) {
       var again = document.createElement('button');
-      again.className = 'card-again';
+      again.className = 'card-again' + (d.canReorder ? '' : ' off');
       again.appendChild(text('card-again-word', 'Reorder'));
-      again.appendChild(text('card-again-price', money(d.total)));
+      var price = text('card-again-price', money(d.total));
+      if (d.priceColour) price.setAttribute('style', 'color:' + d.priceColour);
+      again.appendChild(price);
       again.setAttribute('data-id', d.id);
+      again.setAttribute('data-reason', d.reason || '');
       again.addEventListener('click', reorderClicked);
       head.appendChild(again);
-    } else if (d.status) {
-      head.appendChild(text('card-status', d.status));
+    } else if (tab === 'active' && d.status) {
+      var pill = text('card-status', d.status);
+      if (d.statusColour) pill.setAttribute('style', 'background:' + d.statusColour);
+      head.appendChild(pill);
     }
 
     card.appendChild(head);
 
-    if (d.items && d.items.length) {
-      var body = document.createElement('div');
-      body.className = 'card-items';
-      for (var k = 0; k < d.items.length; k++) body.appendChild(text('card-item', d.items[k]));
-      card.appendChild(body);
-    }
+    var body = document.createElement('div');
+    body.className = 'card-items';
+    for (var k = 0; k < (d.items || []).length; k++) body.appendChild(itemEntry(d.items[k]));
+    card.appendChild(body);
 
     grid.appendChild(card);
   }
@@ -429,14 +433,48 @@ function renderDeliveries() {
   bodyEl.appendChild(grid);
 }
 
+/** One of vanilla's ItemEntryUI rows: "10x", the item's picture, its name. "+N more..." is the name alone. */
+function itemEntry(item) {
+  var row = document.createElement('div');
+  row.className = 'card-item';
+
+  if (!item.id) {
+    row.appendChild(text('card-item-name', item.name));
+    return row;
+  }
+
+  row.appendChild(text('card-item-qty', item.qty + 'x'));
+
+  var icon = document.createElement('div');
+  icon.className = 'card-item-icon';
+  if (item.icon) {
+    var picture = document.createElement('img');
+    picture.setAttribute('src', 's1://shop-' + item.id);
+    icon.appendChild(picture);
+  }
+  row.appendChild(icon);
+
+  row.appendChild(text('card-item-name', item.name));
+  return row;
+}
+
 function reorderClicked(e) {
   var id = e.currentTarget.getAttribute('data-id');
   if (!id) return;
 
+  // Vanilla greys the button out and says why on hover; here the reason shows when it is pressed.
+  var reason = e.currentTarget.getAttribute('data-reason');
+  if (reason) {
+    note = reason;
+    refresh();
+    return;
+  }
+
   var answer = s1.call('reflash-delivery.act', 'reorder' + SEP + id);
 
   // The same words the order path uses, so a refusal reads the same wherever it came from.
-  if (answer === 'ok') note = 'Ordered again.';
+  // Vanilla says nothing on success either; the order shows up under Active Orders.
+  if (answer === 'ok') note = '';
   else if (answer === 'err:refused') note = 'The shop would not take it - check the money and the dock.';
   else if (answer === 'err:notfound') note = 'That shop is not open to you.';
   else note = 'That did not go through.';

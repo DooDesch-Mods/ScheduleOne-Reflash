@@ -107,14 +107,16 @@ namespace Reflash.Game
                 views.Add(new PoiView
                 {
                     Id = npc != null ? npc.ID : PoiIds.Of(poi),
-                    Label = Text.Ellipsis(Text.Clean(poi.MainText), 40),
+                    // A deal's label is the whole order and its place, "1x Girl Scout Monkey, Behind the Post
+                    // Office", which vanilla prints in full.
+                    Label = Text.Ellipsis(Text.Clean(poi.MainText), 64),
                     Kind = KindOf(poi, npc),
                     Region = RegionAt(poi.transform.position),
                     X = x,
                     Y = y,
                     Radius = IsArea(poi, npc) || IsGroup(poi) ? AreaRadius : 0,
                     HasFace = npc != null && _faces.Has(npc.ID),
-                    Colour = IsGroup(poi) ? GroupColour(poi) : "",
+                    Colour = IsGroup(poi) ? GroupColour(poi) : IsContract(poi) ? ContractColour(poi) : "",
                     AlwaysLabelled = poi.MainTextVisibility == POI.TextShowMode.Always,
                 });
             }
@@ -196,6 +198,9 @@ namespace Reflash.Game
             // A camp of special customers, the bikers and the like: a coloured disc with the group's name on it.
             if (IsGroup(poi)) return "group";
 
+            // A deal: a coloured disc with a handshake on it, green while it is open.
+            if (IsContract(poi)) return "contract";
+
             // The player's own cars, a grey badge with a car on it. The test comes before the property one, because a
             // car parked in a garage can sit under that property in the hierarchy.
             if (poi.GetComponentInParent<LandVehicle>() != null) return "vehicle";
@@ -208,6 +213,32 @@ namespace Reflash.Game
         }
 
         private static bool IsGroup(POI poi) => poi.TryCast<SpecialCustomerGroupPOI>() != null;
+
+        /// <summary>A marker a deal put on the map. Contract is the quest a deal is; its entry owns the marker.</summary>
+        private static bool IsContract(POI poi)
+        {
+            var entry = poi.GetComponentInParent<Il2CppScheduleOne.Quests.QuestEntry>();
+            return entry != null && entry.ParentQuest != null
+                && entry.ParentQuest.TryCast<Il2CppScheduleOne.Quests.Contract>() != null;
+        }
+
+        /// <summary>
+        /// The deal's colour. Contract.UpdatePoI tints the disc by how close the deal is - future, active, expiring
+        /// soon - so it is read back off the disc rather than worked out again here.
+        /// </summary>
+        private static string ContractColour(POI poi)
+        {
+            Transform disc = poi.IconContainer != null ? poi.IconContainer.Find("ContractIcon/Background") : null;
+            UnityEngine.UI.Image image = disc != null ? disc.GetComponent<UnityEngine.UI.Image>() : null;
+
+            if (image == null)
+            {
+                Core.Log?.Warning($"Map: the deal marker '{poi.MainText}' has no IconContainer/ContractIcon/Background - drawn in green.");
+                return "#4c9f44";
+            }
+
+            return Hex(image.color);
+        }
 
         /// <summary>
         /// The camp's colour. The group keeps it in a private field and only ever writes it onto the disc of its

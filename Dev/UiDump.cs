@@ -170,7 +170,19 @@ namespace Reflash.Dev
                 if (tmp.font != null) sb.Append(" font=").Append(tmp.font.name);
             }
 
-            if (node.GetComponent<Button>() != null) sb.Append("  [button]");
+            // A Button tints its target graphic, so the img colour above is often plain white and the colour on
+            // screen is the ColorBlock's.
+            Button button = node.GetComponent<Button>();
+            if (button != null)
+            {
+                ColorBlock tint = button.colors;
+                sb.Append("  [button normal=").Append(Hex(tint.normalColor))
+                  .Append(" hover=").Append(Hex(tint.highlightedColor))
+                  .Append(" pressed=").Append(Hex(tint.pressedColor))
+                  .Append(" disabled=").Append(Hex(tint.disabledColor))
+                  .Append(" x").Append(tint.colorMultiplier.ToString("0.##", CultureInfo.InvariantCulture))
+                  .Append(button.interactable ? "" : " off").Append(']');
+            }
             if (node.GetComponent<ScrollRect>() != null) sb.Append("  [scroll]");
             if (node.GetComponent<Mask>() != null || node.GetComponent<RectMask2D>() != null) sb.Append("  [mask]");
 

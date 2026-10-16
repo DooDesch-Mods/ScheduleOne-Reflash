@@ -19,8 +19,10 @@ var sheetListEl = document.getElementById('sheet-list');
 
 // The relationship band, stated once. app.css draws it and app.js places the marker on it, and the two drifting
 // apart is exactly how the marker ended up sitting past the end of its own band.
-var BAND_W = 123;   // the bar inside the band's 2px frame
-var MARKER_W = 7;
+// Vanilla's handle runs the full 200 units of the band and the notch is centred on it, half of it past either
+// end; app.css pulls the notch back by its half less the frame's inset.
+var BAND_W = 122.1;
+var MARKER_W = 0;
 
 var PICKER_PAGE = 25;   // as many per page as the vanilla picker shows
 
@@ -179,12 +181,13 @@ function renderThread() {
 
   // The relationship band, with the marker where this contact stands on it.
   var known = typeof open.rel === 'number' && open.rel >= 0;
+  document.getElementById('chat-head').className = 'chat-head' + (known ? ' rel' : '');
   document.getElementById('head-band').setAttribute('style', known ? '' : 'display:none');
   if (known) {
     // Across the BAND's width less the marker's own, so 0 sits on the left edge and 1 on the right. The two
     // numbers have to match app.css; a stale 117 here against a 95px band put the marker a quarter too far right.
     document.getElementById('head-marker')
-      .setAttribute('style', 'left:' + Math.round(open.rel * (BAND_W - MARKER_W)) + 'px');
+      .setAttribute('style', 'left:' + (open.rel * (BAND_W - MARKER_W)).toFixed(1) + 'px');
   }
 
   // A customer shows the standards star, a supplier their debt. Never both.
@@ -211,7 +214,13 @@ function renderBubbles() {
     var bubble = document.createElement('div');
     bubble.className = 'bubble ' + (m.from === 'me' ? 'me' : 'them');
     bubble.style.alignSelf = m.from === 'me' ? 'flex-end' : 'flex-start';
-    rich(bubble, m.text);
+
+    // The words get a box of their own. Sideload folds a run of text and coloured spans into one line only when
+    // nothing but inline children sit beside them, and the tail is a div - next to it, "I'll pay", "$525" and
+    // "for it" each became a line.
+    var words = div('words');
+    rich(words, m.text);
+    bubble.appendChild(words);
     bubble.appendChild(div('tail'));
 
     bubblesEl.appendChild(bubble);
@@ -302,6 +311,7 @@ function renderCounter() {
   var name = product ? product.name : draft.name;
 
   document.getElementById('co-name').textContent = draft.quantity + 'x ' + name;
+  document.getElementById('co-qty').textContent = String(draft.quantity);
 
   var icon = document.getElementById('co-icon');
   if (product && product.icon) {
@@ -719,29 +729,31 @@ function rich(el, value) {
   var out = '';
   var at = 0;
   var colour = '';
+  var bold = false;
   var tag = /<(\/?)([a-zA-Z]+)(?:=([^>]*))?>/g;
   var m;
 
   while ((m = tag.exec(value)) !== null) {
-    out += run(value.substring(at, m.index), colour);
+    out += run(value.substring(at, m.index), colour, bold);
     at = tag.lastIndex;
 
-    // Anything that is not a colour is dropped rather than guessed at - <b> and <i> would need a matching span
-    // each, and the game only ever colours.
-    if (m[2].toLowerCase() !== 'color') continue;
-
-    colour = m[1] ? '' : (m[3] || '');
+    // The game colours prices and bolds places ("behind the <b>post office</b>"). Any other tag is dropped rather
+    // than guessed at.
+    var name = m[2].toLowerCase();
+    if (name === 'color') colour = m[1] ? '' : (m[3] || '');
+    else if (name === 'b') bold = !m[1];
   }
 
-  out += run(value.substring(at), colour);
+  out += run(value.substring(at), colour, bold);
   el.innerHTML = out;
 }
 
-function run(chunk, colour) {
+function run(chunk, colour, bold) {
   if (!chunk) return '';
 
   var safe = chunk.split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;');
-  return colour ? '<span style="color:' + colour + '">' + safe + '</span>' : safe;
+  if (colour) safe = '<span style="color:' + colour + '">' + safe + '</span>';
+  return bold ? '<b>' + safe + '</b>' : safe;
 }
 
 readList();

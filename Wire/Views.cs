@@ -340,7 +340,6 @@ namespace Reflash.Wire
         internal string Shop;
         internal string Destination = "";
         internal string Status = "";
-        internal string Eta = "";
 
         /// <summary>Which loading dock it went to, as vanilla writes it under the destination.</summary>
         internal string Dock = "";
@@ -348,10 +347,38 @@ namespace Reflash.Wire
         /// <summary>The shop's own id, so the same order can be placed again.</summary>
         internal string ShopId = "";
 
-        /// <summary>What this order would cost at today's prices - the figure on vanilla's Reorder button.</summary>
+        /// <summary>What this order would cost at today's prices, delivery fee included - the figure on vanilla's
+        /// Reorder button.</summary>
         internal int Total;
 
-        internal List<string> Items = new List<string>();
+        /// <summary>The shop name's colour, from the same colour table vanilla's receipt reads.</summary>
+        internal string ShopColour = "";
+
+        /// <summary>The line under the shop name: "Weed Seeds", "Ingredients and packaging".</summary>
+        internal string Description = "";
+
+        /// <summary>The status pill's colour on an active order.</summary>
+        internal string StatusColour = "";
+
+        /// <summary>Whether the online balance covers <see cref="Total"/>; vanilla prints the price green or red.</summary>
+        internal bool Affordable;
+
+        /// <summary>The price's colour: vanilla's "Cash" green when affordable, its "Debt" red when not.</summary>
+        internal string PriceColour = "";
+
+        /// <summary>Whether vanilla's Reorder button would be enabled, and why not where it is off.</summary>
+        internal bool CanReorder;
+        internal string Reason = "";
+
+        internal List<DeliveryItemView> Items = new List<DeliveryItemView>();
+    }
+
+    internal sealed class DeliveryItemView
+    {
+        internal string Id = "";
+        internal string Name = "";
+        internal int Quantity;
+        internal bool HasIcon;
     }
 
     internal sealed class DealerView

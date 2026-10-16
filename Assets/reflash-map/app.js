@@ -138,7 +138,8 @@ function place(el, x, y, w, h) {
                          + (y * WORLD - h / 2).toFixed(1) + 'px');
 }
 
-var GLYPHS = { stash: 'glyph-stash.png', vehicle: 'glyph-vehicle.png' };
+var GLYPHS = { stash: 'glyph-stash.png', vehicle: 'glyph-vehicle.png', contract: 'glyph-deal.png' };
+var BADGES = { stash: 1, vehicle: 1, contract: 1 };
 
 function marker(p) {
   // A potential customer or dealer is an AREA - vanilla draws the disc they can be found somewhere inside, and the
@@ -181,11 +182,14 @@ function marker(p) {
       el.appendChild(img);
     }
   } else {
-    // A round badge with a white glyph in it - a house for a property, a briefcase for a supplier's stash - which
-    // is what the vanilla prefabs carry.
+    // A round badge with a white glyph in it - a house for a property, a briefcase for a supplier's stash, a
+    // handshake for a deal - which is what the vanilla prefabs carry.
     el = document.createElement('div');
-    el.className = 'pin' + (p.kind === 'stash' || p.kind === 'vehicle' ? ' ' + p.kind : '');
+    el.className = 'pin' + (BADGES[p.kind] ? ' ' + p.kind : '');
     place(el, p.x, p.y, 12.2, 12.2);
+
+    // A deal's disc changes colour as it nears, and the marker says which one it has now.
+    if (p.colour) el.setAttribute('style', el.getAttribute('style') + ';background:' + p.colour);
 
     var glyph = document.createElement('img');
     glyph.setAttribute('src', GLYPHS[p.kind] || 'glyph-home.png');

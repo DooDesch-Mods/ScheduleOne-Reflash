@@ -290,60 +290,95 @@ img { color: #ffffff; }
 
 /* ---- past and active deliveries, as cards ------------------------------------------------------------------
 
-   Measured off the running game rather than guessed: vanilla puts these in TWO COLUMNS of cards. Each card has a
-   header strip - the shop on the left in its own colour, an arrow, the destination and its dock on the right -
-   and the items underneath in two columns of "10x Name". A flat list of one line per delivery, which is what was
-   here, reads as a different app.
-
-   Not built yet, and it needs new fields on the wire rather than css: vanilla's header also carries a Reorder
-   button with the order total on it. */
-.cards { flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+   Vanilla's DeliveryReceipt prefab (Workspace/docs/Reflash/vanilla-dumps-047/deliveryreceipt.txt), in canvas units of
+   0.6107 css px: a 570 x 215 card, two to a row, 15 apart and 15 in from the edge. A 60-high strip in #2b2b2b
+   carries the shop over its description, a thin arrow, the destination over its dock, and the Reorder button or
+   the status pill at the right edge. The items sit under it in a grid of 255 x 35 cells, 30 apart. */
+/* The scroll area already carries vanilla's 15-unit content padding. */
+.cards { flex-direction: row; flex-wrap: wrap; gap: 9.2px; }
 
 .card {
   flex: none;
-  width: 49%;
-  background: #3f3f3f;
-  border-radius: 4px;
-  overflow: hidden;
+  width: 348px;
+  height: 131.3px;
+  background: #3b3b3b;
+  border-radius: 6px;
 }
 
 .card-head {
   flex: none;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 5px 7px;
-  background: #363636;
+  height: 36.6px;
+  padding: 6.1px 12.2px;
+  background: #2b2b2b;
+  border-radius: 6px 6px 0 0;
 }
 
-.card-from { flex: 1; min-width: 0; }
+.card-from { flex: none; }
 .card-to { flex: 1; min-width: 0; }
 
-.card-shop { font-size: 9.8px; font-weight: bold; color: #7fb8e0; }
-.card-arrow { flex: none; font-size: 9.8px; color: #8a8a8a; }
-.card-where { font-size: 9.8px; color: #ffffff; }
-.card-when { font-size: 8px; color: #9a9a9a; }
-.card-status { flex: none; font-size: 8px; color: #9a9a9a; }
+.card-shop { font-size: 9.8px; font-weight: 600; color: #ffffff; line-height: 12.2px; }
+.card-desc { font-size: 8.55px; font-weight: 600; color: #c0c0c0; line-height: 12.2px; }
+.card-where { font-size: 9.8px; font-weight: 600; color: #ffffff; line-height: 12.2px; }
+.card-dock { font-size: 8.55px; font-weight: 600; color: #c0c0c0; line-height: 12.2px; }
 
-/* The items in two columns, as vanilla wraps them. */
-.card-items { flex-direction: row; flex-wrap: wrap; padding: 5px 7px 7px 7px; }
-.card-item { width: 50%; font-size: 9.8px; color: #e0e0e0; line-height: 14px; }
+/* The arrow sits small in the middle of its 55.6 x 40 slot, as on vanilla's card. */
+.card-arrow { flex: none; width: 12.6px; height: 12.6px; margin: 0 10.7px; }
 
-@media (orientation: portrait) {
-  .card { width: 100%; }
-}
-
-/* Reorder: the word with the order's cost under it, in the blue vanilla uses for the button. */
+/* Vanilla's button is a #cacaca sprite tinted by the ColorBlock, so what shows is the product of the two:
+   #5dbaff -> #4a93ca, hover #54a6e2 -> #4383b3, pressed #4288bc -> #346c95, disabled -> #9e9e9e at half. */
 .card-again {
   flex: none;
+  width: 67.2px;
+  height: 24.4px;
   align-items: center;
   justify-content: center;
-  padding: 3px 8px;
-  background: #4a90c8;
+  background: #4a93ca;
   border: 0;
   border-radius: 4px;
 }
 
-.card-again:hover { background: #5aa0d8; }
-.card-again-word { font-size: 9.8px; color: #ffffff; }
-.card-again-price { font-size: 8px; color: #b9f5a0; }
+.card-again:hover { background: #4383b3; }
+.card-again:active { background: #346c95; }
+.card-again.off { background: #9e9e9e80; }
+.card-again-word { font-size: 9.2px; font-weight: 600; color: #ffffff; line-height: 10.5px; }
+.card-again-price { font-size: 8.55px; font-weight: 600; color: #51f409; line-height: 10.5px; }
+
+/* An active order's card is a shade darker, and its status is a 110 x 30 pill coloured per status by the game. */
+.card.on-way { background: #373737; }
+
+.card-status {
+  flex: none;
+  width: 67.2px;
+  height: 18.3px;
+  justify-content: center;
+  border-radius: 7px;
+  background: #a8a8a8;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: center;
+}
+
+.card-items { flex-direction: row; flex-wrap: wrap; column-gap: 18.3px; padding: 3px 9.2px 0 9.2px; }
+
+.card-item { flex: none; flex-direction: row; align-items: center; width: 155.5px; height: 21.4px; }
+.card-item-qty { flex: none; font-size: 11px; font-weight: 600; color: #ffffff; }
+.card-item-icon { flex: none; width: 18.3px; height: 18.3px; margin: 0 1.5px; }
+.card-item-icon img { width: 18.3px; height: 18.3px; }
+.card-item-name { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; color: #ffffff; white-space: nowrap; }
+
+/* "There are no active deliveries": 24 units of #6f6f6f, centred in the 1201 x 595 area under the tabs. */
+.empty.cards-empty {
+  height: 363.4px;
+  padding: 0;
+  justify-content: center;
+  font-size: 14.7px;
+  font-weight: 600;
+  color: #6f6f6f;
+}
+
+@media (orientation: portrait) {
+  .card { width: 100%; }
+}

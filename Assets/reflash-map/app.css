@@ -57,7 +57,9 @@ img { color: #ffffff; }
 .area { position: absolute; border-radius: 999px; background: #ffb1ff19; }
 .area.dealer { background: #81c4ff19; }
 
-/* Outline 30x30, a white ring the mugshot is masked into. */
+/* Outline 30x30, a white ring the mugshot is masked into. No overflow: hidden - the renderer cuts overflow along a
+   rectangle, never along the ring, so it would only cost a clip on every marker while the map pans. The picture
+   fits inside the ring as it is. */
 .face {
   position: absolute;
   width: 18.3px;
@@ -65,7 +67,6 @@ img { color: #ffffff; }
   border-radius: 9.2px;
   border: 1.2px solid #ffffff;
   background: #6a6a6a;
-  overflow: hidden;
 }
 
 .face img { width: 16px; height: 16px; display: block; }
@@ -85,6 +86,11 @@ img { color: #ffffff; }
 
 /* DeaddropPoI_Red/Outline 20x20 #a14d4d with a white briefcase glyph. */
 .pin.stash { background: #a14d4d; }
+
+/* ContractPoI/ContractIcon: a 20x20 disc, #4c9f44 while the deal is open, with the white handshake at half size.
+   The game recolours the disc as the deal nears, so the colour comes with the marker and this is the fallback. */
+.pin.contract { background: #4c9f44; }
+.pin.contract img { width: 6.1px; height: 6.1px; }
 
 /* PlayerPoI: a 15x15 white outline on a soft shade, a 12x12 #4ea7ff fill, and an arrow 11x11 parked 13 units off
    the middle, all in a box that turns with the player. The prefab's 80x80 halo never shows in the game. */

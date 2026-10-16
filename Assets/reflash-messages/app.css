@@ -137,7 +137,7 @@ img { color: #ffffff; }
   left: 116px;
   right: 30.6px;
   top: 34.8px;
-  height: 50.7px;
+  height: 45px;        /* two whole lines: vanilla's box hides a line that does not fit rather than showing its top */
   overflow: hidden;
   font-size: 16.5px;
   font-weight: 500;
@@ -179,24 +179,34 @@ img { color: #ffffff; }
 .thread { display: none; height: 100%; }
 .app.on-thread .thread { display: flex; }
 
-/* The mugshot, the name, the relationship band and whatever this contact is measured by are ONE group centred in
-   the strip - vanilla does not left-align them - while the back arrow is taken out of the flow so it cannot shift
-   that centre. */
+/* The header, off the dump and MSGConversation.SetOpen:
+
+     Topbar       655x100  #e6e6e6
+       IconMask   80x80, 10 down, #dcdcdc circle      x = -w/2 - 30 from the centre (its middle)
+       Name       size 32 bold #323232 MiddleLeft     x = -w/2 + 30 from the centre, 20 up with a band
+         Relationship  215x35 #dcdcdc at the name's left edge, 50.4 down; the band 200x15 inside, 7.5 and 10 in
+         Standards      35x35 at the name's left edge + 222.4, 50.4 down; star 25x25
+       Debt       85x76 at 510, 10 down: "Debt" size 26 bold #312f2f over a #dcdcdc box, value size 26 bold #f41709
+       Return     100x100 at the left edge, arrow 35x35 #36b1ff
+
+   w is the name's width, so the face and the name are one group - 20 apart - centred 20 units left of the middle.
+   The band, the star and the debt stay out of the flow; they never move that centre. */
 .chat-head {
   position: relative;
   flex: none;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 12px;
-  height: 62px;
-  background: #e5e5e5;
+  gap: 12.2px;
+  height: 61.1px;
+  padding-right: 24.4px;
+  background: #e6e6e6;
 }
 
 /* An <img> is sized by CSS, never by its width/height attributes - the layout runs without Unity and cannot open a
    PNG to learn its intrinsic size, so a picture with no CSS size is a box of nothing. */
-.back .icon { width: 14px; height: 20px; }
-.star .icon { width: 14px; height: 14px; }
+.back .icon { width: 15px; height: 21.4px; }
+.star .icon { width: 15.3px; height: 15.3px; }
 /* Image 40x40: 24.4 css, ending 19.5 in from the field's right edge. */
 .compose .icon { width: 24.4px; height: 24.4px; margin-right: 11.9px; opacity: 0.55; }
 
@@ -206,24 +216,26 @@ img { color: #ffffff; }
    so the transparent sides come out coloured too and the arrow is a square. */
 .back {
   position: absolute;
-  left: 14px;
-  top: 17px;
-  width: 30px;
-  height: 28px;
+  left: 0;
+  top: 0;
+  width: 61.1px;
+  height: 61.1px;
   background: #ffffff00;
   border: 0;
   align-items: center;
   justify-content: center;
 }
 
-.back:hover { background: #00000010; border-radius: 6px; }
+.back:hover { background: #f5f5f5; }
+.back:active { background: #c8c8c8; }
 
 .head-face {
   flex: none;
-  width: 50px;
-  height: 50px;
-  border-radius: 25px;
-  background: #ededed;
+  margin-top: 6.1px;
+  width: 48.9px;
+  height: 48.9px;
+  border-radius: 24.45px;
+  background: #dcdcdc;
   align-items: center;
   justify-content: center;
   color: #9a9a9a;
@@ -232,96 +244,114 @@ img { color: #ffffff; }
   overflow: hidden;
 }
 
-.head-face img { width: 50px; height: 50px; border-radius: 25px; object-fit: contain; }
+.head-face img { width: 48.9px; height: 48.9px; border-radius: 24.45px; object-fit: contain; }
 
-.head-mid { flex: none; align-items: flex-start; gap: 4px; }
-.head-name { font-size: 24px; font-weight: bold; color: #2b2b2b; }
+.head-mid { position: relative; flex: none; height: 61.1px; justify-content: center; }
+.head-name { font-size: 19.5px; font-weight: bold; color: #323232; }
+.chat-head.rel .head-name { transform: translateY(-12.2px); }
 
 /* The relationship scale. FIVE bands, not a gradient: vanilla shows the categories as discrete blocks, and a
    smooth ramp reads as a progress bar instead of as "where on the scale this person sits". */
 /* The bar sits in a light frame of its own, and the marker overhangs it top and bottom - so no overflow clipping
    here, which is what flattened the marker into the band. */
 .head-band {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 30.8px;
   flex-direction: row;
-  width: 127px;
-  height: 13px;
-  padding: 2px;
+  width: 131.3px;
+  height: 21.4px;
+  padding: 6.1px 4.6px;
   background: #dcdcdc;
   border-radius: 4px;
 }
 
-.head-band .seg { height: 9px; width: 24.6px; }
+.head-band .seg { height: 9.2px; width: 24.4px; }
 .head-band .seg.s1 { background: #ab3535; }
 .head-band .seg.s2 { background: #e08a3c; }
 .head-band .seg.s3 { background: #b4b4b4; }
 .head-band .seg.s4 { background: #4aa3dd; }
 .head-band .seg.s5 { background: #5ed84a; }
 
+/* Notch 20x30, centred on where the contact stands and 2.7 below the frame's top. */
 .head-marker {
   position: absolute;
-  top: -3px;
-  margin-left: 2px;
-  width: 7px;
-  height: 19px;
+  top: 1.6px;
+  margin-left: -1.5px;
+  width: 12.2px;
+  height: 18.3px;
   background: #ffffff;
   border-radius: 2px;
 }
 
 /* The standards star, on the quality colour the customer expects. */
 .star {
-  flex: none;
-  width: 24px;
-  height: 22px;
-  border-radius: 5px;
+  position: absolute;
+  left: 135.8px;
+  top: 30.8px;
+  width: 21.4px;
+  height: 21.4px;
+  border-radius: 4px;
   background: #8f2f2f;
   align-items: center;
   justify-content: center;
 }
 
-/* A little card, not two loose lines: vanilla boxes the debt in its own light panel. */
 .debt {
-  flex: none;
-  align-items: center;
-  gap: 2px;
+  position: absolute;
+  left: 311.5px;
+  top: 6.1px;
+  width: 51.9px;
+  align-items: stretch;
 }
 
-.debt-label { font-size: 19px; font-weight: bold; color: #2b2b2b; }
+.debt-label { height: 23.3px; justify-content: flex-end; font-size: 15.9px; font-weight: bold; color: #312f2f; text-align: center; }
 
 .debt-value {
-  padding: 2px 14px;
-  background: #eeeeee;
-  border-radius: 5px;
-  font-size: 19px;
-  color: #e03131;
+  height: 23.1px;
+  padding: 1.2px 3.1px;
+  justify-content: center;
+  background: #dcdcdc;
+  border-radius: 4px;
+  font-size: 15.9px;
+  font-weight: bold;
+  color: #f41709;
+  text-align: center;
 }
 
 .bubbles {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 22px 14px 10px 14px;
-  gap: 67px;
+  padding: 22px 14px 10px 15.3px;
+  gap: 61.1px;
   background: #f0f0f0;
 }
 
 /* Their words on the left in grey, yours on the right in blue, each with the little tail vanilla draws.
 
-   display: block, not the flex default. A coloured price arrives as a <span> inside the sentence, and a flex
-   container blockifies every child - so the span became its own line and "I'll pay $120 for it" broke into three.
-   The renderer folds inline children into one string and never had the problem; the browser needs telling. */
+     Bubble       500 wide at most, 75 for one line, 123 for two - 48 a line
+       Content    450 wide, 25 in from each side   size 36  #323232  OpenSans-SemiBold  UpperLeft
+     100 between one bubble and the next
+
+   The words sit in their own block (.words). A coloured price arrives as a <span> inside the sentence; the
+   renderer folds text and spans into one line only when nothing else sits beside them, and a browser flex
+   container blockifies every child. Either way "I'll pay $120 for it" broke into three without it. */
 .bubble {
   display: block;
   position: relative;
   flex: none;
-  max-width: 78%;
-  padding: 11px 16px;
-  border-radius: 12px;
+  max-width: 305.4px;
+  padding: 7.7px 15.3px 8.8px 15.3px;
+  border-radius: 9px;
   background: #e1e1e1;
-  color: #2b2b2b;
-  font-size: 21px;
-  line-height: 1.3;
+  color: #323232;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 29.3px;
 }
+
+.bubble .words { display: block; }
 
 .bubble.me { background: #4bafe1; color: #ffffff; }
 
@@ -342,23 +372,27 @@ img { color: #ffffff; }
 .bubble.them .tail { left: 6px; bottom: -3px; }
 .bubble.me .tail { right: -4px; bottom: -3px; background: #4bafe1; }
 
-/* The answers to an offer, stacked on their own strip below the conversation. */
-.replies { flex: none; gap: 8px; padding: 12px 13px 14px 13px; background: #e5e5e5; }
+/* The answers to an offer, stacked on their own strip below the conversation.
+
+     Responses    655 wide, #e6e6e6
+       Bubble     605x75, 25 in, the first 22.5 down, 80 apart   size 36  white  OpenSans-SemiBold  centred */
+.replies { flex: none; gap: 3.1px; padding: 13.7px 15.3px 13.7px 15.3px; background: #e6e6e6; }
 
 .reply {
   flex: none;
-  height: 41px;
+  height: 45.8px;
   justify-content: center;
-  background: #4bafe1;
+  background: #6791a5;
   border: 0;
-  border-radius: 21px;
+  border-radius: 9px;
   color: #ffffff;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 600;
   text-align: center;
 }
 
-.reply:hover { background: #5cbcea; }
-.reply:active { background: #3f9dcb; }
+.reply:hover { background: #4bafe1; }
+.reply:active { background: #36bcff; }
 
 /* "Send Message" - a supplier's way in, and only shown when there is something to say. */
 /* The send bar, off the dump rather than by eye:
@@ -527,116 +561,157 @@ img { color: #ffffff; }
 .card-close img { width: 19px; height: 19px; }
 .card-close:hover { background: #00000010; border-radius: 15px; }
 
-/* ---- counter-offer ---- */
+/* ---- counter-offer ----
 
-.card.counter { padding-bottom: 13px; }
+     Content      540x547.5 white, padding 15, 20 between the parts, on a #00000064 veil
+       Header     510x80: Title size 32 #323232 centred, Cancel 80x80 with a 30x30 #969696 cross
+       Customer   510x172.5, 10 apart
+         Subtitle 32.5 high, size 24 #7b7b7b
+         Product  510x60 #f5f5f5 button, padding 5: Icon 50x50, 10, Title 326 wide size 32 MiddleLeft
+         Amount   510x60, 8 apart, centred: "-" 40x40, field 150x60 size 32, "+" 40x40
+       Dealer     510x145, 10 apart
+         Subtitle
+         Selector 510x60, 8 apart: -1 -10 -100 (40, 50, 60 wide, 5 apart), field 150x60 #2fc543, +1 +10 +100
+         Fair     32.5 high, size 24 italic #7b7b7b
+       Confirm    510x60 #5dbaff, "Send" size 32 white
 
-.co-label { flex: none; margin-top: 22px; font-size: 15px; color: #7a7a7a; text-align: center; }
+   Every small button tints #f5f5f5, #dcdcdc under the pointer and #c8c8c8 pressed. */
+
+.veil.counter { background: #00000064; }
+
+.card.counter { width: 329.8px; padding: 9.2px; gap: 12.2px; border-radius: 0; background: #ffffff; }
+.card.counter .card-title { height: 48.9px; font-size: 19.5px; color: #323232; }
+.card.counter .card-close { right: 9.2px; top: 9.2px; width: 48.9px; height: 48.9px; }
+.card.counter .card-close img { width: 18.3px; height: 18.3px; }
+.card.counter .card-close:hover { background: #e1e1e1; border-radius: 0; }
+.card.counter .card-close:active { background: #c8c8c8; }
+
+.co-group { flex: none; gap: 6.1px; }
+
+.co-label { flex: none; height: 19.8px; justify-content: center; font-size: 14.7px; font-weight: 600; color: #7b7b7b; text-align: center; }
+
+.co-product {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6.1px;
+  height: 36.6px;
+  padding: 3.1px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.co-product:hover { background: #dcdcdc; }
+.co-product:active { background: #c8c8c8; }
+.co-product img { flex: none; width: 30.5px; height: 30.5px; }
+.co-product .name { flex: none; width: 199.1px; font-size: 19.5px; font-weight: 600; color: #323232; text-align: left; }
 
 .co-row {
   flex: none;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 4.9px;
+  height: 36.6px;
 }
 
 .step {
   flex: none;
-  width: 24px;
-  height: 24px;
+  width: 24.4px;
+  height: 24.4px;
   justify-content: center;
-  background: #f4f4f4;
+  background: #f5f5f5;
   border: 0;
   border-radius: 4px;
-  color: #2b2b2b;
+  color: #323232;
   font-size: 22px;
   text-align: center;
 }
 
-.step:hover { background: #e6e6e6; }
+.step:hover { background: #dcdcdc; }
+.step:active { background: #c8c8c8; }
 
-.co-product {
-  position: relative;
+.co-qty {
   flex: none;
-  flex-direction: row;
-  align-items: center;
+  width: 91.6px;
+  height: 36.6px;
   justify-content: center;
-  gap: 9px;
-  width: 221px;
-  height: 37px;
-  background: #f4f4f4;
-  border: 0;
+  background: #f5f5f5;
   border-radius: 4px;
+  font-size: 19.5px;
+  font-weight: 600;
+  color: #323232;
+  text-align: center;
 }
 
-.co-product:hover { background: #ebebeb; }
-.co-product img { width: 24px; height: 24px; }
-.co-product .name { font-size: 21px; color: #2b2b2b; }
-
-/* The amount buttons, sized to their own text, with the price itself as a taller chip between them. */
 .co-money {
   flex: none;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  margin-top: 8px;
+  gap: 4.9px;
+  height: 36.6px;
 }
 
 .money-step {
   flex: none;
-  height: 24px;
-  min-width: 26px;
-  padding: 0 4px;
+  height: 36.6px;
   justify-content: center;
-  background: #f4f4f4;
+  background: #f5f5f5;
   border: 0;
   border-radius: 4px;
-  color: #2b2b2b;
-  font-size: 15px;
+  color: #323232;
+  font-size: 14px;
+  font-weight: 600;
   text-align: center;
 }
 
-.money-step:hover { background: #e6e6e6; }
+.money-step.w1 { width: 24.4px; }
+.money-step.w2 { width: 30.5px; }
+.money-step.w3 { width: 36.6px; }
+.money-step:hover { background: #dcdcdc; }
+.money-step:active { background: #c8c8c8; }
 
 .co-price {
   flex: none;
-  width: 70px;
-  height: 38px;
+  width: 91.6px;
+  height: 36.6px;
   justify-content: center;
-  background: #f4f4f4;
+  background: #f5f5f5;
   border-radius: 4px;
-  color: #2fbf2f;
-  font-size: 22px;
+  color: #2fc543;
+  font-size: 19.5px;
+  font-weight: 600;
   text-align: center;
 }
 
-.co-fair { flex: none; margin-top: 8px; font-size: 16px; font-style: italic; color: #6a6a6a; text-align: center; }
+.co-fair { flex: none; height: 19.8px; justify-content: center; font-size: 14.7px; font-weight: 600; font-style: italic; color: #7b7b7b; text-align: center; }
 
 .co-send {
   flex: none;
-  margin: 14px 14px 0 14px;
-  height: 34px;
+  height: 36.6px;
   justify-content: center;
-  background: #5dbafd;
+  background: #5dbaff;
   border: 0;
   border-radius: 4px;
   color: #ffffff;
-  font-size: 21px;
+  font-size: 19.5px;
+  font-weight: 600;
   text-align: center;
 }
 
-.co-send:hover { background: #74c5fe; }
+.co-send:hover { background: #5ab6fa; }
+.co-send:active { background: #4991c8; }
 
-/* The product picker hangs off the box it replaces, exactly as wide. */
+/* The product picker drops from under the product box, exactly as wide: padding, header, a gap, the subtitle, its
+   gap and the box itself put its top edge 132.8 down the card. */
 .picker {
   display: none;
   position: absolute;
-  left: 0;
-  top: 37px;
-  width: 221px;
+  left: 9.2px;
+  top: 132.8px;
+  width: 311.5px;
   height: 285px;
   background: #fefefe;
   border-radius: 4px;
