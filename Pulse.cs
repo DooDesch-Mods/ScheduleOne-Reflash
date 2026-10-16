@@ -1,5 +1,8 @@
 using Reflash.Wire;
 using Sideload.Api;
+#if SNITCH
+using Snitch.Api;
+#endif
 
 namespace Reflash
 {
@@ -32,12 +35,24 @@ namespace Reflash
             internal AppHandle Handle;
             internal int PushedRevision = int.MinValue;
             internal int PushedBadge = -1;
+#if SNITCH
+            // Section names built once: a string per tick per app would be garbage four times a second.
+            internal string WarmSection, ReadSection, EmitSection;
+#endif
         }
 
         internal void Add(IAppPort port, AppHandle handle)
         {
             if (port == null || handle == null) return;
-            _entries.Add(new Entry { Port = port, Handle = handle });
+
+            var entry = new Entry { Port = port, Handle = handle };
+#if SNITCH
+            string app = port.Id.StartsWith("reflash-", StringComparison.Ordinal) ? port.Id.Substring(8) : port.Id;
+            entry.WarmSection = "Reflash." + app + ".WarmUp";
+            entry.ReadSection = "Reflash." + app + ".Revision";
+            entry.EmitSection = "Reflash." + app + ".Emit";
+#endif
+            _entries.Add(entry);
         }
 
         /// <summary>Driven from OnUpdate. Never throws outward - one app misbehaving must not stop the other six.</summary>
@@ -57,16 +72,29 @@ namespace Reflash
         private static void TickOne(Entry e)
         {
             // Expensive one-off work belongs on a tick, never inside a page's call - see IWarmUp.
-            if (e.Port is IWarmUp warm) warm.WarmUp();
+            if (e.Port is IWarmUp warm)
+            {
+#if SNITCH
+                using (Profiler.Sample(e.WarmSection))
+#endif
+                warm.WarmUp();
+            }
 
-            int badge = e.Port.Badge;
+            int badge, revision;
+#if SNITCH
+            using (Profiler.Sample(e.ReadSection))
+#endif
+            {
+                badge = e.Port.Badge;
+                revision = e.Port.Revision;
+            }
+
             if (badge != e.PushedBadge)
             {
                 e.PushedBadge = badge;
                 e.Handle.Badge(badge);
             }
 
-            int revision = e.Port.Revision;
             if (revision == e.PushedRevision) return;
 
             e.PushedRevision = revision;
@@ -78,7 +106,12 @@ namespace Reflash
             // while the in-game screen shows something else, and IsOnScreen knows nothing about it - which is how
             // the contacts graph sat there with empty circles long after every mugshot had been published.
             if (e.Handle.IsOnScreen || Core.CompanionWatching)
+            {
+#if SNITCH
+                using (Profiler.Sample(e.EmitSection))
+#endif
                 e.Handle.Emit(e.Port.Id + ".changed", revision.ToString());
+            }
         }
     }
 }

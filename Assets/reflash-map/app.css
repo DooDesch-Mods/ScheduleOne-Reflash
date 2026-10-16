@@ -132,8 +132,8 @@ img { color: #ffffff; }
 .bar-h { position: absolute; left: 0; right: 8px; bottom: 0; height: 7px; }
 .bar-v { position: absolute; top: 0; bottom: 8px; right: 0; width: 7.5px; }
 
-.bar-h .grip { position: absolute; top: 0; height: 7px; border-radius: 1.5px; background: #7e7e7e; }
-.bar-v .grip { position: absolute; left: 0; width: 7.5px; border-radius: 1.5px; background: #7e7e7e; }
+.bar-h .grip { position: absolute; left: 0; top: 0; height: 7px; border-radius: 1.5px; background: #7e7e7e; }
+.bar-v .grip { position: absolute; left: 0; top: 0; width: 7.5px; border-radius: 1.5px; background: #7e7e7e; }
 
 /* -------------------------------------------------------------------------------------------------- portrait --
    Same map, taller window - nothing changes except how much of it fits. */

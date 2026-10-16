@@ -35,8 +35,23 @@ namespace Reflash.Game
 
         internal void UseHandle(AppHandle handle) => _faces.UseHandle(handle);
 
-        /// <summary>Bumped once when a run of mugshots finishes. Part of the app's revision - see SpriteFeed.</summary>
-        internal int PublishedFaces => _faces.Settled;
+        /// <summary>
+        /// Bumped when faces the page has not drawn yet have arrived in the region it shows, and have stopped
+        /// arriving. Part of the app's revision.
+        ///
+        /// Counted against what the page last READ, not against everything published: every face is warmed in the
+        /// background once the app has been opened, and a revision that moved for a face in another region would
+        /// rebuild the page on screen for nothing. And counted only once the arrivals pause, because a rebuild per
+        /// face is a rebuild per tick - see SpriteFeed.
+        /// </summary>
+        internal int PublishedFaces { get; private set; }
+
+        /// <summary>The people in the region the page last read, and how many of them had a face then.</summary>
+        private readonly List<string> _readIds = new List<string>();
+        private int _facesRead;
+
+        /// <summary>The same count on the previous tick, to tell "still arriving" from "settled".</summary>
+        private int _facesSeen;
 
         internal GraphView Graph(string regionId)
         {
@@ -77,6 +92,16 @@ namespace Reflash.Game
                 if (x > maxX) maxX = x;
                 if (y > maxY) maxY = y;
             }
+
+            _readIds.Clear();
+            int faces = 0;
+            foreach (NodeView node in view.Nodes)
+            {
+                _readIds.Add(node.Id);
+                if (node.HasFace) faces++;
+            }
+            _facesRead = faces;
+            _facesSeen = faces;
 
             if (view.Nodes.Count == 0) return view;
 
@@ -197,7 +222,8 @@ namespace Reflash.Game
         }
 
         /// <summary>
-        /// Hand the region's people to the face publisher, which takes a few per tick.
+        /// Hand people to the face publisher, which takes a few per tick: the region on screen first, then everyone
+        /// else, so a region opened later already has its faces and is built once instead of twice.
         /// </summary>
         internal void WarmFaces(string regionId)
         {
@@ -206,31 +232,75 @@ namespace Reflash.Game
             var circles = Circles();
             if (circles == null) return;
 
-            _faces.Warm(InRegion(circles, region));
+            _faces.Warm(RegionFirst(People(circles), region));
+
+            int ready = 0;
+            for (int i = 0; i < _readIds.Count; i++)
+                if (_faces.Has(_readIds[i])) ready++;
+
+            if (ready != _facesSeen) { _facesSeen = ready; return; }
+            if (ready == _facesRead) return;
+
+            _facesRead = ready;
+            PublishedFaces++;
         }
 
-        private static IEnumerable<KeyValuePair<string, Sprite>> InRegion(Il2CppArrayBase<RelationCircle> circles,
-                                                                         EMapRegion region)
+        private IEnumerable<KeyValuePair<string, Sprite>> RegionFirst(List<(string Id, NPC Npc, EMapRegion Region)> people,
+                                                                     EMapRegion region)
         {
-            for (int i = 0; i < circles.Length; i++)
+            for (int pass = 0; pass < 2; pass++)
             {
-                RelationCircle circle = circles[i];
-                if (circle == null || circle.AssignedNPC == null) continue;
-                if (circle.AssignedNPC.Region != region) continue;
+                for (int i = 0; i < people.Count; i++)
+                {
+                    var person = people[i];
+                    if ((person.Region == region) != (pass == 0)) continue;
 
-                yield return new KeyValuePair<string, Sprite>(circle.AssignedNPC.ID, circle.AssignedNPC.MugshotSprite);
+                    // Skipped before the sprite is read: once everyone is done, a tick costs a walk over strings.
+                    if (_faces.Tried(person.Id) || person.Npc == null) continue;
+
+                    yield return new KeyValuePair<string, Sprite>(person.Id, person.Npc.MugshotSprite);
+                }
             }
         }
 
+        /// <summary>
+        /// Who sits in which circle, read off the circles once per scan. Reading the id and the region of 285 NPCs
+        /// through the interop layer four times a second is a string per NPC per tick for the collector to sweep up.
+        /// </summary>
+        private List<(string Id, NPC Npc, EMapRegion Region)> People(Il2CppArrayBase<RelationCircle> circles)
+        {
+            if (ReferenceEquals(circles, _peopleFrom)) return _people;
+
+            _people.Clear();
+            for (int i = 0; i < circles.Length; i++)
+            {
+                RelationCircle circle = circles[i];
+                NPC npc = circle != null ? circle.AssignedNPC : null;
+                if (npc == null || string.IsNullOrEmpty(npc.ID)) continue;
+
+                _people.Add((npc.ID, npc, npc.Region));
+            }
+
+            _peopleFrom = circles;
+            return _people;
+        }
+
+        private readonly List<(string Id, NPC Npc, EMapRegion Region)> _people = new List<(string, NPC, EMapRegion)>();
+        private Il2CppArrayBase<RelationCircle> _peopleFrom;
+
         private Il2CppArrayBase<RelationCircle> _circles;
+        private bool _searchedScene;
 
         /// <summary>
-        /// Every relation circle in the scene, including the inactive ones - a region that is not currently
-        /// selected has its container switched off, and its circles are still where they belong.
+        /// Every relation circle, including the inactive ones - a region that is not currently selected has its
+        /// container switched off, and its circles are still where they belong.
         ///
-        /// Cached, because the pulse asks four times a second and a scene-wide search for a component is not a
-        /// four-times-a-second cost. A destroyed first entry means the scene changed under us, and the search runs
-        /// again. Anything that must not miss a late arrival asks for a fresh scan.
+        /// Taken from under vanilla's own <c>ContactsApp.CirclesContainer</c>, which is where its Start collects them
+        /// too. A scene-wide <c>FindObjectsOfType</c> found the same circles and cost about 150 ms, inside the click
+        /// that switches a region.
+        ///
+        /// Cached, because the pulse asks four times a second. A destroyed first entry means the scene changed under
+        /// us, and the search runs again. Anything that must not miss a late arrival asks for a fresh scan.
         /// </summary>
         private Il2CppArrayBase<RelationCircle> Circles(bool fresh = false)
         {
@@ -238,10 +308,29 @@ namespace Reflash.Game
 
             try
             {
-                _circles = UnityEngine.Object.FindObjectsOfType<RelationCircle>(true);
+#if SNITCH
+                using (Snitch.Api.Profiler.Sample("Reflash.contacts.Scan"))
+#endif
+                {
+                    var app = Il2CppScheduleOne.DevUtilities.PlayerSingleton<Il2CppScheduleOne.UI.Phone.ContactsApp.ContactsApp>.Instance;
+                    RectTransform container = app != null ? app.CirclesContainer : null;
+
+                    if (container != null)
+                    {
+                        _circles = container.GetComponentsInChildren<RelationCircle>(true);
+                    }
+                    else
+                    {
+                        if (!_searchedScene)
+                            Core.Log.Warning("Contacts: no vanilla contacts app to read the circles from yet - searching the scene.");
+                        _searchedScene = true;
+                        _circles = UnityEngine.Object.FindObjectsOfType<RelationCircle>(true);
+                    }
+                }
             }
-            catch
+            catch (Exception e)
             {
+                Core.Log.Warning($"Contacts: searching the relation circles failed ({e.Message}) - no graph this time.");
                 _circles = null;
             }
 

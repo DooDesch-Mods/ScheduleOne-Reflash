@@ -747,21 +747,28 @@ function apply() {
 
   worldEl.style.transform = 'translate(' + Math.round(x) + 'px, ' + Math.round(y) + 'px) scale(' + zoom.toFixed(3) + ')';
 
-  placeBar('hbar', vw / (BOARD_W * zoom), reachX > 0 ? (centre.x - graph.ox + reachX) / (2 * reachX) : 0.5);
-  placeBar('vbar', vh / (BOARD_H * zoom), reachY > 0 ? (centre.y - graph.oy + reachY) / (2 * reachY) : 0.5);
+  placeBar('hbar', vw / (BOARD_W * zoom), reachX > 0 ? (centre.x - graph.ox + reachX) / (2 * reachX) : 0.5, vw - BAR_INSET);
+  placeBar('vbar', vh / (BOARD_H * zoom), reachY > 0 ? (centre.y - graph.oy + reachY) / (2 * reachY) : 0.5, vh - BAR_INSET);
 }
 
+// What .hbar and .vbar take off the window's edge in app.css, 5.5 at one end and 8.5 at the other.
+var BAR_INSET = 14;
+
 // A scroll handle as long as the share of the board on screen, at the share of the way along it the window is.
-function placeBar(id, share, along) {
+//
+// The length is written only when the zoom changes it, and the place goes through transform. Sideload repaints a
+// transform on the box that is already there, while left or top lays the whole page out again - about 80 ms with
+// the board's lines and faces, on every step of a drag, which made the board jump instead of follow the cursor.
+function placeBar(id, share, along, track) {
   var el = document.getElementById(id);
   if (!el) return;
 
   var size = Math.max(0.05, Math.min(1, share));
-  var start = (1 - size) * along;
+  var offset = ((1 - size) * along * track).toFixed(1) + 'px';
   var horizontal = id === 'hbar';
 
-  el.style[horizontal ? 'left' : 'top'] = (start * 100).toFixed(2) + '%';
   el.style[horizontal ? 'width' : 'height'] = (size * 100).toFixed(2) + '%';
+  el.style.transform = horizontal ? 'translate(' + offset + ', 0px)' : 'translate(0px, ' + offset + ')';
 }
 
 document.addEventListener('orientationchange', apply);

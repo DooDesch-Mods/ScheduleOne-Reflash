@@ -2,6 +2,9 @@
 
   <!-- Shared release hardening: strips Release debug info + assembly identity, cuts AV false positives. -->
   <Import Project="$(MSBuildThisFileDirectory)../Workspace/build/Hardening.props" Condition="Exists('$(MSBuildThisFileDirectory)../Workspace/build/Hardening.props')" />
+
+  <!-- Debug only: per-app sections for the Snitch profiler. Release builds carry none of it. -->
+  <Import Project="$(MSBuildThisFileDirectory)../Workspace/build/Snitch.props" Condition="Exists('$(MSBuildThisFileDirectory)../Workspace/build/Snitch.props')" />
   <Import Project="$(MSBuildThisFileDirectory)Workspace/build/Hardening.props" Condition="Exists('$(MSBuildThisFileDirectory)Workspace/build/Hardening.props')" />
 
   <!--
