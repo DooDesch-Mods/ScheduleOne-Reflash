@@ -304,8 +304,13 @@ function renderCounter() {
   var c = sheets.counter;
   if (!c) { draft = null; picker.open = false; return; }
 
-  // Seeded once. Re-seeding on every refresh would undo an edit the moment anything else in the app moved.
-  if (!draft) draft = { id: c.productId, name: c.productName, quantity: c.quantity, price: c.price };
+  // Seeded once per offer. Re-seeding on every refresh would undo an edit the moment anything else in the app
+  // moved. The offer is told apart by who made it and what the game put in the window: a window closed with the
+  // phone, while this page was hidden, never came back here as "no counter-offer", and the next customer's window
+  // showed the last one's product, amount and price.
+  var offer = openId + '|' + c.productId + '|' + c.quantity + '|' + c.price;
+  if (!draft || draft.offer !== offer)
+    draft = { offer: offer, id: c.productId, name: c.productName, quantity: c.quantity, price: c.price };
 
   var product = find(c.products, draft.id);
   var name = product ? product.name : draft.name;
