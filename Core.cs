@@ -144,9 +144,6 @@ namespace Reflash
             try { _companion?.Pump(); }
             catch (Exception e) { Log.Error($"companion pump failed: {e.Message}"); }
 
-#if DEBUG
-            Dev.Poke.Tick(Time.unscaledTime);
-#endif
         }
 
         public override void OnApplicationQuit()
