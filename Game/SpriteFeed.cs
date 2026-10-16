@@ -42,7 +42,29 @@ namespace Reflash.Game
         private AppHandle _handle;
         private bool _warned;
 
-        internal SpriteFeed(string prefix) => _prefix = prefix;
+        internal SpriteFeed(string prefix)
+        {
+            _prefix = prefix;
+#if DEBUG
+            All.Add(this);
+#endif
+        }
+
+#if DEBUG
+        /// <summary>Every feed, for the dev console's <c>reflash faces</c>.</summary>
+        internal static readonly List<SpriteFeed> All = new List<SpriteFeed>();
+
+        internal string Prefix => _prefix;
+
+        /// <summary>Where one id stands: published, given up on, or still being asked for.</summary>
+        internal string Explain(string id)
+        {
+            if (Has(id)) return "ok";
+            if (Tried(id)) return "gave-up";
+            _attempts.TryGetValue(id ?? "", out int n);
+            return n > 0 ? "retry" + n : (_handle == null ? "no-handle" : "waiting");
+        }
+#endif
 
         internal void UseHandle(AppHandle handle) => _handle = handle;
 

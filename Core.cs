@@ -130,7 +130,7 @@ namespace Reflash
             // Only the map needs its own handle, to publish the extracted map picture as s1://map.
             if (port is INeedsAppHandle needs) needs.UseHandle(handle);
 
-            handle.OnCall(port.Id + ".state", port.State)
+            handle.OnCall(port.Id + ".state", raw => { _pulse.Heard(port); return port.State(raw); })
                   .OnCall(port.Id + ".act", raw => port.Act(Cmd.Parse(raw)));
 
             _pulse.Add(port, handle);
