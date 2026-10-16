@@ -35,6 +35,9 @@ namespace Reflash
             internal AppHandle Handle;
             internal int PushedRevision = int.MinValue;
             internal int PushedBadge = -1;
+
+            /// <summary>The revision moved while nobody was looking, and the page has not been told yet.</summary>
+            internal bool Missed;
 #if SNITCH
             // Section names built once: a string per tick per app would be garbage four times a second.
             internal string WarmSection, ReadSection, EmitSection;
@@ -53,6 +56,24 @@ namespace Reflash
             entry.EmitSection = "Reflash." + app + ".Emit";
 #endif
             _entries.Add(entry);
+        }
+
+        /// <summary>
+        /// The page just read its state, so it is current: nothing it missed while hidden is owed to it any more.
+        /// Runs inside the page's own call, so it only records - an emit from here would re-enter the engine.
+        /// </summary>
+        internal void Heard(IAppPort port)
+        {
+            for (int i = 0; i < _entries.Count; i++)
+            {
+                Entry e = _entries[i];
+                if (!ReferenceEquals(e.Port, port)) continue;
+
+                e.Missed = false;
+                try { e.PushedRevision = port.Revision; }
+                catch (Exception ex) { Core.Log.Warning($"'{port.Id}' revision unreadable while its page read state: {ex.Message}"); }
+                return;
+            }
         }
 
         /// <summary>Driven from OnUpdate. Never throws outward - one app misbehaving must not stop the other six.</summary>
@@ -95,23 +116,32 @@ namespace Reflash
                 e.Handle.Badge(badge);
             }
 
-            if (revision == e.PushedRevision) return;
-
-            e.PushedRevision = revision;
-
-            // A page that nobody is looking at is not told: it will read fresh state when it is opened, so an event
-            // now would be work nobody sees, and the revision is already recorded so nothing is lost.
+            // A page that nobody is looking at is not told now: an event would rebuild a page nobody sees. It is told
+            // the moment it is on screen instead, and only if something did change meanwhile. Waiting for it to
+            // read fresh state on its own is not enough - Sideload builds every page while the save is loading, so
+            // a page is already built when the player first opens it and reads nothing more. That is how the
+            // messages list kept its letters in place of faces that had long since arrived.
             //
             // "Nobody" has to include the phone in someone's hand, though. A companion device can have an app open
             // while the in-game screen shows something else, and IsOnScreen knows nothing about it - which is how
             // the contacts graph sat there with empty circles long after every mugshot had been published.
-            if (e.Handle.IsOnScreen || Core.CompanionWatching)
+            bool watched = e.Handle.IsOnScreen || Core.CompanionWatching;
+
+            if (revision != e.PushedRevision)
             {
-#if SNITCH
-                using (Profiler.Sample(e.EmitSection))
-#endif
-                e.Handle.Emit(e.Port.Id + ".changed", revision.ToString());
+                // The very first reading is a baseline rather than a change: whatever page exists by now was built
+                // from this state or from a later one.
+                bool first = e.PushedRevision == int.MinValue;
+                e.PushedRevision = revision;
+                if (!watched) { e.Missed |= !first; return; }
             }
+            else if (!(watched && e.Missed)) return;
+
+            e.Missed = false;
+#if SNITCH
+            using (Profiler.Sample(e.EmitSection))
+#endif
+            e.Handle.Emit(e.Port.Id + ".changed", revision.ToString());
         }
     }
 }

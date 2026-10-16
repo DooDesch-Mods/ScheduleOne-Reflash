@@ -66,6 +66,7 @@ namespace Reflash.Dev
             if (cmd.StartsWith("press ")) { PressAnywhere(cmd.Substring(6).Trim()); return; }
             if (cmd.StartsWith("takeover ")) { TakeOver(cmd.Substring(9).Trim()); return; }
             if (cmd == "fonts") { Fonts(); return; }
+            if (cmd.StartsWith("scroll ")) { Scroll(cmd.Substring(7).Trim()); return; }
             if (cmd.StartsWith("sprite ")) { SpriteProbe(cmd.Substring(7).Trim()); return; }
             if (cmd.StartsWith("export ")) { ExportSprite(cmd.Substring(7).Trim()); return; }
 
@@ -77,15 +78,87 @@ namespace Reflash.Dev
                 case "icons": ListIcons(); break;
                 case "buttons": ListButtons(); break;
                 case "pair": Pair(); break;
+                case "counter": CounterProbe(); break;
+                case "faces": FacesProbe(); break;
                 case "help": Help(); break;
                 default: Core.Log.Warning($"[Reflash/dev] unknown: {cmd}"); break;
             }
         }
 
+        /// <summary>
+        /// Name every reference <c>CounterofferInterface.Open</c> dereferences, so a throw inside it points at one.
+        /// </summary>
+        private static void CounterProbe()
+        {
+            CounterofferInterface c = Game.Sheets.Counter;
+            if (c == null) { Core.Log.Warning("[Reflash/dev] counter: no CounterofferInterface."); return; }
+
+            string N(UnityEngine.Object o) => o == null ? "NULL" : "ok";
+            Core.Log.Msg($"[Reflash/dev] counter: open={c.IsOpen} active={c.gameObject.activeInHierarchy} "
+                       + $"Container={N(c.Container)} ProductIcon={N(c.ProductIcon)} ProductLabel={N(c.ProductLabel)} "
+                       + $"FairPriceLabel={N(c.FairPriceLabel)} ProductSelector={N(c.ProductSelector)} "
+                       + $"ProductAmountInput={N(c.ProductAmountInput)} PriceSelector={N(c.PriceSelector)} "
+                       + $"uiScreen={N(c.uiScreen)} uiPanel={N(c.uiPanel)} TitleLabel={N(c.TitleLabel)} "
+                       + $"UIScreenManager={Il2CppScheduleOne.DevUtilities.Singleton<Il2CppScheduleOne.UIScreenManager>.InstanceExists} "
+                       + $"conversation={(c.conversation == null ? "NULL" : "ok")} product={N(c.selectedProduct)} "
+                       + $"callback={(c.orderConfirmedCallback == null ? "NULL" : "ok")}");
+        }
+
+        /// <summary>
+        /// One line per conversation on the messages list: whether the game has a picture for its sender, and where
+        /// each face feed stands with it.
+        /// </summary>
+        private static void FacesProbe()
+        {
+            var active = Il2CppScheduleOne.UI.Phone.Messages.MessagesApp.ActiveConversations;
+            if (active == null) { Core.Log.Warning("[Reflash/dev] faces: no active conversations list."); return; }
+
+            for (int i = 0; i < active.Count; i++)
+            {
+                var c = active[i];
+                if (c == null) { Core.Log.Msg($"[Reflash/dev] faces #{i}: null"); continue; }
+
+                var who = c._sender;
+                string id = who == null ? null : who._npcId;
+                Sprite icon = who == null ? null : who.Icon;
+                string tex = icon == null ? "none" : (icon.texture == null ? "no-texture" : icon.texture.width + "x" + icon.texture.height);
+
+                var feeds = new List<string>();
+                foreach (Game.SpriteFeed f in Game.SpriteFeed.All)
+                    if (f.Prefix == "face-") feeds.Add(f.Explain(id));
+
+                Core.Log.Msg($"[Reflash/dev] faces #{i}: {c.ContactName} id={id ?? "none"} known={c.IsSenderKnown} "
+                           + $"visible={c.EntryVisible} icon={tex} feeds=[{string.Join(",", feeds)}]");
+            }
+        }
+
+        /// <summary>
+        /// Move every scroll list of the open app to a position, 0 the top and 1 the bottom - the same thing a wheel
+        /// or a drag does, so the clips a scroll rewrites can be photographed.
+        /// </summary>
+        private static void Scroll(string arg)
+        {
+            if (!float.TryParse(arg, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float to))
+            {
+                Core.Log.Warning($"[Reflash/dev] scroll: '{arg}' is not a number between 0 and 1.");
+                return;
+            }
+
+            int moved = 0;
+            foreach (UnityEngine.UI.ScrollRect s in UnityEngine.Object.FindObjectsOfType<UnityEngine.UI.ScrollRect>())
+            {
+                if (s == null || !s.isActiveAndEnabled || s.content == null || s.gameObject.name != "scroll-viewport") continue;
+                s.verticalNormalizedPosition = 1f - Mathf.Clamp01(to);
+                moved++;
+            }
+
+            Core.Log.Msg($"[Reflash/dev] scroll: moved {moved} list(s) to {to:0.##}.");
+        }
+
         private static void Help()
         {
             Core.Log.Msg("[Reflash/dev] reflash phone | close | home | icons | buttons | pair | click <icon|index> | "
-                       + "tap <path>[#n] | press <name> | takeover on|off | fonts | dump <label> | dumpname <name> | "
+                       + "tap <path>[#n] | counter | faces | scroll <0..1> | press <name> | takeover on|off | fonts | dump <label> | dumpname <name> | "
                        + "sprite <npc id | product id> | export <sprite name>");
         }
 
@@ -199,8 +272,14 @@ namespace Reflash.Dev
 
         private static void ClosePhone()
         {
+            // The overlay too, mirroring OpenPhone. Closing only the phone left the handset raised under an open
+            // overlay with its app canvas switched off a quarter second later - a blank phone.
+            if (Singleton<Il2CppScheduleOne.UI.GameplayMenu>.InstanceExists && Singleton<Il2CppScheduleOne.UI.GameplayMenu>.Instance.IsOpen)
+                Singleton<Il2CppScheduleOne.UI.GameplayMenu>.Instance.Close();
+
             var phone = PlayerSingleton<Phone>.Instance;
             if (phone != null && phone.IsOpen) phone.SetIsOpen(false);
+            Core.Log.Msg($"[Reflash/dev] phone open={phone?.IsOpen}");
         }
 
         /// <summary>Back to the grid, so the next shot starts from a known place.</summary>
