@@ -86,18 +86,28 @@ namespace Reflash.Hijack
         }
 
         /// <summary>
-        /// Open a replacement and hand it an argument its page collects on its first state call - "show this POI",
+        /// Open a replacement and hand it an argument its page collects on its next state call - "show this POI",
         /// "open this conversation".
         ///
-        /// An argument rather than an event because the page does not exist yet at this point: a Sideload app builds
-        /// its document on first open, so an Emit fired here would reach nobody. This is what makes the vanilla
-        /// cross-opens work - Quest's "show on map" and the contacts detail panel's, both of which call
-        /// MapApp.SetOpen(true) directly and expect the map to be looking at something specific.
+        /// An argument a page collects, because the page may or may not exist yet. Sideload builds every page while
+        /// the save loads, so usually it does - and then it has read its state long ago and has no reason to read it
+        /// again, which is what the <c>.changed</c> sent after the open is for. A page that does not exist yet
+        /// collects the argument on its first read instead. This is what makes the vanilla cross-opens work -
+        /// Quest's "show on map" and the contacts detail panel's, both of which call MapApp.SetOpen(true) directly
+        /// and expect the map to be looking at something specific.
         /// </summary>
         internal static bool Open(VanillaApp vanilla, string argument)
         {
             _pendingArg[vanilla] = argument ?? "";
-            return Open(vanilla);
+            if (!Open(vanilla)) return false;
+
+            if (_handles.TryGetValue(vanilla, out AppHandle handle))
+            {
+                handle.Emit(handle.Id + ".changed", "open");
+                Core.Log?.Msg($"Opened {handle.Id} with '{argument}'.");
+            }
+
+            return true;
         }
 
         /// <summary>
