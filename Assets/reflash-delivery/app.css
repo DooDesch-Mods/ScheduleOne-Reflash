@@ -1,7 +1,8 @@
 /* Deliveries.
 
-   Measured off Workspace/docs/Reflash/vanilla-shots/09, 10, 11 and 14, with the phone's screen cut out of them and
-   scaled to what this app lays out at: 733.4 x 400 css px on its side.
+   The shop list and the tab bar are laid out from the 0.4.7 dump
+   (Workspace/docs/Reflash/vanilla-dumps-047/vanilla-deliveries.txt), in canvas units of 0.6107 css px each. The order
+   screens are still measured off Workspace/docs/Reflash/vanilla-shots/09, 10, 11 and 14.
 
    Dark, like the product manager and unlike everything else on this phone. The three names run along the TOP with
    a white bar under the current one. */
@@ -11,79 +12,101 @@ body {
   font-family: game-ui;
   font-size: 12px;
   color: #e8e8e8;
-  background: #303030;
+  background: #323232;
 }
 
-.app { height: 100%; background: #303030; }
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
 
+.app { position: relative; height: 100%; background: #323232; }
+
+/* 50 units of black at 60% over the page. */
 .bar {
   flex: none;
   flex-direction: row;
   align-items: center;
-  height: 36px;
-  background: #1e1e1e;
+  height: 30.5px;
+  background: #0000009a;
 }
 
 .tab {
   position: relative;
   flex: 1;
-  height: 36px;
+  height: 30.5px;
   justify-content: center;
   background: #ffffff00;
   border: 0;
-  color: #9a9a9a;
-  font-size: 12px;
+  color: #828282;
+  font-size: 11px;
+  font-weight: 600;
   text-align: center;
 }
 
-.tab:hover { color: #d0d0d0; }
+.tab:hover { color: #b0b0b0; }
 
 /* The current name is white and carries a short white bar under it - not a filled tab. */
-.tab.on { color: #ffffff; font-weight: bold; }
+.tab.on { color: #ffffff; }
 .tab.on::after { content: ""; position: absolute; left: 25%; right: 25%; bottom: 3px; height: 2px; background: #ffffff; }
 
 .balance { display: none; }
 
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 12px; gap: 8px; }
+/* Vanilla's shop list has no scrollbar; the shade along its bottom edge says there is more. The shade is a plain
+   box, so a press goes through it to the card underneath. */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: transparent transparent;
+  padding: 15.3px 9.2px 9.2px 9.2px;
+  gap: 9.2px;
+}
+
+.shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 91.6px;
+  background: linear-gradient(180deg, #00000000, #00000066);
+  display: none;
+}
+
+.shade.on { display: flex; }
 
 /* ---- the shops ------------------------------------------------------------------------------------------- */
 
-/* Two to a row, each a wide coloured card: blue for the hardware shops, gold for the gas stations. */
-.shops { flex: none; flex-direction: row; flex-wrap: wrap; gap: 14px; }
+/* Two to a row, each a 567 x 100 coloured card 15 apart. The text starts 95 units in beside a portrait and 25 units
+   in without one. */
+.shops { flex: none; flex-direction: row; flex-wrap: wrap; gap: 9.2px; }
 
 .shop {
   flex: none;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
-  width: 347px;
-  height: 65px;
-  padding: 0 14px;
-  background: #4f7a9b;
-  border-radius: 6px;
+  gap: 9.4px;
+  width: 346.3px;
+  height: 61.1px;
+  padding: 0 8.5px 0 15.3px;
+  background: #537e9f;
+  border-radius: 4.3px;
 }
+
+.shop.has-face { padding-left: 5.9px; }
 
 /* The card's own colour comes from the game and is set inline, so hovering only lightens what is there. */
 .shop:hover { opacity: 0.88; }
 
-.shop-icon {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 22px;
-  background: #00000030;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
+/* The portrait as it is, no plate behind it. */
+.shop-icon { flex: none; width: 42.7px; height: 42.7px; }
+.shop-icon img { width: 42.7px; height: 42.7px; object-fit: contain; }
 
-.shop-icon img { width: 44px; height: 44px; border-radius: 22px; }
+/* Title and description each centred in a 60-unit line, 40 units apart. */
+.shop-text { flex: 1; min-width: 0; }
+.shop-title { height: 24.4px; justify-content: center; font-size: 14.7px; font-weight: bold; color: #ffebeb; }
+.shop-desc { height: 24.4px; justify-content: center; font-size: 11px; font-weight: 600; color: #ffebeb; }
 
-.shop-text { flex: 1; min-width: 0; gap: 3px; }
-.shop-title { font-size: 15px; font-weight: bold; color: #ffffff; }
-.shop-desc { font-size: 11.5px; color: #f0f0f0; }
-
-.shop-arrow { flex: none; font-size: 20px; font-weight: bold; color: #ffffff; }
+.shop-arrow { flex: none; width: 18.3px; height: 18.3px; }
 
 /* ---- one shop's order screen ------------------------------------------------------------------------------ */
 

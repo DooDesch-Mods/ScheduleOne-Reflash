@@ -21,19 +21,18 @@ var edgesEl = document.getElementById('edges');
 var nodesEl = document.getElementById('nodes');
 var tabsEl = document.getElementById('tabs');
 var detailEl = document.getElementById('detail');
+var gridEl = document.getElementById('grid');
 
 var regions = [];
 var region = '';
-var graph = { nodes: [], edges: [], w: 0, h: 0 };
+var graph = { nodes: [], edges: [], w: 0, h: 0, ox: 0, oy: 0 };
 var detail = null;
 var selectedId = '';
 
-// Where the graph is centred, in its own css pixels, and how far it is scaled.
+// Where the window is centred, in the graph's own css pixels, and how far it is scaled. Vanilla has no zoom - the
+// scale only moves under two fingers on a real phone.
 var centre = { x: 0, y: 0 };
 var zoom = 1;
-// Vanilla opens at 1:1 and lets you pan - its own screenshot has a scrollbar under the graph. Fitting the
-// whole region in instead made every face too small to recognise, which is the one thing this screen is for.
-var fitted = false;
 
 function parse(raw, fallback) {
   if (!raw) return fallback;
@@ -58,12 +57,15 @@ function readGraph() {
   if (!region) { graph = { nodes: [], edges: [], w: 0, h: 0 }; return; }
 
   var data = parse(s1.call('reflash-contacts.state', 'region:' + region), null);
-  graph = data && data.nodes ? data : { nodes: [], edges: [], w: 0, h: 0 };
+  graph = data && data.nodes ? data : { nodes: [], edges: [], w: 0, h: 0, ox: 0, oy: 0 };
 
   if (!graph.edges) graph.edges = [];
+  if (typeof graph.ox !== 'number') graph.ox = graph.w / 2;
+  if (typeof graph.oy !== 'number') graph.oy = graph.h / 2;
 
-  // Nobody chosen yet, or the chosen one is not in this region any more.
-  if (!findNode(selectedId)) selectedId = graph.nodes.length ? graph.nodes[0].id : '';
+  // Nobody chosen yet, or the chosen one is not in this region any more: vanilla picks the region's first person,
+  // the one the board is centred on.
+  if (!findNode(selectedId)) selectedId = firstPerson();
 }
 
 function readDetail() {
@@ -71,6 +73,19 @@ function readDetail() {
 
   var data = parse(s1.call('reflash-contacts.state', 'contact:' + selectedId), null);
   detail = data && data.contact ? data : null;
+}
+
+function firstPerson() {
+  var best = null;
+  var bestD = 1e9;
+
+  for (var i = 0; i < graph.nodes.length; i++) {
+    var p = graph.nodes[i];
+    var d = (p.x - graph.ox) * (p.x - graph.ox) + (p.y - graph.oy) * (p.y - graph.oy);
+    if (d < bestD) { bestD = d; best = p; }
+  }
+
+  return best ? best.id : '';
 }
 
 function findNode(id) {
@@ -108,7 +123,7 @@ function tabClicked(e) {
   renderTabs();
   renderGraph();
   renderDetail();
-  fit();
+  home();
 }
 
 function renderGraph() {
@@ -137,7 +152,17 @@ function renderGraph() {
     edgesEl.appendChild(line);
   }
 
+  var chosen = findNode(selectedId);
+  if (chosen) {
+    var ring = box('selection');
+    ring.setAttribute('style', 'left:' + (chosen.x - 33.6).toFixed(1) + 'px;top:' + (chosen.y - 33.6).toFixed(1) + 'px');
+    nodesEl.appendChild(ring);
+  }
+
   for (var n = 0; n < graph.nodes.length; n++) nodesEl.appendChild(node(graph.nodes[n]));
+
+  gridEl.setAttribute('style', 'left:' + (graph.ox - BOARD_W / 2).toFixed(1) + 'px;top:'
+                             + (graph.oy - BOARD_H / 2).toFixed(1) + 'px');
 
   // renderGraph rewrites the world's whole style attribute, which drops the pan with it.
   apply();
@@ -205,8 +230,13 @@ function node(p) {
     word.className = 'role-label ' + role;
     word.textContent = role === 'supplier' ? 'SUPPLIER' : 'DEALER';
     el.appendChild(word);
-  }
 
+    // The coloured disc covers the node's own backing, so the backing goes back on top of it: vanilla's 90-unit
+    // Mask, which is what keeps the face on grey rather than on the role colour.
+    var backing = box('backing');
+    backing.setAttribute('style', 'background:rgb(' + r + ',' + g + ',' + b + ')');
+    el.appendChild(backing);
+  }
 
   // The face only exists once the mod has published it - they arrive a few per tick so the app can open at once
   // rather than after forty-five texture reads.
@@ -319,21 +349,21 @@ function renderDetail() {
   }
 
   lines('Favourite Effects', detail.properties, 'None');
-  if (known) lines('Most Purchased Product (Weekly)', detail.purchases, 'No recent purchases');
+  if (known) lines('Most Purchased Product|(Weekly)', detail.purchases, 'No recent purchases');
 
   if (known) {
     var spent = document.createElement('div');
     spent.className = 'd-block';
-    spent.appendChild(text('d-head', 'Total Spent (Weekly)'));
-    spent.appendChild(text('d-line d-cash', '$' + (detail.spent || 0)));
+    spent.appendChild(heading('Total Spent|(Weekly)'));
+    spent.appendChild(text('d-line d-cash', money(detail.spent)));
     detailEl.appendChild(spent);
   }
 
   if (detail.debt) {
     var debt = document.createElement('div');
     debt.className = 'd-block';
-    debt.appendChild(text('d-head', 'Debt'));
-    debt.appendChild(text('d-line d-cash', '$' + detail.debt));
+    debt.appendChild(heading('Debt'));
+    debt.appendChild(text('d-line d-cash', money(detail.debt)));
     detailEl.appendChild(debt);
   }
 
@@ -347,7 +377,7 @@ function renderDetail() {
 // The five relationship bands, as the game declares them in RelationshipCategory. A category is a THRESHOLD on the
 // raw 0..5 delta - Loyal at 4, Friendly at 3, Neutral at 2, Unfriendly at 1 - and the same five colours make up the
 // bar the marker slides along.
-var BANDS = ['#ad3f3f', '#e38837', '#d0d0d0', '#3db5f3', '#3fd33f'];
+var BANDS = ['#a73536', '#d58949', '#b1b3b1', '#57a2d8', '#5dd547'];
 
 function relColour(fill) {
   return BANDS[Math.max(0, Math.min(4, Math.floor(fill * 5 - 0.0001)))];
@@ -357,7 +387,7 @@ function relColour(fill) {
 // five-colour strip, which is the same thing said in uGUI.
 function scaleBand(title, fill, value, colour) {
   var block = document.createElement('div');
-  block.className = 'd-block';
+  block.className = 'd-scale';
   block.appendChild(text('d-head', title));
 
   var track = document.createElement('div');
@@ -388,11 +418,16 @@ function scaleBand(title, fill, value, colour) {
 // reached - vanilla lerps the label between the same two ends.
 function rampBand(title, fill, value) {
   var block = document.createElement('div');
-  block.className = 'd-block';
+  block.className = 'd-scale';
   block.appendChild(text('d-head', title));
 
   var track = document.createElement('div');
-  track.className = 'd-band d-ramp';
+  track.className = 'd-band';
+
+  var ramp = document.createElement('img');
+  ramp.className = 'ramp';
+  ramp.setAttribute('src', 'addiction-band.png');
+  track.appendChild(ramp);
 
   var mark = document.createElement('div');
   mark.className = 'd-mark';
@@ -402,7 +437,7 @@ function rampBand(title, fill, value) {
   block.appendChild(track);
 
   var label = text('d-value', value);
-  label.setAttribute('style', 'color:' + mix('#f0d5d5', '#e04a4a', Math.max(0, Math.min(1, fill))));
+  label.setAttribute('style', 'color:' + mix('#ffffff', '#ff6767', Math.max(0, Math.min(1, fill))));
   block.appendChild(label);
 
   detailEl.appendChild(block);
@@ -425,10 +460,48 @@ function mix(from, to, t) {
 
 // Each line in its own colour where the game gives one - an effect is written in that effect's LabelColor, and the
 // same effect reads the same in the product screen. Values are {text, colour} or plain strings.
+// A heading, with the part after a '|' in vanilla's faded grey - "Total Spent (Weekly)".
+function heading(title) {
+  var parts = title.split('|');
+  var el = text('d-head', parts[0]);
+  if (parts.length > 1) {
+    el.textContent = '';
+    el.appendChild(text('', parts[0]));
+    el.appendChild(text('faded', parts[1]));
+  }
+  return el;
+}
+
+// "$8,033", the way MoneyManager.FormatAmount writes it.
+function money(value) {
+  var n = Math.round(value || 0);
+  var digits = String(Math.abs(n));
+  var out = '';
+
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
+    out += digits[i];
+  }
+
+  return (n < 0 ? '-$' : '$') + out;
+}
+
+// A purchase line, "26x Girl Scout Monkey", with the count in vanilla's gold.
+function purchase(value) {
+  var m = /^(\d+x)\s+(.*)$/.exec(value);
+  if (!m) return text('d-line', value);
+
+  var line = text('d-line', '');
+  line.textContent = '';
+  line.appendChild(text('qty', m[1]));
+  line.appendChild(text('', m[2]));
+  return line;
+}
+
 function lines(title, values, empty) {
   var block = document.createElement('div');
   block.className = 'd-block';
-  block.appendChild(text('d-head', title));
+  block.appendChild(heading(title));
 
   if (!values || !values.length) {
     block.appendChild(text('d-line d-dim', empty));
@@ -437,7 +510,7 @@ function lines(title, values, empty) {
       var v = values[i];
 
       if (typeof v === 'string') {
-        block.appendChild(text('d-line', v));
+        block.appendChild(purchase(v));
         continue;
       }
 
@@ -474,19 +547,20 @@ function text(className, value) {
 
 var RICH = !!(typeof s1 !== 'undefined' && s1.rich);
 
-var ZOOM_MIN = 0.25;
-var ZOOM_MAX = 2.5;
+var ZOOM_MIN = 0.5;
+var ZOOM_MAX = 2;
 
-// Free zoom, kept separately from the fitted overview. `fitted` means "work the scale out from the region"; the
-// moment a finger changes it, this is the number and fitted is off.
-var freeZoom = 1;
+// Vanilla's board: a 3606 x 1965 canvas-unit sheet with the region's first person in its middle. The window scrolls
+// over it at 1:1 and stops at its edges.
+var BOARD_W = 2202.2;
+var BOARD_H = 1200;
+
+// How far one notch of the wheel moves the board.
+var WHEEL_STEP = 40;
+
 var pinching = false;
 
-// How far a finger has to travel before it counts as a drag.
-//
-// Without this a plain TAP was a pan: the pointer moves a pixel or two between down and up, a drag event arrives
-// with a delta of one, and the board left the fitted overview and snapped to zoom 1. Which is exactly what "it
-// jumps to Near as soon as I touch anything" was.
+// How far a finger has to travel before it counts as a drag, so a tap on a face does not nudge the board.
 var DRAG_SLOP = 4;
 var dragged = 0;
 
@@ -498,18 +572,17 @@ viewportEl.addEventListener('drag', function (e) {
   dragged += Math.abs(e.deltaX) + Math.abs(e.deltaY);
   if (dragged < DRAG_SLOP) return;
 
-  // Panning is close work, so it leaves the fitted overview - staying fitted would snap the middle straight back.
-  if (fitted) {
-    freeZoom = zoom;
-    fitted = false;
-    setZoomButtons();
-  }
-
   centre = {
     x: centre.x - e.deltaX / zoom,
     y: centre.y - e.deltaY / zoom,
   };
 
+  apply();
+});
+
+// The wheel scrolls the board up and down, the way vanilla's scroll view takes it.
+viewportEl.addEventListener('wheel', function (e) {
+  centre = { x: centre.x, y: centre.y - (e.wheelDelta > 0 ? WHEEL_STEP : -WHEEL_STEP) / zoom };
   apply();
 });
 
@@ -525,21 +598,11 @@ function zoomAt(next, px, py) {
   var atX = centre.x + (px - box.w / 2) / zoom;
   var atY = centre.y + (py - box.h / 2) / zoom;
 
-  if (fitted) { fitted = false; setZoomButtons(); }
-
-  freeZoom = next;
+  zoom = next;
   centre = { x: atX - (px - box.w / 2) / next, y: atY - (py - box.h / 2) / next };
 
   apply();
 }
-
-viewportEl.addEventListener('wheel', function (e) {
-  var box = viewBox(s1.orientation === 'portrait');
-  zoomAt(zoom * (e.wheelDelta > 0 ? 1.18 : 1 / 1.18), box.w / 2, box.h / 2);
-});
-
-document.getElementById('z-out').addEventListener('click', fit);
-document.getElementById('z-in').addEventListener('click', close);
 
 // Two fingers, on a device that has them. Same shape as the map's, because it is the same gesture and the map's
 // is the one that was reported as working well.
@@ -618,34 +681,29 @@ if (RICH) {
   viewportEl.addEventListener('touchcancel', lift, { passive: true });
 }
 
-function centreOnSelection() {
-  var node = findNode(selectedId);
-  centre = node ? { x: node.x, y: node.y } : { x: graph.w / 2, y: graph.h / 2 };
+// The paper's lines, laid once over the whole board: a seam every 64 units from the board's bottom-left corner,
+// which is where a tiled image starts.
+var TILE = 39.08;
+
+function buildGrid() {
+  for (var x = 0; x <= BOARD_W; x += TILE) {
+    var v = box('gv');
+    v.setAttribute('style', 'left:' + (x - 1.2).toFixed(1) + 'px');
+    gridEl.appendChild(v);
+  }
+
+  for (var y = BOARD_H; y >= 0; y -= TILE) {
+    var h = box('gh');
+    h.setAttribute('style', 'top:' + (y - 1.2).toFixed(1) + 'px');
+    gridEl.appendChild(h);
+  }
+}
+
+// Where vanilla opens a region: at 1:1 with the region's first person in the middle of the window.
+function home() {
+  zoom = 1;
+  centre = { x: graph.ox, y: graph.oy };
   apply();
-}
-
-// The whole region at once. Vanilla opens zoomed out and lets you pinch in; this renderer has no pinch, so the
-// two states are a button - and the fitted one is the default because a region is 2000px wide and the window is
-// 521, and landing on one circle with no context is not the app.
-function fit() {
-  fitted = true;
-  centre = { x: graph.w / 2, y: graph.h / 2 };
-  setZoomButtons();
-  apply();
-}
-
-function close() {
-  fitted = false;
-  freeZoom = 1;
-  setZoomButtons();
-  centreOnSelection();
-}
-
-function setZoomButtons() {
-  var out = document.getElementById('z-out');
-  var into = document.getElementById('z-in');
-  if (out) out.className = 'cbtn' + (fitted ? ' on' : '');
-  if (into) into.className = 'cbtn' + (fitted ? '' : ' on');
 }
 
 // The graph's window, in css pixels: the screen minus the tab strip, and minus the detail panel - which sits beside
@@ -660,34 +718,50 @@ function viewBox(portrait) {
 
   if (typeof s1 !== 'undefined' && s1.screen && s1.screen.w > 0) { w = s1.screen.w; h = s1.screen.h; }
 
+  // The region strip lies over the board, as vanilla's does, so it takes nothing off the window.
   return portrait
-    ? { w: w, h: h - 250 - 30 }
-    : { w: w - 214.4, h: h - 30 };
+    ? { w: w, h: h - 250 }
+    : { w: w - 214.4, h: h };
 }
 
 // The viewport's size, derived rather than measured - an element's geometry cannot be read back here. The detail
 // panel and the tab strip take known slices out of it; those numbers and app.css are the same layout stated twice,
 // which is the price of not being able to ask.
 function apply() {
-  var portrait = s1.orientation === 'portrait';
-  var box = viewBox(portrait);
+  var box = viewBox(s1.orientation === 'portrait');
   var vw = box.w;
   var vh = box.h;
 
-  zoom = fitted && graph.w > 0 && graph.h > 0
-    ? Math.min(1, Math.min(vw / graph.w, vh / graph.h))
-    : Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, freeZoom));
-
-  // While fitted, the middle IS the middle of the graph - derived here rather than remembered, because the first
-  // render can happen before the graph has arrived (the companion answers a read a moment late) and a centre
-  // worked out from an empty graph would stick.
-  if (fitted) centre = { x: graph.w / 2, y: graph.h / 2 };
+  // The window stays on the board, as vanilla's scroll view does. Half the board on either side of the origin, less
+  // half the window, is as far as the middle of the window can go.
+  var reachX = Math.max(0, (BOARD_W * zoom - vw) / 2 / zoom);
+  var reachY = Math.max(0, (BOARD_H * zoom - vh) / 2 / zoom);
+  centre = {
+    x: Math.max(graph.ox - reachX, Math.min(graph.ox + reachX, centre.x)),
+    y: Math.max(graph.oy - reachY, Math.min(graph.oy + reachY, centre.y)),
+  };
 
   // The world is scaled about its top-left, so the offset is worked out in scaled pixels.
   var x = vw / 2 - centre.x * zoom;
   var y = vh / 2 - centre.y * zoom;
 
   worldEl.style.transform = 'translate(' + Math.round(x) + 'px, ' + Math.round(y) + 'px) scale(' + zoom.toFixed(3) + ')';
+
+  placeBar('hbar', vw / (BOARD_W * zoom), reachX > 0 ? (centre.x - graph.ox + reachX) / (2 * reachX) : 0.5);
+  placeBar('vbar', vh / (BOARD_H * zoom), reachY > 0 ? (centre.y - graph.oy + reachY) / (2 * reachY) : 0.5);
+}
+
+// A scroll handle as long as the share of the board on screen, at the share of the way along it the window is.
+function placeBar(id, share, along) {
+  var el = document.getElementById(id);
+  if (!el) return;
+
+  var size = Math.max(0.05, Math.min(1, share));
+  var start = (1 - size) * along;
+  var horizontal = id === 'hbar';
+
+  el.style[horizontal ? 'left' : 'top'] = (start * 100).toFixed(2) + '%';
+  el.style[horizontal ? 'width' : 'height'] = (size * 100).toFixed(2) + '%';
 }
 
 document.addEventListener('orientationchange', apply);
@@ -701,10 +775,11 @@ s1.on('reflash-contacts.changed', function () {
   renderDetail();
 });
 
+buildGrid();
 readRegions();
 readGraph();
 readDetail();
 renderTabs();
 renderGraph();
 renderDetail();
-fit();
+home();

@@ -1,33 +1,43 @@
-// Dealers. Pick one, see what they hold, move customers on and off them, set their cut.
+// Dealer Management. One dealer at a time, picked from the dropdown: their cash and cut, what they carry, and the
+// customers they sell to, each with a cross to take them off. Under ten customers, "Assign Customer" lists the
+// ones nobody sells to yet.
 //
-// Assigning a customer is a two-step "pick from a list" rather than a drag: the renderer delivers no pointermove,
-// so dragging is not available at all. With a mouse in a 733px window the list is arguably the better gesture
-// anyway - and it is the only one a controller can use.
+// Assigning is a pick from a list rather than vanilla's customer selector screen: the renderer delivers no
+// pointermove, and a list is the gesture a controller can use too.
 
 var SEP = String.fromCharCode(31);
 
-var appEl = document.getElementById('app');
-var listEl = document.getElementById('dealers');
+var bodyEl = document.getElementById('body');
 var emptyEl = document.getElementById('empty');
-var detailEl = document.getElementById('detail');
-var titleEl = document.getElementById('detail-title');
+var optionsEl = document.getElementById('options');
 
 var dealers = [];
 var detail = null;
 var selectedId = null;
+var open = false;
 var picking = false;
 var candidates = [];
+
+function parse(raw, fallback) {
+  if (!raw) return fallback;
+  try { return JSON.parse(raw); } catch (e) { s1.log('state did not parse: ' + e); return fallback; }
+}
 
 function readList() {
   var data = parse(s1.call('reflash-dealers.state', ''), null);
   dealers = data && data.dealers ? data.dealers : [];
+
+  // Vanilla shows the first dealer until another is picked, and the picked one until it is gone.
+  var still = false;
+  for (var i = 0; i < dealers.length; i++) if (dealers[i].id === selectedId) still = true;
+  if (!still) selectedId = dealers.length ? dealers[0].id : null;
 }
 
 function readDetail() {
   if (!selectedId) { detail = null; return; }
 
   var data = parse(s1.call('reflash-dealers.state', 'dealer:' + selectedId), null);
-  detail = data ? data : null;
+  detail = data && data.dealer ? data : null;
 }
 
 function readCandidates() {
@@ -35,206 +45,163 @@ function readCandidates() {
   candidates = data && data.candidates ? data.candidates : [];
 }
 
-function parse(raw, fallback) {
-  if (!raw) return fallback;
-  try { return JSON.parse(raw); } catch (e) { s1.log('state did not parse: ' + e); return fallback; }
-}
-
 function render() {
-  renderList();
-  renderDetail();
+  bodyEl.replaceChildren();
+  emptyEl.className = dealers.length ? 'empty' : 'empty on';
+  renderOptions();
+
+  if (!detail) return;
+
+  var d = detail.dealer;
+  bodyEl.appendChild(dropdown(d));
+  bodyEl.appendChild(details(d));
+  bodyEl.appendChild(inventory());
+  bodyEl.appendChild(div('customer-title', 'Assigned Customers (' + d.customers + '/' + d.limit + ')'));
+  bodyEl.appendChild(customers(d));
 }
 
-function renderList() {
-  listEl.replaceChildren();
-  emptyEl.className = dealers.length ? 'empty' : 'empty on';
+// ---- the dropdown -------------------------------------------------------------------------------------------
+
+function dropdown(d) {
+  var box = div('block dropdown' + (open ? ' open' : ''));
+  if (d.face) box.appendChild(picture('face', 's1://face-' + d.id));
+  box.appendChild(nameLabel(d.name, d.region));
+  box.appendChild(picture('drop-arrow', 'icon-dropdown.png'));
+  box.addEventListener('click', function () { open = !open; render(); });
+  return box;
+}
+
+function renderOptions() {
+  optionsEl.replaceChildren();
+  optionsEl.className = open && dealers.length ? 'options on' : 'options';
+  if (!open) return;
 
   for (var i = 0; i < dealers.length; i++) {
     var d = dealers[i];
 
-    var row = document.createElement('div');
-    row.className = 'dealer' + (d.id === selectedId ? ' on' : '');
+    var row = div('option' + (d.id === selectedId ? ' on' : ''));
     row.setAttribute('data-id', d.id);
-
-    var name = document.createElement('div');
-    name.className = 'dealer-name';
-    name.textContent = d.name;
-    row.appendChild(name);
-
-    var sub = document.createElement('div');
-    sub.className = 'dealer-sub';
-
-    var region = document.createElement('div');
-    region.textContent = d.region;
-    sub.appendChild(region);
-
-    var count = document.createElement('div');
-    count.textContent = d.customers + '/' + d.limit;
-    sub.appendChild(count);
-
-    row.appendChild(sub);
-    row.addEventListener('click', pick);
-    listEl.appendChild(row);
+    if (d.face) row.appendChild(picture('face', 's1://face-' + d.id));
+    row.appendChild(nameLabel(d.name, d.region));
+    row.addEventListener('click', choose);
+    optionsEl.appendChild(row);
   }
 }
 
-function pick(e) {
+function choose(e) {
   selectedId = e.currentTarget.getAttribute('data-id');
+  open = false;
   picking = false;
   readDetail();
-  appEl.classList.add('show-detail');
   render();
 }
 
-function renderDetail() {
-  detailEl.replaceChildren();
+// ---- cash and cut -------------------------------------------------------------------------------------------
 
-  if (!detail || !detail.dealer) {
-    titleEl.textContent = 'Dealer';
-    detailEl.appendChild(text('hint on', dealers.length ? 'Pick a dealer.' : ''));
-    return;
-  }
-
-  var d = detail.dealer;
-  titleEl.textContent = d.name;
-
-  var body = document.createElement('div');
-  body.className = 'detail-body';
-
-  body.appendChild(stats(d));
-  body.appendChild(cutField(d));
-  body.appendChild(customers(d));
-  if (detail.inventory && detail.inventory.length) body.appendChild(inventory());
-
-  detailEl.appendChild(body);
-}
-
-function stats(d) {
-  var row = document.createElement('div');
-  row.className = 'stats';
-  row.appendChild(stat('Cash', '$' + d.cash, 'cash'));
-  row.appendChild(stat('Cut', d.cut + '%', 'cut'));
-  row.appendChild(stat('Region', d.region, 'plain'));
+function details(d) {
+  var row = div('details');
+  row.appendChild(figure('Cash', money(d.cash), 'cash'));
+  row.appendChild(figure('Cut', d.cut + '%', 'cut'));
   return row;
 }
 
-function stat(label, value, kind) {
-  var box = document.createElement('div');
-  box.className = 'stat ' + (kind || 'plain');
-  box.appendChild(text('stat-label', label));
-  box.appendChild(text('stat-value', value));
+function figure(title, value, cls) {
+  var box = div('block detail');
+  box.appendChild(div('', title));
+  box.appendChild(div(cls, value));
   return box;
 }
 
-function cutField(d) {
-  var section = document.createElement('div');
-  section.className = 'section';
-  section.appendChild(text('section-label', 'Cut'));
+// ---- inventory ------------------------------------------------------------------------------------------------
 
-  var row = document.createElement('div');
-  row.className = 'cut-row';
+// The name's share of an item, 226 units, which vanilla shrinks its text to fit.
+var ITEM_TEXT_W = 138;
 
-  row.appendChild(cutButton('-5', d.cut - 5));
-  row.appendChild(text('cut-value', d.cut + '%'));
-  row.appendChild(cutButton('+5', d.cut + 5));
+// Vanilla's quality colours, Trash to Heavenly - the same five stars the customers' standards use.
+var QUALITY = ['7d3232', '509132', '64beff', 'e14bff', 'ffc832'];
 
-  section.appendChild(row);
-  return section;
+function inventory() {
+  var box = div('block inventory');
+  var items = detail.inventory || [];
+
+  if (!items.length) {
+    box.appendChild(div('no-items', 'No Items in inventory'));
+    return box;
+  }
+
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+
+    var row = div('item');
+    var icon = div('item-icon');
+    if (it.icon) icon.appendChild(picture('pic', 's1://item-' + it.id));
+    if (it.quality >= 0 && it.quality < QUALITY.length)
+      icon.appendChild(picture('item-star', 'star-' + QUALITY[it.quality] + '.png'));
+    row.appendChild(icon);
+    row.appendChild(fitted(div('item-name', it.qty + 'x ' + it.name), ITEM_TEXT_W, 17.1));
+    box.appendChild(row);
+  }
+
+  return box;
 }
 
-function cutButton(label, value) {
-  var btn = document.createElement('button');
-  btn.className = 'step';
-  btn.textContent = label;
-  btn.addEventListener('click', function () {
-    if (value < 0 || value > 100) return;
-    act('cut' + SEP + selectedId + SEP + String(value));
-  });
-  return btn;
-}
+// ---- customers ----------------------------------------------------------------------------------------------
 
 function customers(d) {
-  var section = document.createElement('div');
-  section.className = 'section';
-  section.appendChild(text('section-label', 'Customers ' + d.customers + '/' + d.limit));
+  var list = div('customers');
+  var assigned = detail.customers || [];
 
-  var list = detail.customers || [];
-  for (var i = 0; i < list.length; i++) section.appendChild(customerRow(list[i]));
+  for (var i = 0; i < assigned.length; i++) list.appendChild(customerRow(assigned[i]));
 
-  if (picking) section.appendChild(picker());
-  else section.appendChild(addButton(d));
+  if (d.customers < d.limit) {
+    if (picking) list.appendChild(picker());
+    else {
+      var assign = div('block assign', 'Assign Customer');
+      assign.addEventListener('click', function () { picking = true; readCandidates(); render(); });
+      list.appendChild(assign);
+    }
+  }
 
-  return section;
+  return list;
 }
 
 function customerRow(c) {
-  var row = document.createElement('div');
-  row.className = 'entry';
+  var row = div('block customer');
+  row.appendChild(faceWithStar(c));
+  row.appendChild(nameLabel(c.name, c.region));
 
-  var name = document.createElement('div');
-  name.className = 'entry-name';
-  name.textContent = c.name;
-  row.appendChild(name);
-
-  row.appendChild(text('entry-sub', c.relLabel));
-
-  var drop = document.createElement('button');
-  drop.className = 'drop';
-  drop.textContent = 'Remove';
-  drop.addEventListener('click', function () { act('remove' + SEP + selectedId + SEP + c.id); });
-  row.appendChild(drop);
+  var remove = picture('remove', 'icon-remove.png');
+  remove.addEventListener('click', function () { act('remove' + SEP + selectedId + SEP + c.id); });
+  row.appendChild(remove);
 
   return row;
 }
 
-function addButton(d) {
-  var full = d.customers >= d.limit;
-
-  var btn = document.createElement('button');
-  btn.className = 'add' + (full ? ' off' : '');
-  btn.textContent = full ? 'Full' : 'Add customer';
-
-  // A full dealer gets a disabled-looking button rather than a hidden one - "why can I not add anyone" is a
-  // question the screen should answer without being asked.
-  if (!full) btn.addEventListener('click', function () {
-    picking = true;
-    readCandidates();
-    render();
-  });
-
-  return btn;
+function faceWithStar(c) {
+  var face = div('customer-face');
+  if (c.face) face.appendChild(picture('pic', 's1://face-' + c.id));
+  if (c.standards) face.appendChild(picture('customer-star', 'star-' + c.standards.replace('#', '') + '.png'));
+  return face;
 }
 
 function picker() {
-  var wrap = document.createElement('div');
-  wrap.className = 'picker';
+  var wrap = div('picker');
 
   if (!candidates.length) {
-    wrap.appendChild(text('entry-sub', 'Nobody free to assign.'));
+    wrap.appendChild(div('block assign faded', 'Nobody free to assign'));
     return wrap;
   }
 
-  // Capped: the picker is a choice, not a directory, and a save can carry a lot of customers.
-  var max = Math.min(candidates.length, 12);
-  for (var i = 0; i < max; i++) {
+  for (var i = 0; i < candidates.length; i++) {
     var c = candidates[i];
 
-    var row = document.createElement('div');
-    row.className = 'candidate';
+    var row = div('block candidate');
     row.setAttribute('data-id', c.id);
-
-    var name = document.createElement('div');
-    name.className = 'entry-name';
-    name.textContent = c.name;
-    row.appendChild(name);
-
-    row.appendChild(text('entry-sub', c.region));
+    row.appendChild(faceWithStar(c));
+    row.appendChild(nameLabel(c.name, c.region));
     row.addEventListener('click', assign);
     wrap.appendChild(row);
   }
-
-  if (candidates.length > max)
-    wrap.appendChild(text('entry-sub', 'and ' + (candidates.length - max) + ' more'));
 
   return wrap;
 }
@@ -243,70 +210,77 @@ function assign(e) {
   act('add' + SEP + selectedId + SEP + e.currentTarget.getAttribute('data-id'));
 }
 
-function inventory() {
-  var section = document.createElement('div');
-  section.className = 'section';
-  section.appendChild(text('section-label', 'Carrying'));
+// ---- helpers ----------------------------------------------------------------------------------------------------
 
-  for (var i = 0; i < detail.inventory.length; i++) {
-    var slot = detail.inventory[i];
-
-    var row = document.createElement('div');
-    row.className = 'entry';
-
-    var name = document.createElement('div');
-    name.className = 'entry-name';
-    name.textContent = slot.name;
-    row.appendChild(name);
-
-    row.appendChild(text('entry-sub', 'x' + slot.qty));
-    section.appendChild(row);
-  }
-
-  return section;
+// "Kyle Cooley (Northtown)", the region in vanilla's faded text colour.
+function nameLabel(name, region) {
+  var label = div('label');
+  label.appendChild(div('', name));
+  if (region) label.appendChild(div('faded region', '(' + region + ')'));
+  return label;
 }
 
-function text(cls, value) {
-  var el = document.createElement('div');
-  el.className = cls;
-  el.textContent = value;
+// Vanilla's auto-sizing text, by estimate: the page cannot measure a string, and an Open Sans SemiBold letter runs
+// about 0.56 of the font size wide.
+function fitted(el, width, size) {
+  var length = (el.textContent || '').length;
+  var fit = length ? width / (length * 0.56) : size;
+  if (fit < size) el.style.fontSize = Math.max(8, fit).toFixed(1) + 'px';
   return el;
 }
 
+function div(cls, value) {
+  var el = document.createElement('div');
+  if (cls) el.className = cls;
+  if (value !== undefined) el.textContent = value;
+  return el;
+}
+
+// "$28,727", the way MoneyManager.FormatAmount writes it.
+function money(value) {
+  var n = Math.round(value || 0);
+  var digits = String(Math.abs(n));
+  var out = '';
+
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
+    out += digits[i];
+  }
+
+  return (n < 0 ? '-$' : '$') + out;
+}
+
+// setAttribute, not img.src - assigning to the property does nothing here.
+function picture(cls, src) {
+  var img = document.createElement('img');
+  if (cls) img.className = cls;
+  img.setAttribute('src', src);
+  return img;
+}
+
 function act(command) {
-  s1.call('reflash-dealers.act', command);
+  var reply = s1.call('reflash-dealers.act', command);
+  if (reply && reply !== 'ok') s1.log('dealers: "' + command.split(SEP).join(' ') + '" answered ' + reply);
+
   picking = false;
   readList();
   readDetail();
   render();
 }
 
-document.getElementById('back').addEventListener('click', toList);
-
+// Back closes what is open on top first: the dropdown's list, then the customer list.
 document.addEventListener('back', function (e) {
-  if (s1.orientation !== 'portrait') return;
-
-  // The picker is a step of its own, so back closes that first rather than leaving the dealer.
-  if (picking) { e.preventDefault(); picking = false; render(); return; }
-  if (!appEl.classList.contains('show-detail')) return;
-
-  e.preventDefault();
-  toList();
+  if (open) { e.preventDefault(); open = false; render(); return; }
+  if (picking) { e.preventDefault(); picking = false; render(); }
 });
-
-function toList() {
-  appEl.classList.remove('show-detail');
-  selectedId = null;
-  detail = null;
-  picking = false;
-  render();
-}
 
 s1.on('reflash-dealers.changed', function () {
   readList();
   readDetail();
+  if (picking) readCandidates();
   render();
 });
 
 readList();
+readDetail();
 render();

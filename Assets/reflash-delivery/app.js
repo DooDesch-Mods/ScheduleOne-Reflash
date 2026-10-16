@@ -9,6 +9,7 @@ var SEP = String.fromCharCode(31);
 
 var bodyEl = document.getElementById('body');
 var basketEl = document.getElementById('basket');
+var shadeEl = document.getElementById('shade');
 var balanceEl = document.getElementById('balance');
 var activeCountEl = document.getElementById('active-count');
 
@@ -52,6 +53,10 @@ function render() {
   else renderShops();
 
   renderBasket();
+
+  // Over the shop list only, and not over the basket bar when that is up.
+  var shade = tab === 'shops' && !openShop && basketEl.className.indexOf(' on') < 0;
+  shadeEl.className = shade ? 'shade on' : 'shade';
 }
 
 function renderShops() {
@@ -77,6 +82,8 @@ function shopCard(shop) {
   // Only where there is one. Two of the four vanilla cards carry no portrait at all, and an empty circle in its
   // place is something vanilla does not draw.
   if (shop.icon) {
+    card.classList.add('has-face');
+
     var icon = document.createElement('div');
     icon.className = 'shop-icon';
 
@@ -103,10 +110,9 @@ function shopCard(shop) {
 
   card.appendChild(textBox);
 
-  // ">" rather than an arrow glyph - the font atlases carry Latin-1 and U+2192 draws as a box.
-  var arrow = document.createElement('div');
+  var arrow = document.createElement('img');
   arrow.className = 'shop-arrow';
-  arrow.textContent = '>';
+  arrow.setAttribute('src', 'icon-chevron.png');
   card.appendChild(arrow);
 
   card.addEventListener('click', function () {

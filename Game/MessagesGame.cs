@@ -81,9 +81,12 @@ namespace Reflash.Game
                 MSGConversation c = active[i];
 
                 // An unknown sender has no face to show in vanilla either - the row keeps its blank circle.
-                if (c == null || !c.EntryVisible || c.sender == null || !c.IsSenderKnown) continue;
+                if (c == null || !c.EntryVisible || !c.IsSenderKnown) continue;
 
-                yield return new KeyValuePair<string, UnityEngine.Sprite>(c.sender.ID, c.sender.MugshotSprite);
+                MessageContactInfo who = c._sender;
+                if (who.IsNull() || string.IsNullOrEmpty(who._npcId)) continue;
+
+                yield return new KeyValuePair<string, UnityEngine.Sprite>(who._npcId, who.Icon);
             }
         }
 
@@ -97,26 +100,32 @@ namespace Reflash.Game
             for (int i = 0; i < active.Count; i++)
             {
                 MSGConversation c = active[i];
-                if (c == null || !c.EntryVisible || c.sender == null) continue;
+                if (c == null || !c.EntryVisible) continue;
 
+                MessageContactInfo who = c._sender;
+                if (who.IsNull() || string.IsNullOrEmpty(who._npcId)) continue;
+
+                NPC npc = Sender(c);
                 var view = new ThreadView
                 {
-                    Id = c.sender.ID,
-                    Name = c.IsSenderKnown ? Text.Clean(c.contactName) : "Unknown",
+                    Id = who._npcId,
+                    Name = c.IsSenderKnown ? Text.Clean(c.ContactName) : "Unknown",
                     Known = c.IsSenderKnown,
                     Unread = !c.Read,
                     Preview = LastText(c),
-                    HasFace = _faces.Has(c.sender.ID),
-                    OfferLeft = OfferLeft(c.sender),
+                    HasFace = _faces.Has(who._npcId),
+                    OfferLeft = npc == null ? -1 : OfferLeft(npc),
 
-                    // Vanilla offers the cross on a customer's row and nowhere else - a supplier or a quest
-                    // contact is not something you get to dismiss.
-                    CanHide = c.sender.GetComponent<Customer>() != null,
+                    // The contact card decides, exactly as it decides whether vanilla's row gets its Hide button.
+                    CanHide = who.CanConversationBeHidden,
                 };
 
                 Il2CppSystem.Collections.Generic.List<EConversationCategory> cats = c.Categories;
                 if (cats != null)
                     for (int k = 0; k < cats.Count; k++) view.Categories.Add(cats[k].ToString());
+
+                if (cats != null && cats.Count > 0) Badge(view, cats[0]);
+                if (view.OfferLeft >= 0) view.OfferColour = OfferColour(view.OfferLeft);
 
                 views.Add(view);
             }
@@ -131,6 +140,51 @@ namespace Reflash.Game
         /// the row counts that down. Recomputing it here rather than reading the slider off the vanilla UI, because
         /// that UI is the thing being replaced.
         /// </summary>
+        private static bool _badgeWarned, _gradientWarned, _offerWarned;
+
+        /// <summary>
+        /// The badge after the name, read from the same table vanilla's row reads: the first letter of the category's
+        /// name and its colour.
+        /// </summary>
+        private static void Badge(ThreadView view, EConversationCategory category)
+        {
+            try
+            {
+                if (!PlayerSingleton<MessagesApp>.InstanceExists) return;
+
+                MessagesApp.CategoryInfo info = PlayerSingleton<MessagesApp>.Instance.GetCategoryInfo(category);
+                if (info == null || string.IsNullOrEmpty(info.Name)) return;
+
+                view.BadgeLetter = info.Name.Substring(0, 1);
+                view.BadgeColour = Colours.Hex(info.Color);
+            }
+            catch (Exception e)
+            {
+                if (_badgeWarned) return;
+                _badgeWarned = true;
+                Core.Log.Warning($"[Reflash/messages] category badge unreadable, the page falls back to its own: {e.Message}");
+            }
+        }
+
+        /// <summary>The colour vanilla gives the offer bar: HUD.RedGreenGradient at the time left.</summary>
+        private static string OfferColour(double left)
+        {
+            try
+            {
+                if (!Singleton<Il2CppScheduleOne.UI.HUD>.InstanceExists) return null;
+                return Colours.Hex(Singleton<Il2CppScheduleOne.UI.HUD>.Instance.RedGreenGradient.Evaluate((float)left));
+            }
+            catch (Exception e)
+            {
+                if (!_gradientWarned)
+                {
+                    _gradientWarned = true;
+                    Core.Log.Warning($"[Reflash/messages] offer gradient unreadable, the page falls back to its own: {e.Message}");
+                }
+                return null;
+            }
+        }
+
         private static double OfferLeft(NPC npc)
         {
             var customer = npc.GetComponent<Customer>();
@@ -145,8 +199,13 @@ namespace Reflash.Game
 
                 return Math.Clamp(1.0 - (now - made) / 600.0, 0.0, 1.0);
             }
-            catch
+            catch (Exception e)
             {
+                if (!_offerWarned)
+                {
+                    _offerWarned = true;
+                    Core.Log.Warning($"[Reflash/messages] offer time unreadable, the row shows no bar: {e.Message}");
+                }
                 return -1;
             }
         }
@@ -159,12 +218,12 @@ namespace Reflash.Game
             var view = new ThreadDetailView
             {
                 Id = npcId,
-                Name = c.IsSenderKnown ? Text.Clean(c.contactName) : "Unknown",
+                Name = c.IsSenderKnown ? Text.Clean(c.ContactName) : "Unknown",
                 Known = c.IsSenderKnown,
-                HasFace = c.sender != null && _faces.Has(c.sender.ID),
+                HasFace = _faces.Has(npcId),
             };
 
-            Il2CppSystem.Collections.Generic.List<Message> history = c.messageHistory;
+            Il2CppSystem.Collections.Generic.List<Message> history = c._messageHistory;
             if (history != null)
             {
                 for (int i = 0; i < history.Count; i++)
@@ -191,7 +250,7 @@ namespace Reflash.Game
             // Only the lines the game would show. ShouldShow is the "does this belong here at all" gate; IsValid is
             // the "can it be used right now" one, and the vanilla UI greys out rather than hides the second kind -
             // so the reason travels with it.
-            Il2CppSystem.Collections.Generic.List<SendableMessage> sendables = c.Sendables;
+            Il2CppSystem.Collections.Generic.List<SendableMessage> sendables = c._sendables;
             if (sendables != null)
             {
                 for (int i = 0; i < sendables.Count; i++)
@@ -236,7 +295,7 @@ namespace Reflash.Game
         /// </summary>
         private static void FillRelationshipInfo(MSGConversation c, ThreadDetailView view)
         {
-            NPC npc = c.sender;
+            NPC npc = Sender(c);
             if (npc == null || !c.IsSenderKnown) return;
 
             // The relationship bar rides the header for anyone the player actually knows, customer or not.
@@ -293,7 +352,7 @@ namespace Reflash.Game
             {
                 int hash = 23;
 
-                var sendables = c.Sendables;
+                var sendables = c._sendables;
                 if (sendables == null) return hash;
 
                 for (int i = 0; i < sendables.Count; i++)
@@ -342,7 +401,7 @@ namespace Reflash.Game
 
             // The game refuses to hide some conversations. Asking first means the page can say "refused" rather
             // than appearing to work and leaving the row where it was.
-            if (hidden && (c.sender == null || !c.sender.NPCData.Messaging.ConversationCanBeHidden)) return Reply.Refused;
+            if (hidden && !c._sender.CanConversationBeHidden) return Reply.Refused;
 
             c.SetEntryVisibility(!hidden);
             return Reply.Ok;
@@ -383,7 +442,7 @@ namespace Reflash.Game
 
             // The page is shown only the sendables that pass ShouldShow, so its index counts those - resolve it the
             // same way rather than against the raw list.
-            Il2CppSystem.Collections.Generic.List<SendableMessage> sendables = c.Sendables;
+            Il2CppSystem.Collections.Generic.List<SendableMessage> sendables = c._sendables;
             if (sendables == null) return Reply.NotFound;
 
             int shown = -1;
@@ -516,9 +575,10 @@ namespace Reflash.Game
         private static int SupplierDebt(PhoneShopInterface s)
         {
             MSGConversation c = s.conversation;
-            if (c == null || c.sender == null) return 0;
+            NPC npc = Sender(c);
+            if (npc == null) return 0;
 
-            var supplier = c.sender.GetComponent<Supplier>();
+            var supplier = npc.GetComponent<Supplier>();
             return supplier == null ? 0 : (int)Math.Round(supplier.Debt);
         }
 
@@ -752,7 +812,7 @@ namespace Reflash.Game
                         MSGConversation c = active[i];
                         if (c == null) continue;
 
-                        hash = hash * 31 + (c.messageHistory?.Count ?? 0);
+                        hash = hash * 31 + (c._messageHistory?.Count ?? 0);
                         hash = hash * 31 + (c.currentResponses?.Count ?? 0);
                         hash = hash * 31 + (c.Read ? 1 : 0);
                         hash = hash * 31 + (c.EntryVisible ? 1 : 0);
@@ -765,7 +825,7 @@ namespace Reflash.Game
 
         private static string LastText(MSGConversation c)
         {
-            Il2CppSystem.Collections.Generic.List<Message> history = c.messageHistory;
+            Il2CppSystem.Collections.Generic.List<Message> history = c._messageHistory;
             if (history == null || history.Count == 0) return "";
 
             Message last = history[history.Count - 1];
@@ -782,10 +842,23 @@ namespace Reflash.Game
             for (int i = 0; i < active.Count; i++)
             {
                 MSGConversation c = active[i];
-                if (c != null && c.sender != null && c.sender.ID == npcId) return c;
+                if (c != null && c._sender._npcId == npcId) return c;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// The NPC behind a conversation, or null.
+        ///
+        /// Since 0.4.7 a conversation keeps a contact card (name, id, face) rather than the NPC itself, and a card does
+        /// not have to belong to a spawned NPC. Anything that only needs the name, the face or the hide rule reads the
+        /// card; this lookup is for the parts that live on the NPC - customer, supplier, relationship.
+        /// </summary>
+        private static NPC Sender(MSGConversation c)
+        {
+            if (c == null) return null;
+            return c._sender.TryGetNPC(out NPC npc) ? npc : null;
         }
     }
 }

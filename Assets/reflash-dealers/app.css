@@ -1,155 +1,179 @@
 /* Dealer Management.
 
-   Measured off Workspace/docs/Reflash/vanilla-shots/08, with the phone's screen cut out of it and scaled to what
-   this app lays out at: 400 x 733.4 css px upright.
-
-   Vanilla holds this one UPRIGHT - the title is centred at the top in the app's own violet, on the same dark grey
-   the product manager uses, and an empty roster says so in the middle of the screen rather than in a corner. */
+   Laid out from the 0.4.7 dump (Workspace/docs/Reflash/vanilla-dumps-047/vanilla-dealers.txt): a 655 x 1201
+   canvas-unit page, 0.6107 css px per unit, so 400 x 733.4 upright. Vanilla never turns this app; on its side the
+   same column simply scrolls. */
 
 body {
   height: 100%;
   font-family: game-ui;
-  font-size: 14px;
-  color: #e8e8e8;
-  background: #2f2f2f;
+  font-size: 17.1px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #282828;
 }
 
-.app { height: 100%; background: #2f2f2f; }
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
 
-.bar { position: relative; flex: none; height: 34px; align-items: center; justify-content: center; }
+.app { position: relative; height: 100%; background: #282828; }
 
-.bar-title { font-size: 17px; font-weight: bold; color: #8f7ce8; text-align: center; }
-
-.back {
+/* 80 units tall, 15 down, size 36 in the app's violet. */
+.title {
   position: absolute;
-  left: 8px;
-  top: 5px;
-  width: 24px;
-  height: 24px;
-  background: #ffffff00;
-  border: 0;
-  color: #b0a8e0;
-  font-size: 18px;
+  left: 0;
+  right: 0;
+  top: 9.2px;
+  height: 48.9px;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #8a82e5;
   text-align: center;
 }
 
-.list-pane, .detail-pane { flex: 1; min-height: 0; }
-.detail-pane { display: none; }
-.app.show-detail .list-pane { display: none; }
-.app.show-detail .detail-pane { display: flex; }
+.empty {
+  display: none;
+  position: absolute;
+  left: 24.4px;
+  right: 24.4px;
+  top: 61.1px;
+  font-size: 17.1px;
+  color: #a0a0a0;
+  text-align: center;
+}
 
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 12px; gap: 8px; }
-
-.empty { display: none; padding: 10px 20px; font-size: 15px; color: #9a9a9a; text-align: center; }
 .empty.on { display: block; }
 
-/* ---- the roster ------------------------------------------------------------------------------------------- */
-
-.dealer {
-  flex: none;
-  gap: 3px;
-  padding: 10px 12px;
-  background: #3a3a3a;
-  border-radius: 5px;
-}
-
-.dealer:hover { background: #444444; }
-.dealer.on { background: #4a4463; }
-
-.dealer-name { font-size: 16px; font-weight: bold; color: #ffffff; }
-.dealer-sub { font-size: 13px; color: #a8a8a8; }
-
-/* ---- one dealer ------------------------------------------------------------------------------------------- */
-
-.detail-body { gap: 12px; }
-
-.stats { flex-direction: row; gap: 8px; }
-
-.stat {
+/* The column starts 100 units down, 40 in from each side, its blocks 10 apart. */
+.scroll {
   flex: 1;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  background: #3a3a3a;
-  border-radius: 5px;
-  font-size: 15px;
-  color: #ffffff;
-  text-align: center;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: #4f4f4f transparent;
+  padding: 61.1px 24.4px 12.2px 24.4px;
+  gap: 6.1px;
 }
 
-.stat.money { color: #4fc44f; }
-.stat-label { font-size: 11.5px; color: #a8a8a8; }
+.block { flex: none; background: #202020; border-radius: 4.3px; }
 
-.section { gap: 6px; }
-.section-title { font-size: 14px; font-weight: bold; color: #b0a8e0; }
+.faded { color: #a0a0a0; }
 
-.cut-row { flex-direction: row; align-items: center; gap: 10px; }
+/* The space before "(Region)": a leading space in a box of its own is dropped. */
+.region { margin-left: 4.6px; }
 
-.step {
-  width: 26px;
-  height: 26px;
-  background: #4a4a4a;
-  border: 0;
-  border-radius: 4px;
-  color: #ffffff;
-  font-size: 17px;
-  text-align: center;
-}
+/* ---- the dropdown --------------------------------------------------------------------------------------- */
 
-.step:hover { background: #585858; }
-
-.entry {
+.dropdown, .option {
   flex: none;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: #3a3a3a;
-  border-radius: 5px;
+  gap: 6.1px;
+  height: 48.9px;
+  padding: 3.1px 15.3px 3.1px 6.1px;
 }
 
-.entry-name { flex: 1; min-width: 0; font-size: 14px; color: #ffffff; }
+.dropdown:hover { background: #262626; }
+.dropdown.open { border-radius: 4.3px 4.3px 0 0; }
 
-.drop, .add {
+.face { flex: none; width: 30.5px; height: 30.5px; }
+
+.label { flex: 1; min-width: 0; flex-direction: row; white-space: nowrap; overflow: hidden; }
+
+.drop-arrow { flex: none; width: 18.3px; height: 18.3px; }
+
+.options {
+  display: none;
+  position: absolute;
+  left: 24.4px;
+  right: 24.4px;
+  top: 110px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-color: #4f4f4f transparent;
+  background: #202020;
+  border-radius: 0 0 4.3px 4.3px;
+}
+
+.options.on { display: flex; }
+
+.option { background: #202020; }
+.option:hover { background: #2c2c2c; }
+.option.on { background: #303030; }
+
+/* ---- cash and cut ---------------------------------------------------------------------------------------- */
+
+.details { flex: none; flex-direction: row; gap: 6.1px; height: 61.1px; }
+
+/* The name in the top-left corner, the figure in the bottom-left, inside an 80-unit area 7.5 units in. */
+.detail {
+  flex: 1;
+  justify-content: space-between;
+  padding: 5.5px 4.6px 6.7px 4.6px;
+}
+
+.cash { color: #5eb23f; }
+.cut { color: #339ac5; }
+
+/* ---- what the dealer carries ---------------------------------------------------------------------------- */
+
+.inventory {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: 6.1px;
+  row-gap: 3.1px;
+  padding: 6.1px 6.1px 6.1px 3.1px;
+}
+
+.item { flex: none; flex-direction: row; align-items: center; gap: 3.7px; width: 166.1px; height: 24.4px; }
+
+.item-icon { position: relative; flex: none; width: 24.4px; height: 24.4px; }
+.item-icon .pic { width: 24.4px; height: 24.4px; }
+
+/* The quality star sits over the icon's bottom-right corner. */
+.item-star { position: absolute; left: 15.9px; top: 15.3px; width: 9.2px; height: 9.2px; }
+
+.item-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
+
+.no-items { height: 24.4px; justify-content: center; color: #a0a0a0; text-align: center; }
+
+/* ---- the customers --------------------------------------------------------------------------------------- */
+
+.customer-title { flex: none; height: 23.2px; margin-top: 3.1px; justify-content: center; text-align: center; }
+
+.customers { flex: none; gap: 4.3px; padding: 2.4px 0; }
+
+.customer {
   flex: none;
-  height: 24px;
-  padding: 0 10px;
-  background: #4a4a4a;
-  border: 0;
-  border-radius: 4px;
-  color: #e0e0e0;
-  font-size: 12px;
+  flex-direction: row;
+  align-items: center;
+  height: 33.6px;
+  padding: 0 15.3px 0 6.1px;
+}
+
+.customer-face { position: relative; flex: none; width: 30.5px; height: 30.5px; margin-right: 12.2px; }
+.customer-face .pic { width: 30.5px; height: 30.5px; }
+
+/* Tinted with the customer's standards, over the face's bottom-right. */
+.customer-star { position: absolute; left: 24.4px; top: 18.3px; width: 11px; height: 11px; }
+
+.customer .label { flex: 1; }
+
+.remove { flex: none; width: 18.3px; height: 18.3px; }
+.remove:hover { opacity: 0.7; }
+
+.assign {
+  flex: none;
+  height: 33.6px;
+  justify-content: center;
   text-align: center;
 }
 
-.add { background: #5a4f8f; color: #ffffff; }
-.add.off { background: #3a3a3a; color: #7a7a7a; }
-.drop:hover { background: #585858; }
-.add:hover { background: #6a5da8; }
+.assign:hover { background: #2a2a2a; }
 
-.picker { gap: 6px; padding: 6px; background: #333333; border-radius: 5px; }
+/* The customers who could be given to this dealer, in place of the button. */
+.picker { flex: none; gap: 4.3px; }
 
-.candidate {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: #3a3a3a;
-  border-radius: 4px;
-}
-
-.candidate:hover { background: #454545; }
-
-/* ------------------------------------------------------------------------------------------------- landscape --
-   Vanilla never turns this app; on its side the roster and the dealer fit side by side, which is this mod's own. */
-@media (orientation: landscape) {
-  .app { flex-direction: row; }
-  .list-pane { flex: none; width: 40%; }
-  .detail-pane { display: flex; flex: 1; }
-  .app.show-detail .list-pane { display: flex; }
-  .back { display: none; }
-  .bar-title { font-size: 14px; }
-  .dealer-name { font-size: 13px; }
-  .dealer-sub, .entry-name { font-size: 11.5px; }
-  .empty { font-size: 12px; }
-}
+.candidate { flex: none; flex-direction: row; align-items: center; height: 33.6px; padding: 0 15.3px 0 6.1px; }
+.candidate:hover { background: #2a2a2a; }

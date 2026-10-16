@@ -70,6 +70,9 @@ namespace Reflash.Screens
                     .Add("preview", Text.Ellipsis(t.Preview, 60))
                     .Add("face", t.HasFace)
                     .Add("offer", t.OfferLeft)
+                    .Add("offerColour", t.OfferColour)
+                    .Add("badge", t.BadgeLetter)
+                    .Add("badgeColour", t.BadgeColour)
                     .Add("canHide", t.CanHide)
                     .Add("cats", cats));
             }

@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Globalization;
 using System.Text;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppTMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -68,6 +69,7 @@ namespace Reflash.Dev
             sb.Append("# ").Append(label).Append('\n');
             sb.Append("# every length in canvas units, colours as #rrggbbaa\n\n");
 
+            _root = root.GetComponent<RectTransform>();
             Walk(root, sb, 0);
 
             try
@@ -87,6 +89,9 @@ namespace Reflash.Dev
         }
 
         private const int MaxDepth = 14;
+
+        /// <summary>The app's own rect, which every "pos=" is measured from.</summary>
+        private static RectTransform _root;
 
         private static void Walk(Transform node, StringBuilder sb, int depth)
         {
@@ -108,6 +113,17 @@ namespace Reflash.Dev
 
                 if (rect.anchoredPosition != Vector2.zero)
                     sb.Append(" at ").Append(F(rect.anchoredPosition.x)).Append(',').Append(F(rect.anchoredPosition.y));
+
+                // Where the box really is: its top-left corner in the app's own units, measured from the app's
+                // top-left. Anchors and pivots make "at" mean something different on every node; this does not.
+                if (_root != null)
+                {
+                    var corners = new Il2CppStructArray<Vector3>(4);
+                    rect.GetWorldCorners(corners);
+                    Vector3 topLeft = _root.InverseTransformPoint(corners[1]);
+                    Rect app = _root.rect;
+                    sb.Append(" pos=").Append(F(topLeft.x - app.xMin)).Append(',').Append(F(app.yMax - topLeft.y));
+                }
             }
 
             Describe(node, sb);
@@ -137,6 +153,9 @@ namespace Reflash.Dev
                   .Append(" size=").Append(legacy.fontSize)
                   .Append(" colour=").Append(Hex(legacy.color))
                   .Append(" align=").Append(legacy.alignment);
+
+                if (legacy.fontStyle != FontStyle.Normal) sb.Append(" style=").Append(legacy.fontStyle);
+                if (legacy.font != null) sb.Append(" font=").Append(legacy.font.name);
             }
 
             var tmp = node.GetComponent<TextMeshProUGUI>();
@@ -147,6 +166,7 @@ namespace Reflash.Dev
                   .Append(" colour=").Append(Hex(tmp.color))
                   .Append(" align=").Append(tmp.alignment);
 
+                if (tmp.fontStyle != FontStyles.Normal) sb.Append(" style=").Append(tmp.fontStyle);
                 if (tmp.font != null) sb.Append(" font=").Append(tmp.font.name);
             }
 

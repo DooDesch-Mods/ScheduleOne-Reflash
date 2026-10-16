@@ -1,45 +1,56 @@
 /* Contacts.
 
-   Measured off Workspace/docs/Reflash/vanilla-shots/12 and 13, with the phone's screen cut out of them and scaled
-   to what this app lays out at: 733.4 x 400 css px on its side.
+   Every number comes from the 0.4.7 prefab dump (Workspace/docs/Reflash/vanilla-dumps-047/vanilla-contacts.txt),
+   in canvas units times 0.6107, the canvas-to-css factor, with the canvas figure in the comment where it helps.
 
-   Dark, with the regions along the TOP - the first attempt put them at the bottom, where a phone app usually keeps
-   them and where this one does not. */
+   A board of squared paper with the region names lying over its top edge, and the detail panel down the right. */
 
 body {
   height: 100%;
   font-family: game-ui;
   font-size: 12px;
   color: #e8e8e8;
-  background: #2f2f2f;
+  background: #323232;
 }
 
-.app { height: 100%; flex-direction: row; background: #2f2f2f; }
+/* The renderer tints a picture with its `color`, and `color` inherits: without this every picture takes the text
+   colour of the box it sits in and comes out darker - a face in a grey-text circle at 60%. */
+img { color: #ffffff; }
 
-.graph-pane { flex: 1; min-width: 0; }
+.app { height: 100%; flex-direction: row; background: #323232; }
+
+.graph-pane { position: relative; flex: 1; min-width: 0; }
 
 /* ---- the regions ------------------------------------------------------------------------------------------ */
 
-.tabs { flex: none; flex-direction: row; align-items: center; height: 28px; background: #262626; }
+/* RegionSelection 852x80 over the top of the board: a 40-unit #0000009a strip, a 30-unit fade under it, and the
+   names in 135-unit buttons from 20 units in. */
+.region-strip { position: absolute; left: 0; right: 0; top: 0; height: 48.9px; }
+.strip-shade { position: absolute; left: 0; right: 0; top: 0; height: 24.4px; background: #0000009a; }
+.strip-fade { position: absolute; left: 0; right: 0; top: 24.4px; width: 100%; height: 18.3px; }
+.tabs { position: absolute; left: 12.2px; right: 0; top: 0; flex-direction: row; }
 
 .tab {
   position: relative;
   flex: none;
   flex-direction: row;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 12px;
+  justify-content: center;
+  gap: 3px;
+  width: 82.6px;
+  height: 30.5px;
   background: #ffffff00;
   border: 0;
-  color: #9a9a9a;
-  font-size: 12px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
   text-align: center;
 }
 
 .tab:hover { color: #d8d8d8; }
-.tab.on { color: #ffffff; font-weight: bold; }
-.tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 2px; background: #ffffff; }
+
+/* Selection 100x3, 38.5 units down. */
+.tab.on::after { content: ""; position: absolute; left: 10.8px; right: 10.8px; top: 23.5px; height: 1.8px; background: #ffffff; }
 
 /* A closed region keeps its name and gains a small red padlock in front of it. */
 .tab.locked::before {
@@ -53,7 +64,7 @@ body {
 
 /* ---- the graph -------------------------------------------------------------------------------------------- */
 
-/* The faint squared paper vanilla lays under the graph.
+/* The window runs the full height; the region strip lies over it.
 
    touch-action so the board pans instead of scrolling whatever it sits in - a browser reads it, and since Sideload
    1.29.0 so does the game. */
@@ -61,11 +72,10 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
   touch-action: none;
-  background: #2f2f2f;
-  background-image: linear-gradient(#383838 1px, #00000000 1px), linear-gradient(90deg, #383838 1px, #00000000 1px);
-  background-size: 44px 44px;
+  background: #323232;
 }
 
 /* transform-origin is load-bearing, and its absence is invisible in the game.
@@ -75,16 +85,24 @@ body {
    board itself did not. */
 .world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 
+/* The Tile sprite's seams: four texels of 231 in 64, so a 2.4px line at #2d2d2d every 64 units. */
+.grid { position: absolute; left: 0; top: 0; width: 2202.2px; height: 1200px; }
+.gv { position: absolute; top: 0; width: 2.4px; height: 1200px; background: #2d2d2d; }
+.gh { position: absolute; left: 0; width: 2202.2px; height: 2.4px; background: #2d2d2d; }
+
 .edges, .nodes { position: absolute; left: 0; top: 0; }
 
 /* An edge is a box turned about its TOP-LEFT corner, which is the only pivot the renderer has - the browser is
    told the same so both draw it in the same place. */
 .edge {
   position: absolute;
-  width: 3px;              /* the LENGTH comes in as an inline height, so this is the thickness */
-  background: #444444;
+  width: 5.5px;            /* the LENGTH comes in as an inline height, so this is the thickness: 9 units */
+  background: #242424;
   transform-origin: 0 0;
 }
+
+/* SelectionIndicator: a white 110-unit disc behind the chosen circle. */
+.selection { position: absolute; width: 67.2px; height: 67.2px; border-radius: 33.6px; background: #ffffff; }
 
 /* 61px across, which is what app.js works its positions out from - the two disagreeing puts every circle half a
    radius off its line. The backing colour is set inline from the customer's dependence. */
@@ -104,7 +122,6 @@ body {
 .rim { position: absolute; left: 0; top: 0; width: 61px; height: 61px; }
 
 .node:hover .rim { opacity: 0.75; }
-.node.selected { box-shadow: 0 0 0 2px #ffffff; }
 
 .node .face { position: absolute; left: 6px; top: 6px; width: 49px; height: 49px; border-radius: 25px; }
 .node .letter { font-size: 17px; color: #b0b0b0; text-align: center; }
@@ -123,8 +140,7 @@ body {
 }
 
 /* Whether this person supplies you or deals for you: vanilla puts a 106x106 coloured circle BEHIND the 100x100
-   node, so it reads as a ring a couple of pixels wide, with the word above it. Same colours as the game's own
-   Indicator objects. */
+   node, so it reads as a ring a couple of pixels wide. Same colours as the game's own Indicator objects. */
 .role {
   position: absolute;
   left: -1.8px;
@@ -136,14 +152,18 @@ body {
 
 .role.supplier { background: #843c36; }
 .role.dealer { background: #5283a8; }
+.backing { position: absolute; left: 3px; top: 3px; width: 55px; height: 55px; border-radius: 27.5px; }
 
+/* The word, 200x50 with its middle 67 units under the circle's, size 20. */
 .role-label {
   position: absolute;
-  left: -60px;
-  right: -60px;
-  top: -19.4px;
+  left: -30.5px;
+  right: -30.5px;
+  top: 56.1px;
+  height: 30.5px;
+  justify-content: center;
   font-size: 12.2px;
-  font-weight: bold;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -177,36 +197,35 @@ body {
   text-align: center;
 }
 
-.controls { position: absolute; right: 8px; bottom: 8px; flex-direction: row; gap: 6px; }
-
-.cbtn {
-  height: 20px;
-  padding: 0 10px;
-  background: #3f3f3f;
-  border: 0;
-  border-radius: 3px;
-  color: #c8c8c8;
-  font-size: 11px;
-  text-align: center;
-}
-
-.cbtn.on { background: #5a5a5a; color: #ffffff; }
-.cbtn:hover { background: #4c4c4c; }
+/* The board's scroll bars: 6 units thick, #a6a6a6, along the bottom and the right of the window. */
+.hbar { position: absolute; left: 5.5px; right: 8.5px; bottom: 4.3px; height: 3.7px; }
+.vbar { position: absolute; top: 5.5px; bottom: 8.5px; right: 4.3px; width: 3.7px; }
+.handle { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #a6a6a6; border-radius: 1.8px; }
 
 /* ---- the detail ------------------------------------------------------------------------------------------- */
 
-.detail { width: 213px; padding: 10px 12px; overflow-y: auto; gap: 9px; background: #383838; }
+/* Detail 351 units, #373737, its column 25 in from each side and 15 down, 5 between rows. Every text is Open Sans
+   SemiBold at 16 units (9.8px), the name at 24. */
+.detail { width: 214.4px; padding: 9.2px 15.3px 6px 15.3px; overflow-y: auto; gap: 3.1px; background: #373737; }
 
-.d-name { flex: none; font-size: 15px; font-weight: bold; color: #ffffff; }
-.d-type { flex: none; margin-top: -6px; font-size: 11.5px; color: #a8a8a8; }
+.d-name { flex: none; height: 19.8px; justify-content: center; font-size: 14.7px; font-weight: 600; color: #ffffff; }
+.d-type { flex: none; height: 13.1px; font-size: 9.8px; font-weight: 600; color: #ffffff; }
 
-.d-block { flex: none; gap: 3px; }
+/* A list block: header, rows, then a 10-unit space. */
+.d-block { flex: none; gap: 3.1px; margin-bottom: 6.1px; }
 
-/* The heading above each fact, and the fact itself. Vanilla writes the heading in plain white and centres the
-   reading under its bar. */
-.d-head { font-size: 11.5px; font-weight: bold; color: #ffffff; }
-.d-line { font-size: 11.5px; color: #c8c8c8; }
-.d-value { font-size: 11.5px; color: #7fc4ff; text-align: center; }
+.d-head { flex: none; flex-direction: row; min-height: 13.1px; font-size: 9.8px; font-weight: 600; color: #ffffff; }
+.d-head .faded { margin-left: 2.7px; color: #a0a0a0; }
+.d-line { flex: none; flex-direction: row; min-height: 13.1px; font-size: 9.8px; font-weight: 600; color: #ffffff; }
+.d-line .qty { margin-right: 2.7px; color: #ffc73d; }
+.d-value { font-size: 9.8px; font-weight: 600; text-align: center; }
+
+/* Relationship and Addiction: an 80-unit block, the title in its top 30, a 10-unit band centred 45 down, the
+   reading centred 67 down. */
+.d-scale { position: relative; flex: none; height: 48.9px; }
+.d-scale .d-head { position: absolute; left: 0; right: 0; top: 0; height: 18.3px; align-items: center; }
+.d-scale .d-band { position: absolute; left: 0; top: 24.4px; }
+.d-scale .d-value { position: absolute; left: 0; right: 0; top: 31.8px; height: 18.3px; justify-content: center; }
 
 .d-map {
   flex: none;
@@ -227,24 +246,24 @@ body {
    puts in its header, because it is the same number. */
 /* width: 100% is load-bearing. The segments are flex:1 with no width of their own, so in a column that does not
    stretch them the whole bar collapses to nothing - which is what happened upright, where the panel is full width
-   instead of the 213px it has on its side. */
-.d-band { position: relative; flex-direction: row; width: 100%; height: 9px; border-radius: 2px; }
-.d-band .seg { flex: 1; height: 9px; }
+   instead of the 214px it has on its side. */
+.d-band { position: relative; flex-direction: row; width: 100%; height: 6.1px; }
+.d-band .seg { flex: 1; height: 6.1px; }
 
-/* Addiction runs the other way: one strip, pale at none and red at all of it. The renderer has no gradients, so
-   it is a flat colour at the red end with the marker carrying the reading. */
-.d-ramp { background: #e0a0a0; }
+/* Addiction runs the other way: one strip, pale at none and red at all of it - a picture, since the renderer has no
+   gradients. */
+.d-band .ramp { position: absolute; left: 0; top: 0; width: 100%; height: 6.1px; }
 
 /* The marker on both bars, the handle of the Scrollbar vanilla uses. Pulled half its own width to the left so the
    middle of the marker sits on the value rather than its left edge. */
-.d-mark { position: absolute; top: -2px; margin-left: -2px; width: 4px; height: 13px; background: #ffffff; border-radius: 1px; }
+.d-mark { position: absolute; top: -3.4px; margin-left: -2px; width: 4px; height: 12.8px; background: #ffffff; border-radius: 1px; }
 
 /* The quality star beside a customer's standards, tinted the colour of the quality it stands for. */
-.d-star { flex-direction: row; align-items: center; gap: 6px; }
-.d-star img { width: 12px; height: 12px; }
+.d-star { flex-direction: row; align-items: center; gap: 6.1px; height: 15.3px; }
+.d-star img { width: 12.2px; height: 15.3px; }
 
-.d-empty { font-size: 11.5px; color: #8a8a8a; }
-.d-money { font-size: 12px; color: #4fc44f; }
+.d-empty { font-size: 9.8px; color: #8a8a8a; }
+.d-cash { color: #51f409; }
 
 .d-hint { padding-top: 40px; font-size: 11.5px; color: #8a8a8a; text-align: center; }
 
@@ -255,5 +274,4 @@ body {
   .detail { width: auto; flex: none; max-height: 46%; }
   .d-name { font-size: 18px; }
   .d-head, .d-line, .d-type { font-size: 14px; }
-  .tab { font-size: 13px; padding: 0 9px; }
 }

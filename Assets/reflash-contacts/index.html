@@ -6,22 +6,25 @@
        here - people learn where a face sits, and a layout computed on this side would move every one of them. -->
   <section class="graph-pane">
 
-    <!-- The regions run along the TOP, one name each with a small lock on the ones still closed, and a white bar
-         under the one being looked at. -->
-    <div class="tabs" id="tabs"></div>
-
     <div class="viewport" id="viewport">
       <div class="world" id="world">
+        <!-- Vanilla's squared paper, a 64-unit tile across the whole board. Built once; it only ever moves. -->
+        <div class="grid" id="grid"></div>
         <div class="edges" id="edges"></div>
         <div class="nodes" id="nodes"></div>
       </div>
 
-      <!-- Vanilla pinches to zoom and this renderer has no pinch, so the two views it actually uses are buttons:
-           the whole region, or one person up close. -->
-      <div class="controls">
-        <button class="cbtn on" id="z-out">All</button>
-        <button class="cbtn" id="z-in">Near</button>
-      </div>
+      <!-- Vanilla's scroll bars: where the window sits on the board, not something to grab. -->
+      <div class="hbar"><div class="handle" id="hbar"></div></div>
+      <div class="vbar"><div class="handle" id="vbar"></div></div>
+    </div>
+
+    <!-- The regions along the top, over the board rather than above it: a dark strip fading into the paper, one name
+         each, and a white bar under the one being looked at. -->
+    <div class="region-strip">
+      <div class="strip-shade"></div>
+      <img class="strip-fade" src="tabs-fade.png" alt="">
+      <div class="tabs" id="tabs"></div>
     </div>
   </section>
 

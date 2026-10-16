@@ -1,8 +1,7 @@
-// Journal. Rebuilt against the real screen - see Workspace/docs/Reflash/vanilla-dumps/vanilla-journal.txt.
+// Journal. Rebuilt against the real screen - see Workspace/docs/Reflash/vanilla-dumps-047/vanilla-journal.txt.
 //
-// Vanilla shows details on HOVER. The renderer dispatches no mouseenter, so this selects on click instead: the
-// same information, one press away. That is the one deliberate difference, and it is also what makes the app
-// work on a touch screen, where hover does not exist either.
+// Vanilla shows details on HOVER, and so does this page. A click picks as well, which is what makes the app work
+// on a touch screen, where hover does not exist.
 //
 // Three rules every Reflash page follows:
 //   * s1.call is synchronous - never `await`, that deadlocks the game.
@@ -90,8 +89,7 @@ function renderList() {
 
     row.addEventListener('click', pick);
 
-    // Vanilla picks the task under the pointer. In the game there is no pointer and this never fires; in a browser
-    // it does, and the app behaves exactly as the original.
+    // Vanilla picks the task under the pointer, and so does this, in the game and in a browser.
     row.addEventListener('mouseover', pick);
 
     questsEl.appendChild(row);
@@ -111,9 +109,9 @@ function renderDetail() {
   if (!q) {
     var hint = document.createElement('div');
     hint.className = 'hint on';
-    // Vanilla says "Hover a task", because vanilla has a mouse. This renderer delivers no hover, so the sentence
-    // names the gesture that actually works here rather than one the player would wait for in vain.
-    hint.textContent = 'Select a task to view details';
+    // Vanilla's sentence in the game, where a hover picks the task; a phone has no hover, so it is told to tap.
+    hint.appendChild(span('mouse', 'Hover a task to view details'));
+    hint.appendChild(span('touch', 'Tap a task to view details'));
     detailEl.appendChild(hint);
     return;
   }
@@ -146,6 +144,17 @@ function renderDetail() {
   detailEl.appendChild(label);
 
   for (var i = 0; i < steps.length; i++) detailEl.appendChild(stepRow(q, steps[i], i));
+
+  var end = document.createElement('div');
+  end.className = 'steps-end';
+  detailEl.appendChild(end);
+}
+
+function span(cls, text) {
+  var el = document.createElement('div');
+  el.className = cls;
+  el.textContent = text;
+  return el;
 }
 
 function stepRow(quest, step, index) {

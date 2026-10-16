@@ -1,5 +1,5 @@
 #if DEBUG
-using System.IO;
+using HarmonyLib;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.UI.Phone;
 using UnityEngine;
@@ -7,45 +7,54 @@ using UnityEngine;
 namespace Reflash.Dev
 {
     /// <summary>
-    /// Drives the phone from outside the game, for taking reference shots and for reproducing a screen without
-    /// clicking to it by hand.
+    /// Drives the phone from the dev console, for taking reference shots and for reproducing a screen without
+    /// clicking to it by hand: <c>reflash phone</c>, <c>reflash click messages</c>, <c>reflash tap Entry#2</c>.
     ///
-    /// Debug builds only - it is a development tool, not a feature, and a released mod has no business watching a
-    /// file in the Mods folder.
-    ///
-    /// Driven by a file rather than a hotkey because whoever is using it has no keyboard: write a word into
-    /// Mods/reflash.cmd and it runs on the main thread and deletes the file. A console command would be tidier, but
-    /// the game's command dictionary is private and reaching it through IL2CPP is a guess.
+    /// Debug builds only - it is a development tool, not a feature. A console command rather than a hotkey because
+    /// whoever is using it has no keyboard: the bridge can submit a console line, it cannot press a key.
     ///
     /// Every route goes through a real Button.onClick, so what gets photographed is what a player would see.
     /// </summary>
     internal static class Poke
     {
-        private static string _path;
-        private static float _next;
+        private const string Word = "reflash";
 
-        internal static void Tick(float unscaledTime)
+        private static int _lastFrame = -1;
+        private static string _lastLine = "";
+
+        internal static bool TryHandle(string raw)
         {
-            _path ??= Path.Combine(Environment.CurrentDirectory, "Mods", "reflash.cmd");
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+            return Dispatch(raw.Trim());
+        }
 
-            // Twice a second. Checking a file every frame would show up in the render timings being measured.
-            if (unscaledTime < _next) return;
-            _next = unscaledTime + 0.5f;
+        internal static bool TryHandle(Il2CppSystem.Collections.Generic.List<string> args)
+        {
+            if (args == null || args.Count == 0) return false;
+            var parts = new string[args.Count];
+            for (int i = 0; i < args.Count; i++) parts[i] = args[i];
+            return Dispatch(string.Join(" ", parts));
+        }
 
-            string cmd;
-            try
-            {
-                if (!File.Exists(_path)) return;
-                cmd = File.ReadAllText(_path).Trim().ToLowerInvariant();
-                File.Delete(_path);
-            }
-            catch { return; }   // still being written; the next tick gets it
+        /// <summary>True when the line was ours and the game must not see it.</summary>
+        private static bool Dispatch(string line)
+        {
+            if (!line.StartsWith(Word, StringComparison.OrdinalIgnoreCase)) return false;
+            if (line.Length > Word.Length && line[Word.Length] != ' ') return false;
 
-            if (cmd.Length == 0) return;
+            // The string overload calls the list overload, so one submission can arrive twice in the same frame.
+            int frame = Time.frameCount;
+            if (frame == _lastFrame && line == _lastLine) return true;
+            _lastFrame = frame;
+            _lastLine = line;
+
+            string cmd = line.Substring(Word.Length).Trim().ToLowerInvariant();
+            if (cmd.Length == 0) cmd = "help";
 
             Core.Log.Msg($"[Reflash/dev] {cmd}");
             try { Run(cmd); }
             catch (Exception e) { Core.Log.Error($"[Reflash/dev] '{cmd}' threw: {e}"); }
+            return true;
         }
 
         private static void Run(string cmd)
@@ -55,6 +64,9 @@ namespace Reflash.Dev
             if (cmd.StartsWith("dump ")) { UiDump.Active(cmd.Substring(5).Trim()); return; }
             if (cmd.StartsWith("dumpname ")) { UiDump.ByName(cmd.Substring(9).Trim()); return; }
             if (cmd.StartsWith("press ")) { PressAnywhere(cmd.Substring(6).Trim()); return; }
+            if (cmd.StartsWith("takeover ")) { TakeOver(cmd.Substring(9).Trim()); return; }
+            if (cmd == "fonts") { Fonts(); return; }
+            if (cmd.StartsWith("sprite ")) { SpriteProbe(cmd.Substring(7).Trim()); return; }
 
             switch (cmd)
             {
@@ -64,8 +76,72 @@ namespace Reflash.Dev
                 case "icons": ListIcons(); break;
                 case "buttons": ListButtons(); break;
                 case "pair": Pair(); break;
+                case "help": Help(); break;
                 default: Core.Log.Warning($"[Reflash/dev] unknown: {cmd}"); break;
             }
+        }
+
+        private static void Help()
+        {
+            Core.Log.Msg("[Reflash/dev] reflash phone | close | home | icons | buttons | pair | click <icon|index> | "
+                       + "tap <path>[#n] | press <name> | takeover on|off | fonts | dump <label> | dumpname <name> | "
+                       + "sprite <npc id | product id>");
+        }
+
+        /// <summary>
+        /// What the mod hands a page for one NPC's mugshot or one product's icon: the texture's flags, the sprite's
+        /// full rect against the region its pixels are read from, and the pixel in its middle as the published PNG
+        /// carries it. Set against the same picture in a vanilla screenshot, this says whether a face that looks too
+        /// dark or an icon that looks too big was read wrong or drawn wrong.
+        /// </summary>
+        private static void SpriteProbe(string id)
+        {
+            Sprite sprite = null;
+
+            Il2CppScheduleOne.NPCs.NPC npc = Il2CppScheduleOne.NPCs.NPCManager.GetNPC(id);
+            if (npc != null) sprite = npc.MugshotSprite;
+            else
+            {
+                var item = Il2CppScheduleOne.Registry.GetItem(id);
+                if (item == null) { Core.Log.Warning($"[Reflash/dev] no NPC or item '{id}'."); return; }
+                sprite = item.Icon;
+            }
+
+            if (sprite == null || sprite.texture == null) { Core.Log.Warning($"[Reflash/dev] '{id}' has no picture."); return; }
+
+            Texture2D t = sprite.texture;
+            Core.Log.Msg($"[Reflash/dev] sprite '{sprite.name}' tex '{t.name}' {t.width}x{t.height} format={t.format} "
+                       + $"graphics={t.graphicsFormat} readable={t.isReadable} rect={sprite.rect} "
+                       + $"textureRect={sprite.textureRect} offset={sprite.textureRectOffset} packed={sprite.packed}");
+
+            Color32[] px = Game.TextureIO.SpritePixels(sprite, out int w, out int h);
+            if (px == null) { Core.Log.Warning("[Reflash/dev] pixels unreadable."); return; }
+
+            for (int row = 0; row < 5; row++)
+            {
+                int y = h * (row + 3) / 10;
+                Color32 c = px[y * w + w / 2];
+                Core.Log.Msg($"[Reflash/dev] pixel x={w / 2} y={y} (from top {h - 1 - y}) = {c.r},{c.g},{c.b},{c.a}");
+            }
+        }
+
+        /// <summary>
+        /// Flip which screen the phone icons open, the same live switch the Connect app has. Saved like it, so a
+        /// test that turns it on should turn it off again.
+        /// </summary>
+        private static void Fonts()
+        {
+            foreach (var f in UnityEngine.Resources.FindObjectsOfTypeAll<Il2CppTMPro.TMP_FontAsset>())
+                if (f != null) Core.Log.Msg($"[Reflash/dev] tmp font '{f.name}'");
+            foreach (var f in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Font>())
+                if (f != null) Core.Log.Msg($"[Reflash/dev] legacy font '{f.name}'");
+        }
+
+        private static void TakeOver(string arg)
+        {
+            bool on = arg == "on" || arg == "1" || arg == "true";
+            Hijack.AppHijack.SetTakeOver(on);
+            Core.Log.Msg($"[Reflash/dev] takeover {(on ? "on" : "off")}, ready={Hijack.AppHijack.Ready}");
         }
 
         private static void OpenPhone()
@@ -291,6 +367,27 @@ namespace Reflash.Dev
             }
 
             return path;
+        }
+    }
+
+    [HarmonyPatch(typeof(Il2CppScheduleOne.Console), nameof(Il2CppScheduleOne.Console.SubmitCommand), new[] { typeof(string) })]
+    internal static class Poke_SubmitCommand_String
+    {
+        private static bool Prefix(string args)
+        {
+            try { return !Poke.TryHandle(args); }
+            catch (Exception e) { Core.Log.Error($"[Reflash/dev] console hook (string) threw: {e.Message}"); return true; }
+        }
+    }
+
+    [HarmonyPatch(typeof(Il2CppScheduleOne.Console), nameof(Il2CppScheduleOne.Console.SubmitCommand),
+                  new[] { typeof(Il2CppSystem.Collections.Generic.List<string>) })]
+    internal static class Poke_SubmitCommand_List
+    {
+        private static bool Prefix(Il2CppSystem.Collections.Generic.List<string> args)
+        {
+            try { return !Poke.TryHandle(args); }
+            catch (Exception e) { Core.Log.Error($"[Reflash/dev] console hook (list) threw: {e.Message}"); return true; }
         }
     }
 }

@@ -5,6 +5,8 @@ using Il2CppScheduleOne.Map;
 using Il2CppScheduleOne.NPCs;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Property;
+using Il2CppScheduleOne.SpecialCustomers;
+using Il2CppScheduleOne.Vehicles;
 
 // IMapSource.Player() hides the type of the same name.
 using GamePlayer = Il2CppScheduleOne.PlayerScripts.Player;
@@ -111,8 +113,10 @@ namespace Reflash.Game
                     Region = RegionAt(poi.transform.position),
                     X = x,
                     Y = y,
-                    Radius = IsArea(poi, npc) ? AreaRadius : 0,
+                    Radius = IsArea(poi, npc) || IsGroup(poi) ? AreaRadius : 0,
                     HasFace = npc != null && _faces.Has(npc.ID),
+                    Colour = IsGroup(poi) ? GroupColour(poi) : "",
+                    AlwaysLabelled = poi.MainTextVisibility == POI.TextShowMode.Always,
                 });
             }
 
@@ -171,11 +175,116 @@ namespace Reflash.Game
             // building.
             if (poi.GetComponentInParent<SupplierStash>() != null) return "stash";
 
+            // A camp of special customers, the bikers and the like: a coloured disc with the group's name on it.
+            if (IsGroup(poi)) return "group";
+
+            // The player's own cars, a grey badge with a car on it. The test comes before the property one, because a
+            // car parked in a garage can sit under that property in the hierarchy.
+            if (poi.GetComponentInParent<LandVehicle>() != null) return "vehicle";
+
             // Business derives from Property, so it is caught by the same test - and vanilla gives both the same
             // blue badge, so there is nothing to tell apart here.
             if (poi.GetComponentInParent<Property>() != null) return "property";
 
             return "poi";
+        }
+
+        private static bool IsGroup(POI poi) => poi.TryCast<SpecialCustomerGroupPOI>() != null;
+
+        /// <summary>
+        /// The camp's colour. The group keeps it in a private field and only ever writes it onto the disc of its
+        /// map marker, so the disc is where it is read back from.
+        /// </summary>
+        private static string GroupColour(POI poi)
+        {
+            Transform circle = poi.IconContainer != null ? poi.IconContainer.Find("Circle") : null;
+            UnityEngine.UI.Image image = circle != null ? circle.GetComponent<UnityEngine.UI.Image>() : null;
+
+            if (image == null)
+            {
+                Core.Log?.Warning($"Map: the group marker '{poi.MainText}' has no IconContainer/Circle - drawn in grey.");
+                return "#8c8c8c";
+            }
+
+            return Hex(image.color);
+        }
+
+        private static string Hex(Color c) =>
+            "#" + ((int)(c.r * 255f + 0.5f)).ToString("x2") + ((int)(c.g * 255f + 0.5f)).ToString("x2")
+                + ((int)(c.b * 255f + 0.5f)).ToString("x2");
+
+        private List<PlaceNameView> _labels;
+
+        /// <summary>
+        /// The names vanilla prints over the map, read off the live app's label layer: where each sits on the map,
+        /// how big, which colour, and whether it reads from the top of its box or its middle. Kept once found - they
+        /// are part of the map, not of the world.
+        /// </summary>
+        public float LabelsFrom { get; private set; } = 1.2f;
+        public float LabelsFull { get; private set; } = 1.5f;
+
+        public List<PlaceNameView> Labels()
+        {
+            if (_labels != null) return _labels;
+
+            var labels = new List<PlaceNameView>();
+
+            var app = PlayerSingleton<Il2CppScheduleOne.UI.Phone.Map.MapApp>.Instance;
+            // Content/Background/Labels, the object vanilla's LabelGroup sits on. Found by path rather than through
+            // that field, which would pull UnityEngine.UIModule in for CanvasGroup and nothing else.
+            Transform layer = app != null && app.ContentRect != null ? app.ContentRect.Find("Background/Labels") : null;
+            if (layer == null)
+            {
+                Core.Log?.Warning("Map: no vanilla map app to read place names off yet - asked again later.");
+                return labels;
+            }
+
+            // The prefab sets its own fade range over the field defaults, so it is read rather than assumed.
+            LabelsFrom = app.LabelScrollMin;
+            LabelsFull = app.LabelScrollMax;
+
+            RectTransform content = app.ContentRect;
+            Rect area = content.rect;
+            if (area.width <= 0f || area.height <= 0f)
+            {
+                Core.Log?.Warning("Map: the vanilla map has no size yet - its place names are asked for again later.");
+                return labels;
+            }
+
+            float scale = content.lossyScale.x;
+            var texts = layer.GetComponentsInChildren<UnityEngine.UI.Text>();
+
+            for (int i = 0; i < texts.Length; i++)
+            {
+                UnityEngine.UI.Text text = texts[i];
+                if (text == null || string.IsNullOrWhiteSpace(text.text)) continue;
+
+                RectTransform rt = text.rectTransform;
+                Vector3 local = content.InverseTransformPoint(rt.TransformPoint((Vector3)rt.rect.center));
+                float k = scale > 0f ? rt.lossyScale.x / scale : 1f;
+
+                labels.Add(new PlaceNameView
+                {
+                    Text = text.text.Trim(),
+                    X = (local.x - area.xMin) / area.width,
+                    Y = (area.yMax - local.y) / area.height,
+                    Width = rt.rect.width * k / area.width,
+                    Height = rt.rect.height * k / area.width,
+                    Size = text.fontSize * k / area.width,
+                    Colour = Hex(text.color),
+                    Top = text.alignment.ToString().StartsWith("Upper"),
+                    Rotation = Mathf.DeltaAngle(content.eulerAngles.z, rt.eulerAngles.z),
+                });
+            }
+
+            if (labels.Count > 0)
+            {
+                _labels = labels;
+                Core.Log?.Msg($"Map: {labels.Count} place names read off the vanilla map.");
+            }
+            else Core.Log?.Warning("Map: the vanilla map's label layer holds no text - no place names this time.");
+
+            return labels;
         }
 
         /// <summary>
@@ -214,7 +323,11 @@ namespace Reflash.Game
 
             if (!MapSpace.TryNormalise(local.transform.position, out double x, out double y)) return null;
 
-            return new PoiView { Id = "player", Label = "You", Kind = "player", X = x, Y = y };
+            // Vanilla's own arithmetic for the icon's turn, off the marker the player carries.
+            Transform facing = local.PoI != null ? local.PoI.transform : local.transform;
+            float heading = Vector3.SignedAngle(facing.forward, Vector3.forward, Vector3.up);
+
+            return new PoiView { Id = "player", Label = "You", Kind = "player", X = x, Y = y, Heading = heading };
         }
 
         public List<RegionView> Regions()
@@ -336,6 +449,10 @@ namespace Reflash.Game
                         Vector3 p = local.transform.position;
                         hash = hash * 31 + (int)(p.x / 2f);
                         hash = hash * 31 + (int)(p.z / 2f);
+
+                        // The heading in steps of fifteen degrees: the arrow follows a turn without every twitch of
+                        // the mouse counting as a change.
+                        hash = hash * 31 + Mathf.RoundToInt(local.transform.eulerAngles.y / 15f);
                     }
 
                     if (Singleton<Il2CppScheduleOne.Map.Map>.InstanceExists)
