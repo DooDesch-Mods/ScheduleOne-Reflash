@@ -52,9 +52,10 @@ same switch puts the originals back.
 
 - Needs **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** `1.33.6` or newer. A mod
   manager installs it with this one.
-- Your phone has to be on the same network as the PC. Guest Wi-Fi and mobile data both count as somewhere
-  else.
-- If the phone cannot reach it, Windows Firewall is the usual reason. Allow the game on private networks.
+- Your phone can be on any network. On mobile data or another Wi-Fi it connects through
+  `relay.doodesch.de`, end to end encrypted. **Same Wi-Fi only** in Connect turns that off.
+- In Same Wi-Fi only mode, Windows Firewall is the usual reason a phone cannot reach it. Allow the game on
+  private networks.
 - The companion is off until you press the button in Connect, and nothing can use it without the code on
   screen. Installing the mod opens no port.
 
@@ -67,5 +68,6 @@ same switch puts the originals back.
 | `ReplaceVanillaApps` | `false` | Whether the in game icons open the Reflash apps. The Connect app switches this without a restart. |
 | `Companion` | `false` | Whether the server runs. Turning it on in Connect sets this, so it comes back next session. |
 | `CompanionPort` | `6180` | The TCP port. Change it only if something else has that one. |
+| `Relay` | `true` | Whether a phone on another network can connect through `relay.doodesch.de`. |
 
 MIT licensed. Built on [Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload).

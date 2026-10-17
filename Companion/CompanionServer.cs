@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using DooDesch.Relay;
 
 namespace Reflash.Companion
 {
@@ -20,6 +21,10 @@ namespace Reflash.Companion
     ///
     /// Threading: accept and per-connection work happen on pool threads; anything touching the game is queued and
     /// runs on the Unity main thread. Nothing in here calls into the game directly.
+    ///
+    /// The relay (RelayTunnel) is a second way in for a phone on another network. Its requests run through the same
+    /// Route as LAN requests; only the socket-bound parts - pairing by cookie and the SSE stream - differ, because
+    /// the relay room is the session and events go out as relay frames.
     /// </summary>
     internal sealed class CompanionServer
     {
@@ -39,7 +44,11 @@ namespace Reflash.Companion
         private readonly ConcurrentQueue<Action> _mainThread = new ConcurrentQueue<Action>();
         private readonly Bundles _bundles;
 
+        private const string RelayApp = "reflash";
+
         private TcpListener _listener;
+        private RelayTunnel _tunnel;
+        private double _nextTokenSync;
         private Thread _accept;
         private volatile bool _running;
         private int _streams;
@@ -54,6 +63,12 @@ namespace Reflash.Companion
         internal string LanIp { get; private set; } = "";
 
         internal Sessions Devices => _sessions;
+
+        internal bool RelayOn => _tunnel != null;
+
+        /// <summary>The QR target through the relay. The LAN address goes along so a phone on the same network can
+        /// switch to it.</summary>
+        internal string RelayPageUrl(string token) => _tunnel?.PageUrl(token, LanIp + ":" + Port) ?? "";
 
         internal bool Start(int port)
         {
@@ -74,6 +89,9 @@ namespace Reflash.Companion
                 Core.Log.Msg($"companion server on http://{LanIp}:{port}");
                 Core.Log.Msg("if a phone cannot reach it, Windows Firewall is the usual reason - allow " +
                              $"TCP {port} on the private network.");
+
+                if (Prefs.RelayEnabled) SetRelay(true);
+                else Core.Log.Msg("the relay is off: only phones on the same network can connect.");
                 return true;
             }
             catch (Exception e)
@@ -86,6 +104,7 @@ namespace Reflash.Companion
 
         internal void Stop()
         {
+            SetRelay(false);
             _running = false;
             _sessions.DropAll();
 
@@ -95,8 +114,38 @@ namespace Reflash.Companion
 
         /// <summary>Drains work queued by connection threads. Called from OnUpdate, so everything it runs is on the
         /// Unity main thread and may touch the game.</summary>
+        /// <summary>Open or close the relay while the server runs. Off by itself does nothing to LAN phones.</summary>
+        internal void SetRelay(bool on)
+        {
+            if (on && _running && _tunnel == null)
+            {
+                _tunnel = new RelayTunnel(RelayApp, Prefs.RelayUrl, new RelayTunnel.Handlers
+                {
+                    Pair = RelayPair,
+                    Handle = RelayHandle,
+                    Pull = RelayPull,
+                    Info = m => Core.Log.Msg(m),
+                    Warn = m => Core.Log.Warning(m),
+                    Error = m => Core.Log.Error(m),
+                });
+                _nextTokenSync = 0;
+            }
+            else if (!on && _tunnel != null)
+            {
+                _tunnel.Stop();
+                _tunnel = null;
+            }
+        }
+
         internal void Pump()
         {
+            // The pairing room follows the code on screen. Twice a second is plenty: a code lives two minutes.
+            if (_tunnel != null && Clock.Now >= _nextTokenSync)
+            {
+                _nextTokenSync = Clock.Now + 0.5;
+                _tunnel.SetPairingToken(_sessions.LiveToken(Clock.Now));
+            }
+
             int budget = 16;
             while (budget-- > 0 && _mainThread.TryDequeue(out Action work))
             {
@@ -203,7 +252,7 @@ namespace Reflash.Companion
                 if (req == null) return;
 
                 string remote = (client.Client.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "";
-                Route(stream, req, remote);
+                Route(new SocketReply(stream), req, remote);
             }
             catch (Exception e)
             {
@@ -216,15 +265,20 @@ namespace Reflash.Companion
             }
         }
 
-        private void Route(NetworkStream stream, HttpRequest req, string remote)
+        private void Route(IReply reply, HttpRequest req, string remote)
         {
-            // Rebinding guard: only the addresses this server is actually reachable at are accepted as a Host, so a
-            // hostile page cannot point a name it controls at this port and read the answers.
-            if (!HostAllowed(req.Host)) { Http.Text(stream, 400, "bad host"); return; }
+            // Both checks guard the socket. A relay request has no Host or Origin of its own: it reached this code
+            // only by decrypting under a session's secret.
+            if (!req.ViaRelay)
+            {
+                // Rebinding guard: only the addresses this server is actually reachable at are accepted as a Host,
+                // so a hostile page cannot point a name it controls at this port and read the answers.
+                if (!HostAllowed(req.Host)) { Http.Text(reply, 400, "bad host"); return; }
 
-            // No CORS headers anywhere, deliberately - anything cross-origin has no business here, and SameSite
-            // plus the custom header is what keeps a form post from another page out.
-            if (req.Origin.Length > 0 && !OriginAllowed(req.Origin)) { Http.Text(stream, 403, "bad origin"); return; }
+                // No CORS headers anywhere, deliberately - anything cross-origin has no business here, and SameSite
+                // plus the custom header is what keeps a form post from another page out.
+                if (req.Origin.Length > 0 && !OriginAllowed(req.Origin)) { Http.Text(reply, 403, "bad origin"); return; }
+            }
 
             switch (req.Path)
             {
@@ -232,74 +286,86 @@ namespace Reflash.Companion
                     // The one route an unpaired device may read, and its whole job is to say "something is here".
                     // Not even the number of connected devices - that is a fact about the household, and nothing
                     // that has not paired has a reason to learn it.
-                    Http.Json(stream, 200, "{\"ok\":true,\"name\":\"Reflash\"}");
+                    Http.Json(reply, 200, "{\"ok\":true,\"name\":\"Reflash\"}");
                     return;
 
                 case "/":
-                    Http.Html(stream, Shell.Page());
+                    Http.Html(reply, Shell.Page(req.Root));
                     return;
 
                 case "/api/pair":
-                    Pair(stream, req, remote);
+                    // Through the relay, pairing already happened in the pairing room.
+                    if (req.ViaRelay) { Http.Text(reply, 404, "not found"); return; }
+                    Pair(reply, req, remote);
                     return;
             }
 
             if (req.Path.StartsWith("/sc/", StringComparison.Ordinal))
             {
-                // The shell's own files carry no secrets and are needed before pairing.
-                Shell.ServeAsset(stream, req.Path.Substring(4));
+                // The shell's own files carry no secrets and are needed before pairing. Through the relay they may be
+                // kept for the life of the page: every app pulls the 130 KB font file, and the relay is slower than
+                // the LAN. A new mod version means a restarted game, and that means a new page.
+                Shell.ServeAsset(reply, req.Path.Substring(4), req.ViaRelay ? "Cache-Control: private, max-age=3600" : null);
                 return;
             }
 
-            Sessions.Session session = _sessions.Find(req.CookieValue("rsid"), Clock.Now);
-            if (session == null) { Http.Text(stream, 401, "not paired"); return; }
+            Sessions.Session session = _sessions.Find(req.ViaRelay ? req.SessionId : req.CookieValue("rsid"), Clock.Now);
+            if (session == null) { Http.Text(reply, 401, "not paired"); return; }
 
-            if (req.Path == "/events") { ServeEvents(stream, session); return; }
+            if (req.Path == "/events")
+            {
+                // Through the relay, events are pushed by RelayPull.
+                if (!(reply is SocketReply socket)) { Http.Text(reply, 404, "not found"); return; }
+                ServeEvents(socket.Stream, session);
+                return;
+            }
 
-            if (req.Path == "/api/manifest") { Http.Json(stream, 200, OnMainThread(Manifest, "[]")); return; }
+            if (req.Path == "/api/manifest") { Http.Json(reply, 200, OnMainThread(Manifest, "[]")); return; }
 
-            if (req.Path == "/api/calls") { ServeCalls(stream, req, session); return; }
+            if (req.Path == "/api/calls") { ServeCalls(reply, req, session); return; }
 
-            if (req.Path.StartsWith("/app/", StringComparison.Ordinal)) { ServeBundle(stream, req.Path.Substring(5)); return; }
+            if (req.Path == "/api/log") { ServeLog(reply, req); return; }
 
-            if (req.Path.StartsWith("/img/", StringComparison.Ordinal)) { ServeImage(stream, req.Path.Substring(5)); return; }
+            if (req.Path.StartsWith("/app/", StringComparison.Ordinal)) { ServeBundle(reply, req.Path.Substring(5), req.Root); return; }
 
-            if (req.Path.StartsWith("/icon/", StringComparison.Ordinal)) { ServeIcon(stream, req.Path.Substring(6)); return; }
+            if (req.Path.StartsWith("/img/", StringComparison.Ordinal)) { ServeImage(reply, req.Path.Substring(5)); return; }
+
+            if (req.Path.StartsWith("/icon/", StringComparison.Ordinal)) { ServeIcon(reply, req.Path.Substring(6)); return; }
 
             if (req.Path == "/wallpaper")
             {
                 byte[] png = OnMainThread(Wallpaper.Png, null);
-                if (png == null) Http.Text(stream, 404, "not found");
-                else Http.Bytes(stream, 200, "image/png", png, "Cache-Control: private, max-age=3600");
+                if (png == null) Http.Text(reply, 404, "not found");
+                else Http.Bytes(reply, 200, "image/png", png, "Cache-Control: private, max-age=3600");
                 return;
             }
 
             if (req.Path == "/fw/s1.css")
             {
                 byte[] css = OnMainThread(() => _bundles.FrameworkAsset("s1.css"), null);
-                if (css == null) Http.Text(stream, 404, "not found");
-                else Http.Bytes(stream, 200, "text/css; charset=utf-8", css);
+                if (css == null) Http.Text(reply, 404, "not found");
+                else Http.Bytes(reply, 200, "text/css; charset=utf-8", css);
                 return;
             }
 
-            Http.Text(stream, 404, "not found");
+            Http.Text(reply, 404, "not found");
         }
 
-        private void Pair(NetworkStream stream, HttpRequest req, string remote)
+        private void Pair(IReply reply, HttpRequest req, string remote)
         {
-            if (req.Method != "POST" || !req.HasClientHeader) { Http.Text(stream, 400, "bad request"); return; }
+            if (req.Method != "POST" || !req.HasClientHeader) { Http.Text(reply, 400, "bad request"); return; }
 
             string token = JsonRead.Field(req.Body, "t");
             string device = JsonRead.Field(req.Body, "device");
 
             Sessions.Session session = _sessions.Pair(token, device, remote, Clock.Now, out Sessions.Refusal why);
-            if (session == null) { Http.Text(stream, 403, Explain(why)); return; }
+            if (session == null) { Http.Text(reply, 403, Explain(why)); return; }
 
             Core.Log.Msg($"a device paired from {remote}.");
 
             // HttpOnly so no script can read it, SameSite=Strict so no other site can cause a request that carries
             // it. No Secure flag - there is no https here and claiming otherwise would just break the cookie.
-            Http.Bytes(stream, 200, "application/json",
+            Http.Bytes(reply, 200, "application/json",
                        Encoding.UTF8.GetBytes("{\"ok\":true}"),
                        "Set-Cookie: rsid=" + session.Id + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200");
         }
@@ -379,13 +445,13 @@ namespace Reflash.Companion
         /// A batch of s1.call equivalents. Batched on purpose: each one has to reach the Unity main thread, and
         /// marshalling forty times means forty frames of latency where one will do.
         /// </summary>
-        private void ServeCalls(NetworkStream stream, HttpRequest req, Sessions.Session session)
+        private void ServeCalls(IReply reply, HttpRequest req, Sessions.Session session)
         {
-            if (req.Method != "POST" || !req.HasClientHeader) { Http.Text(stream, 400, "bad request"); return; }
+            if (req.Method != "POST" || !req.HasClientHeader) { Http.Text(reply, 400, "bad request"); return; }
 
             List<JsonRead.Call> calls = JsonRead.ParseCalls(req.Body);
-            if (calls.Count == 0) { Http.Json(stream, 200, "[]"); return; }
-            if (calls.Count > 64) { Http.Text(stream, 400, "too many calls"); return; }
+            if (calls.Count == 0) { Http.Json(reply, 200, "[]"); return; }
+            if (calls.Count > 64) { Http.Text(reply, 400, "too many calls"); return; }
 
             string answer = OnMainThread(() => CallOrigin.Run(session, () =>
             {
@@ -399,46 +465,60 @@ namespace Reflash.Companion
                 return sb.Append(']').ToString();
             }), "[]");
 
-            Http.Json(stream, 200, answer);
+            Http.Json(reply, 200, answer);
         }
 
-        private void ServeBundle(NetworkStream stream, string rest)
+        /// <summary>s1.log from an app on the phone, into the same log the in-game copy of the app writes to.</summary>
+        private static void ServeLog(IReply reply, HttpRequest req)
+        {
+            if (req.Method != "POST" || !req.HasClientHeader) { Http.Text(reply, 400, "bad request"); return; }
+
+            const int MaxChars = 500;
+            string app = JsonRead.Field(req.Body, "app");
+            string text = JsonRead.Field(req.Body, "text");
+            if (text.Length > MaxChars) text = text.Substring(0, MaxChars) + "...";
+
+            Core.Log.Msg("[phone] [" + app + "] " + text);
+            Http.Json(reply, 200, "{\"ok\":true}");
+        }
+
+        private void ServeBundle(IReply reply, string rest, string root)
         {
             int slash = rest.IndexOf('/');
-            if (slash <= 0) { Http.Text(stream, 404, "not found"); return; }
+            if (slash <= 0) { Http.Text(reply, 404, "not found"); return; }
 
             string appId = rest.Substring(0, slash);
             string path = rest.Substring(slash + 1);
 
-            if (!SafePath(path)) { Http.Text(stream, 400, "bad path"); return; }
+            if (!SafePath(path)) { Http.Text(reply, 400, "bad path"); return; }
 
             byte[] bytes = OnMainThread(() => _bundles.Read(appId, path), null);
-            if (bytes == null) { Http.Text(stream, 404, "not found"); return; }
+            if (bytes == null) { Http.Text(reply, 404, "not found"); return; }
 
             // index.html is the one file that is rewritten on the way out: three lines go into its head so the same
             // bundle that runs in the game runs here. The file on disk is untouched - a real <script> tag pointing
             // at /sc/ would be a missing bundle file to the in-game renderer.
             if (path.EndsWith("index.html", StringComparison.OrdinalIgnoreCase))
-                bytes = Shell.InjectInto(bytes, appId);
+                bytes = Shell.InjectInto(bytes, appId, root);
 
             // no-store, and it is not caution. A bundle file may be replaced under the app - by a mod update, or by
             // a folder under Mods/<appId>/ while someone is working on it - and a browser that kept the old app.js
             // shows the old app with no way to tell. Hunting a fix that was already deployed cost real time here.
-            Http.Bytes(stream, 200, Mime.For(path), bytes, "Cache-Control: no-store");
+            Http.Bytes(reply, 200, Mime.For(path), bytes, "Cache-Control: no-store");
         }
 
-        private void ServeImage(NetworkStream stream, string rest)
+        private void ServeImage(IReply reply, string rest)
         {
             int slash = rest.IndexOf('/');
-            if (slash <= 0) { Http.Text(stream, 404, "not found"); return; }
+            if (slash <= 0) { Http.Text(reply, 404, "not found"); return; }
 
             string appId = rest.Substring(0, slash);
             string name = rest.Substring(slash + 1);
 
             byte[] png = OnMainThread(() => _bundles.RuntimeImage(appId, name), null);
-            if (png == null) { Http.Text(stream, 404, "not found"); return; }
+            if (png == null) { Http.Text(reply, 404, "not found"); return; }
 
-            Http.Bytes(stream, 200, "image/png", png);
+            Http.Bytes(reply, 200, "image/png", png);
         }
 
         /// <summary>
@@ -471,17 +551,62 @@ namespace Reflash.Companion
         /// A home screen icon, addressed by the label under it - "/icon/Messages". The label rather than an app id
         /// because it is the only thing the phone's icon and the companion's app list agree on.
         /// </summary>
-        private void ServeIcon(NetworkStream stream, string label)
+        private void ServeIcon(IReply reply, string label)
         {
             label = Http.Unescape(label);
-            if (label.Length == 0) { Http.Text(stream, 404, "not found"); return; }
+            if (label.Length == 0) { Http.Text(reply, 404, "not found"); return; }
 
             byte[] png = OnMainThread(() => Icons.For(label), null);
-            if (png == null) { Http.Text(stream, 404, "not found"); return; }
+            if (png == null) { Http.Text(reply, 404, "not found"); return; }
 
             // The artwork does not change while the game runs, and a phone re-reading eight PNGs on every return to
             // the home screen is eight readbacks nobody asked for.
-            Http.Bytes(stream, 200, "image/png", png, "Cache-Control: private, max-age=3600");
+            Http.Bytes(reply, 200, "image/png", png, "Cache-Control: private, max-age=3600");
+        }
+
+        // ----- the relay -----
+
+        /// <summary>
+        /// A phone in the pairing room. The same check as a LAN pairing, with "relay" as the address the lockout
+        /// counts: a wrong code cannot get here at all, because the pairing room itself derives from the code.
+        /// </summary>
+        private RelayTunnel.PairResult RelayPair(string token, string device)
+        {
+            Sessions.Session session = _sessions.Pair(token, device, "relay", Clock.Now, out Sessions.Refusal why);
+            if (session == null) return new RelayTunnel.PairResult { Refusal = Explain(why) };
+
+            Core.Log.Msg("a device paired through the relay.");
+            return new RelayTunnel.PairResult { Session = session.Id };
+        }
+
+        private RelayTunnel.Response RelayHandle(RelayTunnel.Request r)
+        {
+            var reply = new RelayReply();
+            if (!_running) Http.Text(reply, 503, "The companion is off.");
+            else Route(reply, HttpRequest.FromRelay(r), "relay");
+
+            return new RelayTunnel.Response
+            {
+                Status = reply.Status,
+                ContentType = reply.ContentType,
+                Cache = reply.Cache,
+                Body = reply.Body,
+            };
+        }
+
+        /// <summary>The relay's version of the SSE loop. Draining counts as the phone being seen, like an open
+        /// stream does; the idle check does not, so a session nobody looks at expires on the same clock as on LAN.</summary>
+        private IReadOnlyList<string> RelayPull(string sessionId, bool drain)
+        {
+            if (!_running) return null;
+
+            Sessions.Session session = drain ? _sessions.Find(sessionId, Clock.Now) : _sessions.Peek(sessionId, Clock.Now);
+            if (session == null) return null;
+            if (!drain || session.Outbox.IsEmpty) return Array.Empty<string>();
+
+            var events = new List<string>();
+            while (events.Count < 64 && session.Outbox.TryDequeue(out string envelope)) events.Add(envelope);
+            return events;
         }
 
         /// <summary>

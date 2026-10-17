@@ -5,10 +5,60 @@ using System.Text;
 
 namespace Reflash.Companion
 {
+    /// <summary>
+    /// Where a response goes. The LAN server writes it onto its socket; a request that came through the relay is
+    /// captured and sent back as relay frames. Both run through the same routes and checks.
+    /// </summary>
+    internal interface IReply
+    {
+        void Send(int status, string contentType, byte[] body, string extraHeader);
+    }
+
+    internal sealed class SocketReply : IReply
+    {
+        internal readonly NetworkStream Stream;
+
+        internal SocketReply(NetworkStream stream) => Stream = stream;
+
+        public void Send(int status, string contentType, byte[] body, string extraHeader) =>
+            Http.Bytes(Stream, status, contentType, body, extraHeader);
+    }
+
+    /// <summary>Captures one response for the relay. Only Cache-Control survives of the extra headers: a cookie
+    /// means nothing there, the session is the relay room.</summary>
+    internal sealed class RelayReply : IReply
+    {
+        internal int Status = 500;
+        internal string ContentType = "text/plain; charset=utf-8";
+        internal string Cache = "no-store";
+        internal byte[] Body = Array.Empty<byte>();
+
+        public void Send(int status, string contentType, byte[] body, string extraHeader)
+        {
+            Status = status;
+            ContentType = contentType;
+            Body = body ?? Array.Empty<byte>();
+            if (extraHeader != null && extraHeader.StartsWith("Cache-Control:", StringComparison.OrdinalIgnoreCase))
+                Cache = extraHeader.Substring("Cache-Control:".Length).Trim();
+        }
+    }
+
     /// <summary>Writing HTTP/1.1 responses onto a raw socket. Every response closes the connection - there is no
     /// keep-alive here, and a phone making a handful of requests per interaction does not need one.</summary>
     internal static class Http
     {
+        internal static void Text(IReply reply, int status, string message) =>
+            reply.Send(status, "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(message), null);
+
+        internal static void Json(IReply reply, int status, string json) =>
+            reply.Send(status, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(json), null);
+
+        internal static void Html(IReply reply, string html) =>
+            reply.Send(200, "text/html; charset=utf-8", Encoding.UTF8.GetBytes(html), null);
+
+        internal static void Bytes(IReply reply, int status, string contentType, byte[] body, string extraHeader = null) =>
+            reply.Send(status, contentType, body, extraHeader);
+
         internal static void Text(NetworkStream stream, int status, string message) =>
             Bytes(stream, status, "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(message));
 
@@ -100,6 +150,8 @@ namespace Reflash.Companion
             401 => "Unauthorized",
             403 => "Forbidden",
             404 => "Not Found",
+            413 => "Payload Too Large",
+            500 => "Internal Server Error",
             503 => "Service Unavailable",
             _ => "OK",
         };

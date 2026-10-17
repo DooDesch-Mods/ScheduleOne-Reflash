@@ -18,14 +18,24 @@ namespace Reflash.Companion
         /// The outer page. Deliberately tiny and self-contained: it exists to take the pairing token out of the
         /// URL fragment, trade it for a session, and then show the app grid in an iframe.
         /// </summary>
-        internal static string Page() => Asset("shell.html");
+        /// <param name="root">Where "/" of the server lives for this page, empty on LAN. Through the relay the shell
+        /// learns it from <c>window.__reflashRoot</c>, which also tells it to take events from the page around it.</param>
+        internal static string Page(string root)
+        {
+            string html = Asset("shell.html");
+            if (string.IsNullOrEmpty(root) || html == null) return html;
 
-        internal static void ServeAsset(NetworkStream stream, string name)
+            int head = html.IndexOf("<head>", StringComparison.OrdinalIgnoreCase);
+            string script = "\n<script>window.__reflashRoot=" + JsonRead.Quote(root) + ";</script>";
+            return head >= 0 ? html.Insert(head + 6, script) : script + html;
+        }
+
+        internal static void ServeAsset(IReply reply, string name, string extraHeader)
         {
             byte[] bytes = AssetBytes(name);
-            if (bytes == null) { Http.Text(stream, 404, "not found"); return; }
+            if (bytes == null) { Http.Text(reply, 404, "not found"); return; }
 
-            Http.Bytes(stream, 200, Mime.For(name), bytes);
+            Http.Bytes(reply, 200, Mime.For(name), bytes, extraHeader);
         }
 
         /// <summary>
@@ -36,9 +46,10 @@ namespace Reflash.Companion
         /// compat.css restates the renderer's own defaults, without which the browser lays every box out
         /// differently. s1-bridge.js is the shim that makes s1.call work over a network.
         /// </summary>
-        internal static byte[] InjectInto(byte[] html, string appId)
+        internal static byte[] InjectInto(byte[] html, string appId, string root)
         {
             string text = Encoding.UTF8.GetString(html);
+            root ??= "";
 
             // The colour-scheme declaration has to be a meta tag in the markup, not a rule in compat.css. Android
             // Chrome decides whether to force-darken a document before the stylesheets arrive, and a page it
@@ -46,18 +57,18 @@ namespace Reflash.Companion
             // code's white quiet zone down to about #c0c0c0, where a camera struggles to read it.
             string inject =
                 "<meta name=\"color-scheme\" content=\"dark\">\n" +
-                "<base href=\"/app/" + appId + "/\">\n" +
-                "<link rel=\"stylesheet\" href=\"/sc/font.css\">\n" +
-                "<link rel=\"stylesheet\" href=\"/sc/compat.css\">\n" +
-                "<script>window.__reflashApp=" + JsonRead.Quote(appId) + ";</script>\n" +
-                "<script src=\"/sc/s1-bridge.js\"></script>\n";
+                "<base href=\"" + root + "/app/" + appId + "/\">\n" +
+                "<link rel=\"stylesheet\" href=\"" + root + "/sc/font.css\">\n" +
+                "<link rel=\"stylesheet\" href=\"" + root + "/sc/compat.css\">\n" +
+                "<script>window.__reflashApp=" + JsonRead.Quote(appId) + ";window.__reflashRoot=" + JsonRead.Quote(root) + ";</script>\n" +
+                "<script src=\"" + root + "/sc/s1-bridge.js\"></script>\n";
 
             // `s1://` is the renderer's own scheme for a picture the mod supplied at runtime. The bridge rewrites it
             // wherever script touches it, but a src written straight into the markup never goes through script - the
             // browser has already tried to fetch it and failed by the time any code runs. Rewriting it here is what
             // stops the map asking for a scheme no browser has ever heard of.
-            text = text.Replace("\"s1://", "\"/img/" + appId + "/")
-                       .Replace("'s1://", "'/img/" + appId + "/");
+            text = text.Replace("\"s1://", "\"" + root + "/img/" + appId + "/")
+                       .Replace("'s1://", "'" + root + "/img/" + appId + "/");
 
             // The bundles here have no <head> - they are fragments, which is what the in-game renderer wants - so
             // the injection goes at the very front. A browser builds the head implicitly around it.

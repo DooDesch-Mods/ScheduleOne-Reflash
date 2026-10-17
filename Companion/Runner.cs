@@ -90,6 +90,14 @@ namespace Reflash.Companion
             Core.Log.Msg("the phone companion is off.");
         }
 
+        /// <summary>The relay switch in Connect. Remembered like the server switch.</summary>
+        internal void SetRelay(bool on)
+        {
+            Prefs.SetRelayEnabled(on);
+            _server.SetRelay(on);
+            Core.Log.Msg(on ? "the relay is on." : "the relay is off: only phones on the same network can connect.");
+        }
+
         internal void Pump() => _server.Pump();
 
         /// <summary>Quitting. Unlike <see cref="TurnOff"/> this must not touch the preference - the player did not

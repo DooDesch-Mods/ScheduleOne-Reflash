@@ -7,7 +7,7 @@ var RICH = typeof s1 !== 'undefined' && s1.rich === true;
 var bodyEl = document.getElementById('body');
 var devicesEl = document.getElementById('devices');
 
-var state = { running: false, devices: 0, url: '', plain: '', qr: false, expires: 0, problem: '', takeover: false };
+var state = { running: false, devices: 0, url: '', plain: '', qr: false, expires: 0, problem: '', takeover: false, relay: false };
 
 function read() {
   var raw = s1.call('reflash-connect.state', '');
@@ -41,7 +41,7 @@ function side() {
   side.className = 'side';
 
   side.appendChild(step('1', 'Scan with your phone camera.'));
-  side.appendChild(step('2', 'Phone and PC need the same network.'));
+  side.appendChild(step('2', state.relay ? 'Works on any network.' : 'Phone and PC need the same network.'));
 
   // Always show the address in text. A QR on a stream, behind sharpening or across a room is often unreadable,
   // and typing it in has to stay possible.
@@ -71,8 +71,19 @@ function side() {
 
   var hint = document.createElement('div');
   hint.className = 'hint';
-  hint.textContent = 'Won\'t connect? Allow the game on private networks in Windows Firewall.';
+  hint.textContent = state.relay
+    ? 'Encrypted, via relay.doodesch.de'
+    : 'Won\'t connect? Allow the game on private networks in Windows Firewall.';
   side.appendChild(hint);
+
+  // The relay switch. Hidden on the paired phone for the same reason as Turn off: it may be the connection the
+  // press arrived on.
+  if (!RICH) {
+    var relay = document.createElement('div');
+    relay.className = 'buttons';
+    relay.appendChild(button(state.relay ? 'Same Wi-Fi only' : 'Allow any network', state.relay ? 'relay-off' : 'relay-on'));
+    side.appendChild(relay);
+  }
 
   if (!RICH) side.appendChild(takeover());
 

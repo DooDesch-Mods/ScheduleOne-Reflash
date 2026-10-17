@@ -53,6 +53,7 @@ namespace Reflash.Screens
                     hash = hash * 31 + Server.Devices.Count;
                     hash = hash * 31 + _companion.Problem.Length;
                     hash = hash * 31 + (AppHijack.Ready ? 1 : 0);
+                    hash = hash * 31 + (Server.RelayOn ? 1 : 0);
 
                     // Quantised to five seconds: the countdown should tick, not the whole page.
                     if (_companion.Running) hash = hash * 31 + (int)(Server.Devices.TokenAgeSeconds(Clock.Now) / 5);
@@ -69,12 +70,18 @@ namespace Reflash.Screens
                 .Add("running", _companion.Running)
                 .Add("devices", Server.Devices.Count)
                 .Add("problem", _companion.Problem)
-                .Add("takeover", AppHijack.Ready);
+                .Add("takeover", AppHijack.Ready)
+                .Add("relay", Server.RelayOn);
 
             if (!_companion.Running) return root.Add("url", "").Add("qr", false).Close();
 
             string token = Server.Devices.CurrentToken(Clock.Now);
-            string url = "http://" + Server.LanIp + ":" + Server.Port + "/#t=" + token;
+
+            // With the relay on, the code opens the relay page. It still carries the LAN address and switches to it
+            // when the phone is on the same network, so LAN stays the first choice.
+            string url = Server.RelayOn
+                ? Server.RelayPageUrl(token)
+                : "http://" + Server.LanIp + ":" + Server.Port + "/#t=" + token;
 
             // The picture is handed over as a runtime image rather than drawn - there is no canvas here, and a QR
             // built out of boxes would be several hundred of them.
@@ -113,6 +120,11 @@ namespace Reflash.Screens
                     // The staged rollout, in the player's hands: the same screens the phone in their pocket is
                     // showing can take over the icons here, one press, no restart.
                     AppHijack.SetTakeOver(cmd.Op == "apps-on");
+                    return Reply.Ok;
+
+                case "relay-on":
+                case "relay-off":
+                    _companion.SetRelay(cmd.Op == "relay-on");
                     return Reply.Ok;
 
                 case "new":
