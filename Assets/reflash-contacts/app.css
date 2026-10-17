@@ -28,7 +28,19 @@ img { color: #ffffff; }
 .region-strip { position: absolute; left: 0; right: 0; top: 0; height: 48.9px; }
 .strip-shade { position: absolute; left: 0; right: 0; top: 0; height: 24.4px; background: #0000009a; }
 .strip-fade { position: absolute; left: 0; right: 0; top: 24.4px; width: 100%; height: 18.3px; }
-.tabs { position: absolute; left: 12.2px; right: 0; top: 0; flex-direction: row; }
+/* Scrolls sideways: on a narrow phone the six names run past the edge, and without this the last ones could not be
+   reached. pan-x lets a finger drag the row without the board under it taking the gesture. */
+.tabs {
+  position: absolute;
+  left: 12.2px;
+  right: 0;
+  top: 0;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
 
 .tab {
   position: relative;
