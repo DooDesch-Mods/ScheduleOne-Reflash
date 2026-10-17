@@ -268,6 +268,9 @@ namespace Reflash.Dev
             Core.Log.Msg(string.IsNullOrEmpty(url)
                 ? "[Reflash/dev] the companion server is not running."
                 : "[Reflash/dev] pair at " + url);
+
+            string relay = Core.CompanionRelayUrl();
+            Core.Log.Msg(relay.Length == 0 ? "[Reflash/dev] the relay is off." : "[Reflash/dev] relay pair at " + relay);
         }
 
         private static void ClosePhone()

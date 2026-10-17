@@ -110,6 +110,14 @@ namespace Reflash.Companion
             }
         }
 
+        /// <summary>The live token, or empty when none is. Unlike <see cref="CurrentToken"/> it never mints one and
+        /// never sweeps, so the relay can follow the code on screen twice a second for free.</summary>
+        internal string LiveToken(double now)
+        {
+            lock (_tokenLock)
+                return _tokenBornAt >= 0 && now - _tokenBornAt < PairingWindowSeconds ? _token : "";
+        }
+
         /// <summary>Whether a token is still worth showing, so the connect screen can say "expired" rather than
         /// silently handing out one that will be refused.</summary>
         internal double TokenAgeSeconds(double now)
@@ -185,6 +193,18 @@ namespace Reflash.Companion
 
             session.LastSeen = now;
             return session;
+        }
+
+        /// <summary>A session by id without counting as a sign of life. Gone when it has idled past the limit, even if
+        /// no sweep ran since.</summary>
+        internal Session Peek(string sessionId, double now)
+        {
+            if (string.IsNullOrEmpty(sessionId)) return null;
+            if (!_sessions.TryGetValue(sessionId, out Session session)) return null;
+            if (now - session.LastSeen <= SessionIdleSeconds) return session;
+
+            _sessions.TryRemove(sessionId, out _);
+            return null;
         }
 
         /// <summary>

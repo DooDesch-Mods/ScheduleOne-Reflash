@@ -27,6 +27,26 @@ namespace Reflash.Companion
         internal string Accept = "";
         internal bool HasClientHeader;   // X-Reflash: the header a cross-origin form post cannot set
 
+        /// <summary>Came through the relay. Then the session is the relay room's and Host/Origin do not apply.</summary>
+        internal bool ViaRelay;
+        internal string SessionId = "";
+
+        /// <summary>Where "/" of this server lives in the page that asked. Empty on LAN, "/reflash/~" through the
+        /// relay. Links written into served pages go under it.</summary>
+        internal string Root = "";
+
+        internal static HttpRequest FromRelay(DooDesch.Relay.RelayTunnel.Request r) => new HttpRequest
+        {
+            Method = r.Method,
+            Path = r.Path,
+            Query = r.Query,
+            Body = r.Body.Length > 0 ? Encoding.UTF8.GetString(r.Body) : "",
+            HasClientHeader = r.Headers.ContainsKey("x-reflash"),
+            ViaRelay = true,
+            SessionId = r.Session,
+            Root = r.Root,
+        };
+
         internal static HttpRequest Read(NetworkStream stream)
         {
             var ms = new MemoryStream();

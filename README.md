@@ -67,7 +67,7 @@ and the same switch puts the originals back. It is also `ReplaceVanillaApps` in 
 | Schedule I | IL2CPP (current Steam public build) |
 | MelonLoader | `0.7.3+` |
 | Sideload | `1.33.6+` ([Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)) |
-| A phone or tablet | any browser, on the same network as the PC |
+| A phone or tablet | any current browser, on any network |
 
 ## Installation
 
@@ -83,13 +83,18 @@ Install **Reflash** with r2modman or the Thunderstore app. Sideload comes with i
 ## Pairing a phone
 
 1. Open **Connect** on the in game phone and press **Turn on**. The server starts and a QR code appears.
-2. Scan it with your phone's camera. The link is plain `http://` on your own network, so any browser opens it.
+2. Scan it with your phone's camera.
 3. The phone asks for nothing else. It is paired, and the home screen is there.
 
-If nothing happens after scanning, it is almost always one of two things. Either the phone is not on the
-same network as the PC - guest Wi-Fi and mobile data both count as somewhere else - or Windows Firewall is
-holding the port. A dialog you clicked away once leaves a block rule behind that no later prompt overrides;
-allow the game on private networks and try again.
+The code opens `relay.doodesch.de`. When the phone is on the same network as the PC, the page switches to the
+PC's own address and the relay is out of the way. On mobile data or another Wi-Fi it stays on the relay, end
+to end encrypted: the key is only in the QR code, so the relay passes on data it cannot read and keeps
+nothing.
+
+**Same Wi-Fi only** in Connect turns the relay off. The code is then the plain `http://` address on your
+network. If nothing happens after scanning in that mode, either the phone is on another network - guest
+Wi-Fi and mobile data both count - or Windows Firewall is holding the port. A dialog you clicked away once
+leaves a block rule behind that no later prompt overrides; allow the game on private networks and try again.
 
 The address is printed under the code as text as well, because a QR code on a stream or across a room is
 often unreadable and typing it has to stay possible.
@@ -116,16 +121,21 @@ It is plain HTTP, because it has to be: a browser will not let an `https` page r
 certificate for `192.168.x.x` is not a thing that exists. Treat it as what it is - a screen on your own
 network, not something to forward through a router.
 
+**The relay** needs no open port either. The game connects out to `relay.doodesch.de`, and so does the phone.
+Each phone gets its own room with its own key, handed over inside the encrypted pairing; the relay sees the
+size and timing of the traffic and nothing else.
+
 ## Configuration
 
 `UserData/MelonPreferences.cfg`, section `Reflash_01_Main`. You should not need to open it; the Connect app
-sets the first two.
+sets the first three.
 
 | Setting | Default | What it does |
 |---|---|---|
 | `ReplaceVanillaApps` | `false` | OFF: the icons on the in game phone open the game's own screens and Reflash only adds Connect. ON: they open the Reflash ones. The Connect app switches this without a restart. |
 | `Companion` | `false` | Whether the server runs. Turning it on in the Connect app sets this, so it comes back next session. Off on a fresh install because it opens a port. |
 | `CompanionPort` | `6180` | The TCP port. Change it only if something else has that one; the port is part of the address in the QR code. |
+| `Relay` | `true` | Whether a phone on another network can connect through `relay.doodesch.de`. **Same Wi-Fi only** in Connect sets it to `false`. |
 
 ## On the phone, not just in a browser
 

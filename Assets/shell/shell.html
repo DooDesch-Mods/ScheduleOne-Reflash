@@ -7,14 +7,14 @@
 <!-- Add to home screen and this runs as `standalone`: no address bar, and the system's own back gesture still
      reaches the page as a history navigation. That combination is the reason the Fullscreen API is not used here
      at all - see the note above goBackOneStep. -->
-<link rel="manifest" href="/sc/manifest.webmanifest">
+<link rel="manifest" href="sc/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <!-- Says "this page is already dark", which stops Chrome's auto dark theme from inverting it a second time. Left
      off, that feature dimmed the one thing on the page that has to stay white: the QR code's quiet zone came out
      grey, and a camera reads a low-contrast code slowly or not at all. -->
 <meta name="color-scheme" content="dark">
 <title>Reflash</title>
-<link rel="stylesheet" href="/sc/font.css">
+<link rel="stylesheet" href="sc/font.css">
 <style>
   /* THE ONE RULE THIS FILE EXISTS FOR: the phone screen is rendered at the size the game renders it - 400 x 733.4
      css px upright, 733.4 x 400 on its side - and then scaled to whatever the device happens to be.
@@ -100,7 +100,7 @@
     position: absolute;
     inset: 0;
     background-color: #676767;
-    background-image: url(/wallpaper);
+    background-image: url(wallpaper);
     background-size: cover;
     background-position: center;
     pointer-events: none;
@@ -468,12 +468,12 @@ function start() {
   // A pairing code admits exactly one device and is burnt on use, and five refused attempts from one address lock
   // it out for a while. Reloading the page therefore used to cost a code every time and, after five reloads, the
   // ability to pair at all - for a phone, where a reload is one accidental swipe away, that is a trap.
-  fetch('/api/manifest', { headers: { 'X-Reflash': '1' } })
+  fetch('api/manifest', { headers: { 'X-Reflash': '1' } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (installed) {
       if (installed) {
         // The cookie still stands. Nothing to redeem.
-        history.replaceState(null, '', '/');
+        history.replaceState(null, '', location.pathname);
         apps = installed;
         renderTiles();
         goHome();
@@ -496,7 +496,7 @@ function redeem() {
 
   if (!token) { pairFailed('Scan the code shown in the game.'); return; }
 
-  fetch('/api/pair', {
+  fetch('api/pair', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Reflash': '1' },
     body: JSON.stringify({ t: token, device: navigator.userAgent.slice(0, 60) }),
@@ -510,7 +510,7 @@ function redeem() {
     }
 
     // The token has served its purpose and should not sit in the address bar, in history, or in a screenshot.
-    history.replaceState(null, '', '/');
+    history.replaceState(null, '', location.pathname);
     loadApps();
   }).catch(function () {
     pairFailed('Can\'t reach the game.');
@@ -523,7 +523,7 @@ function pairFailed(text) {
 }
 
 function loadApps() {
-  fetch('/api/manifest', { headers: { 'X-Reflash': '1' } })
+  fetch('api/manifest', { headers: { 'X-Reflash': '1' } })
     .then(function (r) { return r.json(); })
     .then(function (list) {
       apps = list || [];
@@ -551,7 +551,7 @@ function renderTiles() {
     // The real artwork, taken off the phone's own home screen. If the game could not hand it over - a sprite that
     // will not read back - the tile falls back to the app's colour and its initial rather than an empty frame.
     var img = document.createElement('img');
-    img.src = '/icon/' + encodeURIComponent(name);
+    img.src = 'icon/' + encodeURIComponent(name);
     img.alt = '';
     img.addEventListener('error', function () {
       glyph.innerHTML = '';
@@ -613,7 +613,7 @@ function open(app) {
   // The query is a cache-buster and it earned its place: a bundle file can be replaced under a running app, by a
   // mod update or by the folder under Mods/<appId>/, and a browser that had heuristically cached index.html kept
   // serving the old page. The server sends no-store now, but that only helps once the browser asks.
-  frameTo('/app/' + app.id + '/index.html?r=' + Date.now());
+  frameTo('app/' + app.id + '/index.html?r=' + Date.now());
   show('app');
   fit();
   keepAwake(true);
@@ -716,38 +716,49 @@ window.addEventListener('message', function (e) {
 });
 
 // The event stream. EventSource reconnects on its own, which is most of why this is SSE rather than a socket.
+//
+// Through the relay there is no stream: the relay page around this one receives the events and posts them in.
 function listen() {
-  var source = new EventSource('/events');
+  if (window.__reflashRoot) {
+    window.addEventListener('message', function (e) {
+      if (e.source !== window.parent || !e.data || e.data.k !== 'relay-event') return;
+      onEvent(e.data.d);
+    });
+    return;
+  }
 
-  source.onmessage = function (e) {
-    var msg;
-    try { msg = JSON.parse(e.data); } catch (err) { return; }
+  var source = new EventSource('events');
+  source.onmessage = function (e) { onEvent(e.data); };
+}
 
-    if (msg.k === 'badge') {
-      for (var i = 0; i < apps.length; i++) if (apps[i].id === msg.app) apps[i].badge = msg.c;
-      if (!current) renderTiles();
-      return;
-    }
+function onEvent(data) {
+  var msg;
+  try { msg = JSON.parse(data); } catch (err) { console.warn('event did not parse: ' + err); return; }
 
-    if (msg.k === 'notify') { toast(msg.t, msg.s); return; }
+  if (msg.k === 'badge') {
+    for (var i = 0; i < apps.length; i++) if (apps[i].id === msg.app) apps[i].badge = msg.c;
+    if (!current) renderTiles();
+    return;
+  }
 
-    // An app here asked for another one - "Show on map" in the journal or in contacts. The game sends it to the
-    // phone the press came from, and the opened page collects what to show on its first read.
-    if (msg.k === 'open') {
-      for (var j = 0; j < apps.length; j++) if (apps[j].id === msg.app) { open(apps[j]); return; }
-      console.warn('open: no app ' + msg.app + ' on this phone');
-      return;
-    }
+  if (msg.k === 'notify') { toast(msg.t, msg.s); return; }
 
-    if (msg.k === 'emit') {
-      var frame = document.getElementById('frame');
-      if (current && frame.contentWindow) frame.contentWindow.postMessage(msg, '*');
-    }
-  };
+  // An app here asked for another one - "Show on map" in the journal or in contacts. The game sends it to the
+  // phone the press came from, and the opened page collects what to show on its first read.
+  if (msg.k === 'open') {
+    for (var j = 0; j < apps.length; j++) if (apps[j].id === msg.app) { open(apps[j]); return; }
+    console.warn('open: no app ' + msg.app + ' on this phone');
+    return;
+  }
+
+  if (msg.k === 'emit') {
+    var frame = document.getElementById('frame');
+    if (current && frame.contentWindow) frame.contentWindow.postMessage(msg, '*');
+  }
 }
 
 function refreshBadges() {
-  fetch('/api/manifest', { headers: { 'X-Reflash': '1' } })
+  fetch('api/manifest', { headers: { 'X-Reflash': '1' } })
     .then(function (r) { return r.json(); })
     .then(function (list) { apps = list || apps; renderTiles(); })
     .catch(function () {});

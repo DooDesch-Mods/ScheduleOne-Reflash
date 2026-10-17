@@ -54,6 +54,12 @@ namespace Reflash
                 : "http://" + _running.Server.LanIp + ":" + _running.Server.Port + "/#t=" +
                   _running.Server.Devices.CurrentToken(Companion.Clock.Now);
 
+        /// <summary>The same code through the relay, or empty when the relay is off.</summary>
+        internal static string CompanionRelayUrl() =>
+            _running == null || !_running.Running || !_running.Server.RelayOn
+                ? ""
+                : _running.Server.RelayPageUrl(_running.Server.Devices.CurrentToken(Companion.Clock.Now));
+
         public override void OnInitializeMelon()
         {
             Log = LoggerInstance;

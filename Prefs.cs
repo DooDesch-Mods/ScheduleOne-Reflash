@@ -17,6 +17,8 @@ namespace Reflash
         private static MelonPreferences_Entry<bool> _companion;
         private static MelonPreferences_Entry<int> _port;
         private static MelonPreferences_Entry<bool> _takeOver;
+        private static MelonPreferences_Entry<bool> _relay;
+        private static MelonPreferences_Entry<string> _relayUrl;
 
         internal static void Load()
         {
@@ -35,6 +37,40 @@ namespace Reflash
             _port = _category.CreateEntry(
                 "CompanionPort", 6180,
                 description: "Port for the phone server. Change it only if another program uses it.");
+
+            _relay = _category.CreateEntry(
+                "Relay", true,
+                description: "A phone on another network connects through relay.doodesch.de, end-to-end encrypted. "
+                           + "Set by the Connect app. Off: same network only.");
+
+            // Hidden: only for running the relay locally while working on it.
+            _relayUrl = _category.CreateEntry(
+                "RelayUrl", DefaultRelayUrl,
+                description: "Relay address.", is_hidden: true);
+        }
+
+        private const string DefaultRelayUrl = "wss://relay.doodesch.de/";
+
+        internal static bool RelayEnabled => _relay?.Value ?? true;
+
+        internal static string RelayUrl
+        {
+            get
+            {
+                string url = _relayUrl?.Value ?? "";
+                return url.StartsWith("wss://", StringComparison.OrdinalIgnoreCase)
+                       || url.StartsWith("ws://", StringComparison.OrdinalIgnoreCase)
+                    ? url
+                    : DefaultRelayUrl;
+            }
+        }
+
+        internal static void SetRelayEnabled(bool on)
+        {
+            if (_relay == null || _relay.Value == on) return;
+
+            _relay.Value = on;
+            Save();
         }
 
         internal static bool TakeOverVanillaApps => _takeOver?.Value ?? false;
