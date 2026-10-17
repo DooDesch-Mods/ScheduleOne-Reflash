@@ -50,14 +50,13 @@ namespace Reflash.Companion
             if (!_bound) _bound = _bundles.Bind();
             if (!_bound)
             {
-                Problem = "Sideload is too old for the companion - it needs 1.1.0 or newer.";
+                Problem = "Needs Sideload 1.1.0 or newer.";
                 return false;
             }
 
             if (!_server.Start(Prefs.CompanionPort))
             {
-                Problem = "Port " + Prefs.CompanionPort + " is already taken. Set CompanionPort in "
-                        + "MelonPreferences.cfg to a free one.";
+                Problem = "Port " + Prefs.CompanionPort + " is in use. Set a free CompanionPort in MelonPreferences.cfg.";
                 return false;
             }
 

@@ -24,22 +24,17 @@ namespace Reflash
 
             _takeOver = _category.CreateEntry(
                 "ReplaceVanillaApps", false,
-                description: "Let the phone icons open the Reflash apps instead of the original screens. Off: the "
-                           + "in-game phone is untouched and Reflash only adds the Connect app, which hands the "
-                           + "same seven screens to your real phone. The replacements are the same code either "
-                           + "way - this only decides which screen the icons on the in-game phone open.");
+                description: "Phone icons open the Reflash apps instead of the original screens. Off: only the "
+                           + "Connect app is added.");
 
             _companion = _category.CreateEntry(
                 "Companion", false,
-                description: "Serve the phone to a real phone on your local network. You do not need to edit this: "
-                           + "the Connect app on the in-game phone turns it on, and turning it on there sets this "
-                           + "so it comes back next time. Off by default because it opens a port, and anything "
-                           + "that can reach that port can try to pair. A device still needs the code on screen.");
+                description: "Serves the apps to a real phone on your network. Set by the Connect app. Opens a port; "
+                           + "pairing needs the code on screen.");
 
             _port = _category.CreateEntry(
                 "CompanionPort", 6180,
-                description: "TCP port for the companion server. Change it only if something else already uses "
-                           + "this one - the port is part of the address the QR code carries.");
+                description: "Port for the phone server. Change it only if another program uses it.");
         }
 
         internal static bool TakeOverVanillaApps => _takeOver?.Value ?? false;

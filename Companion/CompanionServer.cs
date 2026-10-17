@@ -311,12 +311,12 @@ namespace Reflash.Companion
         private static string Explain(Sessions.Refusal why) => why switch
         {
             Sessions.Refusal.LockedOut =>
-                "Too many failed attempts from this device. Wait a minute, then scan again.",
+                "Too many tries. Wait a minute, then scan again.",
             Sessions.Refusal.Expired =>
-                "That code has expired. Show a new one in the game.",
+                "Code expired. Get a new one in the game.",
             Sessions.Refusal.TooManyDevices =>
-                "Four devices are already connected. Disconnect one in the game first.",
-            _ => "That code does not match the one on screen.",
+                "4 devices connected. Disconnect one in the game.",
+            _ => "Wrong code. Scan the one on screen.",
         };
 
         /// <summary>

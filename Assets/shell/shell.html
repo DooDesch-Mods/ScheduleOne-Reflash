@@ -261,8 +261,8 @@
 
     <div id="pair">
       <div class="msg">
-        <h2>Connecting</h2>
-        <p id="pair-text">Pairing with the game...</p>
+        <h2>Connecting...</h2>
+        <p id="pair-text"></p>
       </div>
     </div>
 
@@ -513,8 +513,8 @@ function redeem() {
     if (!r.ok) {
       // The server says WHY, and saying it is the difference between "show a new code" and twenty minutes of
       // showing new codes that were never the problem.
-      r.text().then(function (why) { pairFailed(why || 'Pairing was refused.'); })
-              .catch(function () { pairFailed('Pairing was refused.'); });
+      r.text().then(function (why) { pairFailed(why || 'Pairing refused.'); })
+              .catch(function () { pairFailed('Pairing refused.'); });
       return;
     }
 
@@ -522,7 +522,7 @@ function redeem() {
     history.replaceState(null, '', '/');
     loadApps();
   }).catch(function () {
-    pairFailed('Could not reach the game.');
+    pairFailed('Can\'t reach the game.');
   });
 }
 
@@ -541,7 +541,7 @@ function loadApps() {
       listen();
       tick();
     })
-    .catch(function () { pairFailed('Could not read the app list.'); });
+    .catch(function () { pairFailed('Can\'t load the apps.'); });
 }
 
 function renderTiles() {
