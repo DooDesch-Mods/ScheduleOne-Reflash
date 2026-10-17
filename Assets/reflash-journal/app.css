@@ -89,20 +89,33 @@ img { color: #ffffff; }
 }
 .empty.on { display: block; }
 
-/* One task: a dark rounded strip with a gold badge and the title. */
+/* One task: a rounded strip with a gold badge and the title. Vanilla draws an untracked task light grey and a
+   tracked one dark, with a white disc behind the badge. */
 .quest {
   flex: none;
   flex-direction: row;
   align-items: center;
   gap: 5px;
   height: 24.4px;
-  padding: 0 4px;
-  background: #4b4b4b;
+  padding: 0 4px 0 2px;
+  background: #969696;
   border-radius: 4px;
 }
 
-.quest:hover { background: #5a5a5a; }
-.quest.on { background: #4b4b4b; }
+.quest:hover { background: #a3a3a3; }
+.quest.tracked { background: #4b4b4b; }
+.quest.tracked:hover { background: #5a5a5a; }
+
+.quest-mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest.tracked .quest-mark { background: #ffffff; }
 
 .quest-icon {
   flex: none;
@@ -205,6 +218,7 @@ img { color: #ffffff; }
 
   .quest { height: 30px; border-radius: 15px; }
   .quest-title { font-size: 15px; }
+  .quest-mark { width: 26px; height: 26px; border-radius: 13px; }
   .quest-icon { width: 20px; height: 20px; border-radius: 10px; }
   .detail-title { font-size: 18px; }
   .detail-desc { font-size: 14px; }

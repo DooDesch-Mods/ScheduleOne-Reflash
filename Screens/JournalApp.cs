@@ -3,11 +3,12 @@ using Reflash.Wire;
 namespace Reflash.Screens
 {
     /// <summary>
-    /// Tasks. The smallest of the seven and the only one that writes nothing, which is why it was built first: it
-    /// exercises the whole takeover chain - icon, number key, the J shortcut, the back key, the pulse - with no
-    /// mutation to get wrong.
+    /// Tasks. The smallest of the seven and the only one that changes nothing in the save, which is why it was built
+    /// first: it exercises the whole takeover chain - icon, number key, the J shortcut, the back key, the pulse - with
+    /// no mutation to get wrong.
     ///
-    /// The one thing it does beyond reading is hand the map a position, because the vanilla journal does too.
+    /// Beyond reading it does what the vanilla journal does: a row click tracks or untracks the quest, and a step
+    /// hands the map a position.
     /// </summary>
     internal sealed class JournalApp : IAppPort
     {
@@ -74,6 +75,10 @@ namespace Reflash.Screens
                     if (!cmd.Int(1, out int step)) return Reply.BadArgs;
                     string questId = cmd.Str(0);
                     return string.IsNullOrEmpty(questId) ? Reply.BadArgs : _game.ShowStepOnMap(questId, step);
+
+                case "track":
+                    string id = cmd.Str(0);
+                    return string.IsNullOrEmpty(id) ? Reply.BadArgs : _game.ToggleTracked(id);
 
                 default:
                     return Reply.BadArgs;

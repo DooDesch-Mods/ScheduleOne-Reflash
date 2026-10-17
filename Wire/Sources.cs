@@ -20,6 +20,9 @@ namespace Reflash.Wire
         /// accept being opened at a position rather than only from its own icon.</summary>
         string ShowStepOnMap(string questId, int stepIndex);
 
+        /// <summary>Track or untrack a quest - the same switch a click on a vanilla journal row flips.</summary>
+        string ToggleTracked(string questId);
+
         /// <summary>Changes whenever a quest, a step or the rank changes.</summary>
         int Revision { get; }
     }

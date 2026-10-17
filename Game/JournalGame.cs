@@ -11,11 +11,10 @@ namespace Reflash.Game
     ///
     /// The list to read is <c>Quest.Quests</c>, not <c>Quest.ActiveQuests</c>. The second one is a leftover: nothing
     /// in the game ever adds to it, only removes and clears - so the journal came up empty on a save with a running
-    /// quest. What decides whether a quest is listed is <c>Quest.ShouldShowJournalEntry</c>, and that is the rule
-    /// mirrored in <see cref="ShowsInJournal"/>.
+    /// quest. Whether a quest is listed is decided by its vanilla journal row - see <see cref="ShowsInJournal"/>.
     ///
-    /// Nothing here writes. The one action the journal offers - show a step on the map - is a UI navigation, not a
-    /// game change, and it goes through the same cross-open the vanilla journal uses.
+    /// The two actions the journal offers change no save state. Showing a step on the map is a UI navigation through
+    /// the same cross-open the vanilla journal uses; tracking a quest is the player's own HUD choice.
     /// </summary>
     internal sealed class JournalGame : IJournalSource
     {
@@ -115,6 +114,26 @@ namespace Reflash.Game
         }
 
         /// <summary>
+        /// Flips whether a quest is tracked, through <c>Quest.SetIsTracked</c> - the call behind a click on a vanilla
+        /// journal row. It also shows or hides the HUD entry and the compass marker, so nothing else needs doing.
+        /// Tracking is per player and never leaves this machine.
+        /// </summary>
+        public string ToggleTracked(string questId)
+        {
+            Quest quest = FindQuest(questId);
+            if (quest == null)
+            {
+                Core.Log.Warning($"[Reflash/journal] track: no quest '{questId}'");
+                return Reply.NotFound;
+            }
+
+            bool tracked = !quest.IsTracked;
+            quest.SetIsTracked(tracked);
+            Core.Log.Msg($"[Reflash/journal] {(tracked ? "tracking" : "untracked")} '{Text.Clean(quest.Title)}'");
+            return Reply.Ok;
+        }
+
+        /// <summary>
         /// Changes when a quest is added or removed, when any step changes state, or when the rank moves. Cheap on
         /// purpose - the pulse reads it four times a second for every app.
         /// </summary>
@@ -159,17 +178,18 @@ namespace Reflash.Game
         }
 
         /// <summary>
-        /// Whether the journal lists this quest, which is <c>Quest.ShouldShowJournalEntry</c> restated.
+        /// Whether the vanilla journal lists this quest: it has a row there and the row is switched on.
         ///
-        /// It cannot simply be called: it is protected, and the override that matters is on <c>Contract</c> - a deal
-        /// a dealer is handling has no journal entry, because the player is not the one doing it.
+        /// The row is read rather than the rule behind it restated. <c>Quest.ShouldShowJournalEntry</c> switches it
+        /// (a deal a dealer handles is hidden), but some quests never get a visible row at all - a dead drop
+        /// collection is one - and a restated rule listed those while the vanilla journal said "Nothing to do".
         /// </summary>
         private static bool ShowsInJournal(Quest quest)
         {
             if (quest.State != EQuestState.Active) return false;
 
-            var contract = quest.TryCast<Contract>();
-            return contract == null || contract.Dealer == null;
+            UnityEngine.RectTransform row = quest.journalEntry;
+            return row != null && row.gameObject.activeSelf;
         }
 
         /// <summary>
