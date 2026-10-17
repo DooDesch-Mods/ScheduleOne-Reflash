@@ -404,48 +404,39 @@ window.addEventListener('orientationchange', function () { setTimeout(fit, 150);
 // which drops the browser chrome for real AND keeps the system's own navigation - the combination the Fullscreen
 // API cannot give.
 //
-// One spare entry is kept on the stack at ALL times, home screen included, so the gesture always lands here
-// instead of leaving the page. Holding it only while an app was open was not enough: back on the home screen then
-// walked out of the document onto whatever the tab had shown before, which is a blank page with nothing but
-// Forward, or a stale address that answers `not paired`.
-var backHeld = false;
+// Spare entries sit on the stack so the gesture lands here instead of leaving the page, which in a tab opened from
+// the camera closes the browser.
+//
+// They are only ever added on a touch. Chrome marks EVERY entry of this page as skippable when one is added without
+// a fresh user activation, and the back gesture itself does not count as one. Putting the spent entry back from the
+// popstate handler therefore armed the next press to skip the whole page: back closed an app, the next back closed
+// Chrome. A touch clears the marks again, which is why it only happened sometimes.
+//
+// So popstate never adds anything. Each touch tops the stack up to SPARE entries, and that is enough presses for the
+// deepest walk without one: a sheet in an app, the app, the home screen's warning, and out.
+var SPARE = 4;
 
-function holdBack() {
-  if (backHeld) return;
+function depth() { return (history.state && history.state.reflash) || 0; }
 
-  history.pushState({ reflash: 1 }, '', location.pathname);
-  backHeld = true;
+function topUp() {
+  for (var n = depth(); n < SPARE; n++) history.pushState({ reflash: n + 1 }, '', location.pathname);
 }
 
-// Two presses in a row at home mean the player really wants out - Android's own launcher reads it the same way.
-var lastHomeBack = 0;
+// pointerup rather than pointerdown: for a finger, the browser grants the activation on the lift.
+document.addEventListener('pointerup', topUp, true);
+document.addEventListener('keydown', topUp, true);
 
 window.addEventListener('popstate', function () {
-  // The entry has just been spent.
-  backHeld = false;
-
   if (current) {
-    // The replacement goes on the stack HERE, before the app is asked anything. One press spends one entry and puts
-    // one back, so the stack is the same size whatever the app decides - and it stays the same size even when the
-    // app decides nothing at all, which is the case that used to break it: an app that had not finished loading had
-    // no listener yet, the question went nowhere, and the entry the press had spent was simply gone. The next press
-    // then walked out of the document, which is the white page with only Forward.
-    //
-    // Pushing here was tried once before and did grow the stack - but that was while the frame was pointed with
-    // `src`, so every open added an entry of the iframe's own. It is pointed with location.replace now and adds
-    // none.
-    holdBack();
     goBackOneStep();
     return;
   }
 
-  // At home, where a phone's own launcher does nothing at all. The entry goes straight back on so the press is
-  // spent here, and only a second press within two seconds is let through to leave the page.
-  var now = Date.now();
-  if (now - lastHomeBack < 2000) { history.back(); return; }
+  // At home, where a phone's own launcher does nothing at all. The rest of the spare entries are spent at once, so
+  // the next press leaves - the two presses Android's own launcher asks for.
+  var n = depth();
+  if (n > 0) { history.go(-n); return; }
 
-  lastHomeBack = now;
-  holdBack();
   toast('Press back again to leave');
 });
 
@@ -626,7 +617,6 @@ function open(app) {
   show('app');
   fit();
   keepAwake(true);
-  holdBack();
 }
 
 function close() {
@@ -695,6 +685,17 @@ function frameTo(url) {
   fresh.setAttribute('allowfullscreen', '');
   if (url && url !== 'about:blank') fresh.setAttribute('src', url);
 
+  // A touch inside an app never reaches this document, so the frame reports it for the spare history entries.
+  // Same origin, so the listener can sit on the frame's own document.
+  fresh.addEventListener('load', function () {
+    try {
+      fresh.contentWindow.addEventListener('pointerup', topUp, true);
+      fresh.contentWindow.addEventListener('keydown', topUp, true);
+    } catch (e) {
+      console.warn('[reflash] no touch hook in the app frame: ' + e);
+    }
+  });
+
   if (old) old.remove();
   host.appendChild(fresh);
 }
@@ -702,7 +703,6 @@ function frameTo(url) {
 function goHome() {
   show('home');
   fit();
-  holdBack();
 }
 
 // An app asks to be closed when its own back handler declined to keep it open - the same contract the in-game
@@ -710,8 +710,7 @@ function goHome() {
 window.addEventListener('message', function (e) {
   if (!e.data) return;
 
-  // Either answer settles the press, so the deadline in goBackOneStep is called off. The entry is already back on
-  // the stack by now; holdBack elsewhere is a no-op while it is held.
+  // Either answer settles the press, so the deadline in goBackOneStep is called off.
   if (e.data.k === 'close') { backTicket++; close(); }
   else if (e.data.k === 'held') backTicket++;
 });

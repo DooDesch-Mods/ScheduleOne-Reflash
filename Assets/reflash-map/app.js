@@ -644,14 +644,25 @@ if (RICH) {
     return { x: (clientX - box.left) / k, y: (clientY - box.top) / k };
   }
 
-  viewportEl.addEventListener('touchstart', function (e) {
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
-      var p = local(t.clientX, t.clientY);
-      touches[t.identifier] = p;
+  // The fingers down right now, read off every event instead of kept up to date from start and end. A marker under a
+  // finger can be rebuilt mid-touch, and a touch whose element left the page never reports its end here: kept by
+  // hand, that finger stayed down for good and every later touch counted as a pinch, which stops the pan.
+  function held(e) {
+    touches = {};
+    for (var i = 0; i < e.touches.length; i++) {
+      var t = e.touches[i];
+      touches[t.identifier] = local(t.clientX, t.clientY);
     }
+  }
+
+  viewportEl.addEventListener('touchstart', function (e) {
+    held(e);
 
     var s = spread();
+
+    // One finger on the glass means every other one is off, whatever the last pinch still believes.
+    if (!s && pinching) { pinching = false; busy(false); }
+
     if (s) {
       // A second finger landed: the pan stops and the pinch takes over. Both at once fights itself.
       pinching = true;
@@ -677,10 +688,7 @@ if (RICH) {
   }, { passive: true });
 
   viewportEl.addEventListener('touchmove', function (e) {
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
-      touches[t.identifier] = local(t.clientX, t.clientY);
-    }
+    held(e);
 
     if (!pinching) return;
 
@@ -692,7 +700,7 @@ if (RICH) {
   }, { passive: false });
 
   function lift(e) {
-    for (var i = 0; i < e.changedTouches.length; i++) delete touches[e.changedTouches[i].identifier];
+    held(e);
 
     if (Object.keys(touches).length >= 2) return;
 
