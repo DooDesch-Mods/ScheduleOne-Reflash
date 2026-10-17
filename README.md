@@ -13,10 +13,12 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Game](https://img.shields.io/badge/game-Schedule%20I-purple)
 ![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3+-green)
-![Sideload](https://img.shields.io/badge/Sideload-1.1.0+-orange)
+![Sideload](https://img.shields.io/badge/Sideload-1.33.6+-orange)
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
 
 **[Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload)** · **[Support](https://support.doodesch.de/reflash)**
+
+![Reflash: the in game Connect code and the map on a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
 
 ## What you get
 
@@ -49,13 +51,20 @@ one earns it.
 If you want them there now, the Connect app has a switch for it - **Use these apps here too**. No restart,
 and the same switch puts the originals back. It is also `ReplaceVanillaApps` in `MelonPreferences.cfg`.
 
+## Screenshots
+
+| On your phone | In the game |
+|---|---|
+| ![Home screen, a customer thread and the delivery shops](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/apps.jpg) | ![Connect with the QR code](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/connect.jpg) |
+| ![Map, contacts graph and messages](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/map.jpg) | ![The rebuilt map on the in game phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/in-game.jpg) |
+
 ## Requirements
 
 | Component | Version / Source |
 |-----------|------------------|
 | Schedule I | IL2CPP (current Steam public build) |
 | MelonLoader | `0.7.3+` |
-| Sideload | `1.1.0+` ([Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)) |
+| Sideload | `1.33.6+` ([Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)) |
 | A phone or tablet | any browser, on the same network as the PC |
 
 ## Installation
