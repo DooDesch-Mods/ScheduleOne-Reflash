@@ -16,6 +16,8 @@
 ![Sideload](https://img.shields.io/badge/Sideload-1.33.6+-orange)
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
 
+[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl/badge.svg)](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl)
+
 **[Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload)** · **[Support](https://support.doodesch.de/reflash)**
 
 ![Reflash: the in game Connect code and the map on a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
