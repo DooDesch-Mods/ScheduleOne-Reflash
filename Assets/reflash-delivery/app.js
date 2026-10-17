@@ -355,9 +355,9 @@ function submit() {
     tab = 'active';
     setTabs();
   } else if (reply === 'err:refused') {
-    note = 'The order was refused - check the money and that a loading dock is free.';
+    note = 'Order refused: not enough cash or no free loading dock.';
   } else {
-    note = 'That did not go through.';
+    note = 'Order failed.';
   }
 
   refresh();
@@ -475,9 +475,9 @@ function reorderClicked(e) {
   // The same words the order path uses, so a refusal reads the same wherever it came from.
   // Vanilla says nothing on success either; the order shows up under Active Orders.
   if (answer === 'ok') note = '';
-  else if (answer === 'err:refused') note = 'The shop would not take it - check the money and the dock.';
-  else if (answer === 'err:notfound') note = 'That shop is not open to you.';
-  else note = 'That did not go through.';
+  else if (answer === 'err:refused') note = 'Order refused: not enough cash or no free loading dock.';
+  else if (answer === 'err:notfound') note = 'Shop not unlocked yet.';
+  else note = 'Order failed.';
 
   refresh();
 }

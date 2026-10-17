@@ -40,8 +40,8 @@ function side() {
   var side = document.createElement('div');
   side.className = 'side';
 
-  side.appendChild(step('1', 'Scan the code with your phone camera.'));
-  side.appendChild(step('2', 'Your phone has to be on the same network as this PC.'));
+  side.appendChild(step('1', 'Scan with your phone camera.'));
+  side.appendChild(step('2', 'Phone and PC need the same network.'));
 
   // Always show the address in text. A QR on a stream, behind sharpening or across a room is often unreadable,
   // and typing it in has to stay possible.
@@ -53,12 +53,12 @@ function side() {
   if (state.expires > 0) {
     var expiry = document.createElement('div');
     expiry.className = 'expiry';
-    expiry.textContent = 'This code stops working in ' + state.expires + 's.';
+    expiry.textContent = 'Code expires in ' + state.expires + 's.';
     side.appendChild(expiry);
   } else {
     var stale = document.createElement('div');
     stale.className = 'expiry';
-    stale.textContent = 'This code has expired.';
+    stale.textContent = 'Code expired.';
     side.appendChild(stale);
   }
 
@@ -71,8 +71,7 @@ function side() {
 
   var hint = document.createElement('div');
   hint.className = 'hint';
-  hint.textContent = 'Nothing reaches this without the code. If your phone cannot connect, Windows Firewall is '
-                   + 'the usual reason - allow the game on private networks.';
+  hint.textContent = 'Won\'t connect? Allow the game on private networks in Windows Firewall.';
   side.appendChild(hint);
 
   if (!RICH) side.appendChild(takeover());
@@ -89,11 +88,11 @@ function takeover() {
   var text = document.createElement('div');
   text.className = 'takeover-text';
   text.textContent = state.takeover
-    ? 'The icons on this phone open the Reflash apps.'
-    : 'The icons on this phone still open the original apps.';
+    ? 'Phone icons open Reflash.'
+    : 'Phone icons open the original apps.';
   box.appendChild(text);
 
-  box.appendChild(button(state.takeover ? 'Use the original apps' : 'Use these apps here too',
+  box.appendChild(button(state.takeover ? 'Use original apps' : 'Use Reflash here too',
                          state.takeover ? 'apps-off' : 'apps-on'));
 
   return box;
@@ -134,14 +133,12 @@ function renderOff() {
 
   var title = document.createElement('div');
   title.className = 'off-title';
-  title.textContent = 'Put this phone on your phone';
+  title.textContent = 'Open these apps on your phone';
   box.appendChild(title);
 
   var text = document.createElement('div');
   text.className = 'off-text';
-  text.textContent = 'Turn this on and scan the code, and the seven apps on this screen open on your real '
-                   + 'phone - same save, same moment. It is off until you ask because it opens a port on '
-                   + 'your local network. Nothing can use it without the code.';
+  text.textContent = 'Opens a port on your local network. Only a device with the code can connect.';
   box.appendChild(text);
 
   if (state.problem) {
@@ -156,7 +153,7 @@ function renderOff() {
     // There is no button to offer it: the switch lives on the machine running the game.
     var where = document.createElement('div');
     where.className = 'off-text';
-    where.textContent = 'Turn it back on in the Connect app on the in-game phone.';
+    where.textContent = 'Turn it on in the Connect app on the in-game phone.';
     box.appendChild(where);
   } else {
     var buttons = document.createElement('div');

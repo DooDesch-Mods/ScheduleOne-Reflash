@@ -196,7 +196,7 @@ function showOnMap(e) {
 
   // Opening the map closes this app, so there is nothing to update on success. A refusal is worth saying out
   // loud rather than looking like a dead button.
-  if (reply !== 'ok') btn.textContent = 'No spot';
+  if (reply !== 'ok') btn.textContent = 'Not on map';
 }
 
 document.getElementById('back').addEventListener('click', toList);

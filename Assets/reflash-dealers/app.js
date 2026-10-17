@@ -190,7 +190,7 @@ function picker() {
   var wrap = div('picker');
 
   if (!candidates.length) {
-    wrap.appendChild(div('block assign faded', 'Nobody free to assign'));
+    wrap.appendChild(div('block assign faded', 'No customers to assign'));
     return wrap;
   }
 

@@ -121,7 +121,7 @@ function group(label, cls, products) {
 
   section.appendChild(tiles);
 
-  if (products.length > max) section.appendChild(text('cat-none', 'and ' + (products.length - max) + ' more'));
+  if (products.length > max) section.appendChild(text('cat-none', '+' + (products.length - max) + ' more'));
 }
 
 function picture(cls, src) {
