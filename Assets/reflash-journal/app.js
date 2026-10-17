@@ -62,8 +62,15 @@ function renderList() {
     var q = state.quests[i];
 
     var row = document.createElement('div');
-    row.className = 'quest' + (q.id === selected ? ' on' : '');
+    row.className = 'quest' + (q.tracked ? ' tracked' : '') + (q.id === selected ? ' on' : '');
     row.setAttribute('data-id', q.id);
+
+    // Vanilla rings the badge of a tracked task with a white disc. The ring is also the switch on a touch screen,
+    // where a tap on the row has to open the details instead.
+    var mark = document.createElement('div');
+    mark.className = 'quest-mark';
+    mark.setAttribute('data-id', q.id);
+    mark.addEventListener('click', track);
 
     // The little gold circle with a star that vanilla puts on every entry. A picture, not an asterisk: the game's
     // text atlases carry Latin-1 only, and a '*' sits too high to read as the badge vanilla draws.
@@ -73,7 +80,8 @@ function renderList() {
     var glyph = document.createElement('img');
     glyph.setAttribute('src', 'icon-star.png');
     icon.appendChild(glyph);
-    row.appendChild(icon);
+    mark.appendChild(icon);
+    row.appendChild(mark);
 
     var title = document.createElement('div');
     title.className = 'quest-title';
@@ -87,13 +95,39 @@ function renderList() {
       row.appendChild(timer);
     }
 
-    row.addEventListener('click', pick);
+    row.addEventListener('click', press);
 
     // Vanilla picks the task under the pointer, and so does this, in the game and in a browser.
     row.addEventListener('mouseover', pick);
 
     questsEl.appendChild(row);
   }
+}
+
+// When the last touch landed. A tap also fires mouseover and click, so this is how a click tells a finger from a
+// mouse - the game has no touch events, so there it stays 0.
+var touchedAt = 0;
+document.addEventListener('touchstart', function () { touchedAt = Date.now(); });
+
+function press(e) {
+  pick(e);
+
+  // A vanilla click on a row tracks or untracks it; the details already came up on hover. A finger has no hover,
+  // so its tap only opens the details and the ring does the tracking.
+  if (Date.now() - touchedAt > 1000) toggle(e.currentTarget.getAttribute('data-id'));
+}
+
+function track(e) {
+  e.stopPropagation();
+  toggle(e.currentTarget.getAttribute('data-id'));
+}
+
+function toggle(id) {
+  var reply = s1.call('reflash-journal.act', 'track' + SEP + id);
+  if (reply !== 'ok') s1.log('track ' + id + ' refused: ' + reply);
+
+  read();
+  render();
 }
 
 function pick(e) {
