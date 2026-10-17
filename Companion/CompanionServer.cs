@@ -258,7 +258,7 @@ namespace Reflash.Companion
 
             if (req.Path == "/api/manifest") { Http.Json(stream, 200, OnMainThread(Manifest, "[]")); return; }
 
-            if (req.Path == "/api/calls") { ServeCalls(stream, req); return; }
+            if (req.Path == "/api/calls") { ServeCalls(stream, req, session); return; }
 
             if (req.Path.StartsWith("/app/", StringComparison.Ordinal)) { ServeBundle(stream, req.Path.Substring(5)); return; }
 
@@ -379,7 +379,7 @@ namespace Reflash.Companion
         /// A batch of s1.call equivalents. Batched on purpose: each one has to reach the Unity main thread, and
         /// marshalling forty times means forty frames of latency where one will do.
         /// </summary>
-        private void ServeCalls(NetworkStream stream, HttpRequest req)
+        private void ServeCalls(NetworkStream stream, HttpRequest req, Sessions.Session session)
         {
             if (req.Method != "POST" || !req.HasClientHeader) { Http.Text(stream, 400, "bad request"); return; }
 
@@ -387,7 +387,7 @@ namespace Reflash.Companion
             if (calls.Count == 0) { Http.Json(stream, 200, "[]"); return; }
             if (calls.Count > 64) { Http.Text(stream, 400, "too many calls"); return; }
 
-            string answer = OnMainThread(() =>
+            string answer = OnMainThread(() => CallOrigin.Run(session, () =>
             {
                 var sb = new StringBuilder("[");
                 for (int i = 0; i < calls.Count; i++)
@@ -397,7 +397,7 @@ namespace Reflash.Companion
                     sb.Append("{\"id\":").Append(calls[i].Id).Append(",\"r\":").Append(JsonRead.Quote(value)).Append('}');
                 }
                 return sb.Append(']').ToString();
-            }, "[]");
+            }), "[]");
 
             Http.Json(stream, 200, answer);
         }

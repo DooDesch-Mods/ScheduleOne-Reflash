@@ -71,6 +71,10 @@ namespace Reflash.Companion
 
             /// <summary>Filled by the main thread through a host tap, drained by this session's own SSE thread.</summary>
             internal readonly ConcurrentQueue<string> Outbox = new ConcurrentQueue<string>();
+
+            /// <summary>What an app was opened with on this phone, by app id, until its page reads it. Main thread
+            /// only - see AppHijack.</summary>
+            internal readonly Dictionary<string, string> PendingArg = new Dictionary<string, string>();
         }
 
         /// <summary>The pairing token, minting a new one if none is live. What goes into the QR.</summary>

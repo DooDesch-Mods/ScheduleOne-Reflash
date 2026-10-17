@@ -731,6 +731,14 @@ function listen() {
 
     if (msg.k === 'notify') { toast(msg.t, msg.s); return; }
 
+    // An app here asked for another one - "Show on map" in the journal or in contacts. The game sends it to the
+    // phone the press came from, and the opened page collects what to show on its first read.
+    if (msg.k === 'open') {
+      for (var j = 0; j < apps.length; j++) if (apps[j].id === msg.app) { open(apps[j]); return; }
+      console.warn('open: no app ' + msg.app + ' on this phone');
+      return;
+    }
+
     if (msg.k === 'emit') {
       var frame = document.getElementById('frame');
       if (current && frame.contentWindow) frame.contentWindow.postMessage(msg, '*');
