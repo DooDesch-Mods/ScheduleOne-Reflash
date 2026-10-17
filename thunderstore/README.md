@@ -8,6 +8,8 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 
 **[Source + docs](https://github.com/DooDesch-Mods/ScheduleOne-Reflash)** · **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** · **[Support](https://support.doodesch.de/reflash)**
 
+![Reflash: the in game Connect code and the map on a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
+
 ## How to use it
 
 1. Open **Connect** on the in game phone and press **Turn on**.
@@ -41,9 +43,14 @@ one at a time, as each one earns it.
 If you want them there now, the Connect app has a switch: **Use these apps here too**. No restart, and the
 same switch puts the originals back.
 
+## Screenshots
+
+![Home screen, a customer thread and the delivery shops](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/apps.jpg)
+![Map, contacts graph and messages](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/map.jpg)
+
 ## Before you install
 
-- Needs **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** `1.1.0` or newer. A mod
+- Needs **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** `1.33.6` or newer. A mod
   manager installs it with this one.
 - Your phone has to be on the same network as the PC. Guest Wi-Fi and mobile data both count as somewhere
   else.
