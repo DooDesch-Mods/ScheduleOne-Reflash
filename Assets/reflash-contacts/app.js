@@ -54,7 +54,7 @@ function readRegions() {
 }
 
 function readGraph() {
-  if (!region) { graph = { nodes: [], edges: [], w: 0, h: 0 }; return; }
+  if (!region) { graph = { nodes: [], edges: [], w: 0, h: 0, ox: 0, oy: 0 }; return; }
 
   var data = parse(s1.call('reflash-contacts.state', 'region:' + region), null);
   graph = data && data.nodes ? data : { nodes: [], edges: [], w: 0, h: 0, ox: 0, oy: 0 };
@@ -634,14 +634,26 @@ if (RICH) {
     return { x: (clientX - box.left) / k, y: (clientY - box.top) / k };
   }
 
-  viewportEl.addEventListener('touchstart', function (e) {
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
+  // The fingers down right now, read off every event instead of kept up to date from start and end. The faces are
+  // rebuilt whenever the board redraws, and a touch whose face left the page never reports its end here: kept by
+  // hand, that finger stayed down for good, every later touch counted as a second one, and the board stopped panning.
+  function held(e) {
+    touches = {};
+    for (var i = 0; i < e.touches.length; i++) {
+      var t = e.touches[i];
       touches[t.identifier] = local(t.clientX, t.clientY);
     }
+  }
+
+  viewportEl.addEventListener('touchstart', function (e) {
+    held(e);
 
     var s = spread();
-    if (!s) return;
+    if (!s) {
+      // One finger on the glass means every other one is off, whatever the last pinch still believes.
+      pinching = false;
+      return;
+    }
 
     // A second finger landed: the pan stops and the pinch takes over. Both at once fights itself.
     pinching = true;
@@ -650,10 +662,7 @@ if (RICH) {
   }, { passive: true });
 
   viewportEl.addEventListener('touchmove', function (e) {
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      var t = e.changedTouches[i];
-      touches[t.identifier] = local(t.clientX, t.clientY);
-    }
+    held(e);
 
     if (!pinching) return;
 
@@ -665,7 +674,7 @@ if (RICH) {
   }, { passive: false });
 
   function lift(e) {
-    for (var i = 0; i < e.changedTouches.length; i++) delete touches[e.changedTouches[i].identifier];
+    held(e);
 
     if (Object.keys(touches).length >= 2) return;
 
@@ -732,6 +741,13 @@ function apply() {
   var vw = box.w;
   var vh = box.h;
 
+  // A position that is not a number never becomes one again - every clamp below keeps it - and a board at NaN cannot
+  // be moved at all. Back to the middle instead.
+  if (!isFinite(centre.x) || !isFinite(centre.y)) {
+    s1.log('board position was not a number - recentred');
+    centre = { x: graph.ox || 0, y: graph.oy || 0 };
+  }
+
   // The window stays on the board, as vanilla's scroll view does. Half the board on either side of the origin, less
   // half the window, is as far as the middle of the window can go.
   var reachX = Math.max(0, (BOARD_W * zoom - vw) / 2 / zoom);
@@ -774,12 +790,18 @@ function placeBar(id, share, along, track) {
 document.addEventListener('orientationchange', apply);
 
 s1.on('reflash-contacts.changed', function () {
+  // On a phone the first read can come back before the game answers, so the board opens empty. The first people to
+  // arrive get the board centred on them, as an open with data would have.
+  var wasEmpty = !graph.nodes.length;
+
   readRegions();
   readGraph();
   readDetail();
   renderTabs();
   renderGraph();
   renderDetail();
+
+  if (wasEmpty && graph.nodes.length) home();
 });
 
 buildGrid();
