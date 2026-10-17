@@ -98,6 +98,9 @@ namespace Reflash.Hijack
         /// </summary>
         internal static bool Open(VanillaApp vanilla, string argument)
         {
+            Companion.Sessions.Session from = Companion.CallOrigin.Current;
+            if (from != null) return OpenOnCompanion(from, vanilla, argument);
+
             _pendingArg[vanilla] = argument ?? "";
             if (!Open(vanilla)) return false;
 
@@ -111,10 +114,40 @@ namespace Reflash.Hijack
         }
 
         /// <summary>
-        /// The argument this app was opened with, cleared as it is read. Empty when it was opened normally.
+        /// The same open, asked for from a companion phone: it happens on that phone, through its event stream, and
+        /// the game's phone stays as it is. The takeover setting does not apply - it is about the game's phone, and
+        /// the companion only has our apps.
+        /// </summary>
+        private static bool OpenOnCompanion(Companion.Sessions.Session from, VanillaApp vanilla, string argument)
+        {
+            if (!_handles.TryGetValue(vanilla, out AppHandle handle))
+            {
+                Core.Log?.Warning($"No app replaces {vanilla}, so the companion cannot open it.");
+                return false;
+            }
+
+            from.PendingArg[handle.Id] = argument ?? "";
+            from.Outbox.Enqueue("{\"k\":\"open\",\"app\":" + Companion.JsonRead.Quote(handle.Id) + "}");
+            Core.Log?.Msg($"Opened {handle.Id} on the companion ({from.Device}) with '{argument}'.");
+            return true;
+        }
+
+        /// <summary>
+        /// The argument this app was opened with, cleared as it is read. Empty when it was opened normally. A call
+        /// from a companion phone reads that phone's own, so the two phones never take each other's.
         /// </summary>
         internal static string TakePendingArg(VanillaApp vanilla)
         {
+            Companion.Sessions.Session from = Companion.CallOrigin.Current;
+            if (from != null)
+            {
+                if (!_handles.TryGetValue(vanilla, out AppHandle handle)
+                    || !from.PendingArg.TryGetValue(handle.Id, out string sent)) return "";
+
+                from.PendingArg.Remove(handle.Id);
+                return sent ?? "";
+            }
+
             if (!_pendingArg.TryGetValue(vanilla, out string arg)) return "";
 
             _pendingArg.Remove(vanilla);
