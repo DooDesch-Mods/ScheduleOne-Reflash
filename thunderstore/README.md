@@ -10,6 +10,8 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 
 ![Reflash: the in game Connect code and the map on a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
 
+[![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
+
 [![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl/badge.svg)](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl)
 
 ## How to use it
