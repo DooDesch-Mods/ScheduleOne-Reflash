@@ -15,6 +15,7 @@
 ![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3+-green)
 ![Sideload](https://img.shields.io/badge/Sideload-1.33.6+-orange)
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
+[![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
 [![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl/badge.svg)](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl)
 
