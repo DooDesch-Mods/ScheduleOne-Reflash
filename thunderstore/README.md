@@ -8,7 +8,7 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 
 **[Source + docs](https://github.com/DooDesch-Mods/ScheduleOne-Reflash)** · **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** · **[Support](https://support.doodesch.de/reflash)**
 
-![Reflash: the in game Connect code and the map on a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
+![Reflash: Connect asking to allow a phone, and the Android app live](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
 
 [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
@@ -21,6 +21,10 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 3. That is it. Your phone is showing the phone.
 
 The address is printed under the code as text too, for when a QR code across a room will not read.
+
+**Android app:** Reflash - S1 mod companion is in a closed test on Google Play,
+[join the tester group](https://groups.google.com/g/reflash-testers). It finds your game on the Wi-Fi, you tap
+**Allow** in Connect once, and it gets back in by itself after a game restart.
 
 ## What is on the second screen
 
@@ -50,7 +54,7 @@ same switch puts the originals back.
 ## Screenshots
 
 ![Home screen, a customer thread and the delivery shops](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/apps.jpg)
-![Map, contacts graph and messages](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/map.jpg)
+![The Android app: live, waiting for the game, demo](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/android.jpg)
 
 ## Before you install
 
@@ -61,7 +65,7 @@ same switch puts the originals back.
 - In Same Wi-Fi only mode, Windows Firewall is the usual reason a phone cannot reach it. Allow the game on
   private networks.
 - The companion is off until you press the button in Connect, and nothing can use it without the code on
-  screen. Installing the mod opens no port.
+  screen or your **Allow**. Installing the mod opens no port.
 
 ## Settings
 
