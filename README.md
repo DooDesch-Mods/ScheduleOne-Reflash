@@ -17,7 +17,7 @@
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
 [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
-[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl/badge.svg)](https://mlvscan.com/attestations/att_uIpNJR4vXbZboQU3_aNc39Bl)
+[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
 
 **[Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload)** · **[Support](https://support.doodesch.de/reflash)**
 
