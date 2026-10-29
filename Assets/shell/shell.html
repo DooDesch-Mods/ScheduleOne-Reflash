@@ -713,6 +713,9 @@ window.addEventListener('message', function (e) {
   // Either answer settles the press, so the deadline in goBackOneStep is called off.
   if (e.data.k === 'close') { backTicket++; close(); }
   else if (e.data.k === 'held') backTicket++;
+
+  // A command the game refused after the page had already been told "ok".
+  else if (e.data.k === 'refused' && current) toast(String(e.data.t || ''));
 });
 
 // The event stream. EventSource reconnects on its own, which is most of why this is SSE rather than a socket.
