@@ -7,12 +7,12 @@ All notable changes to Reflash are documented here. This project adheres to
 
 ### Added
 
-- No code to scan: tap **Allow** in Connect once, and the phone gets back in by itself, also after a game restart.
-  **Forget** removes it.
-- Your phone no longer needs the PC's Wi-Fi: on mobile data it connects through relay.doodesch.de, end to end
-  encrypted. **Same Wi-Fi only** in Connect turns that off.
 - Android app: Reflash - S1 mod companion finds your game on the Wi-Fi and opens your mod apps full screen. Closed
   test on Google Play, [join here](https://groups.google.com/g/reflash-testers).
+- No code to scan with the Android app: tap **Allow** in Connect once, and it gets back in by itself after a game
+  restart. **Forget** removes it.
+- Your phone no longer needs the PC's Wi-Fi: on mobile data it connects through relay.doodesch.de, end to end
+  encrypted. **Same Wi-Fi only** in Connect turns that off.
 
 ### Fixed
 
