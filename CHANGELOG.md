@@ -3,6 +3,22 @@
 All notable changes to Reflash are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-29
+
+### Added
+
+- No code to scan: tap **Allow** in Connect once, and the phone gets back in by itself, also after a game restart.
+  **Forget** removes it.
+- Your phone no longer needs the PC's Wi-Fi: on mobile data it connects through relay.doodesch.de, end to end
+  encrypted. **Same Wi-Fi only** in Connect turns that off.
+- Android app: Reflash - S1 mod companion finds your game on the Wi-Fi and opens your mod apps full screen. Closed
+  test on Google Play, [join here](https://groups.google.com/g/reflash-testers).
+
+### Fixed
+
+- Buttons in mod apps on your real phone (Yesla's honk, lock, summon) act once per tap. They could fire again on
+  their own or not at all.
+
 ## [1.0.0] - 2026-10-17
 
 ### Added
