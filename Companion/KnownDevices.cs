@@ -153,8 +153,21 @@ namespace Reflash.Companion
                     return Verdict.Waiting;
                 }
 
-                // A different device from the same address, while one is still waiting: one at a time.
-                if (mine != null) { request = mine; return Verdict.Busy; }
+                // A different device from the same address. An old request that ran out or was already answered
+                // gives way: the phone may have a new key now (app data cleared), and its address keeps asking, so
+                // the sweep never reaches it. One still waiting holds the address: one at a time.
+                if (mine != null)
+                {
+                    if (mine.State == RequestState.Waiting && now - mine.BornAt <= RequestSeconds)
+                    {
+                        request = mine;
+                        return Verdict.Busy;
+                    }
+
+                    Core.Log.Msg($"'{mine.Name}' request from {remote} dropped ({(mine.State == RequestState.Waiting ? "expired" : mine.State.ToString().ToLowerInvariant())}): another device asks from that address.");
+                    _pending.Remove(remote);
+                    _revision++;
+                }
 
                 if (TooManyDenials(remote, now)) return Verdict.Throttled;
                 if (_pending.Count >= MaxPending) return Verdict.Busy;
