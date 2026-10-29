@@ -26,6 +26,23 @@ namespace Reflash.Screens
         {
             _companion = companion;
             _handle = handle;
+            Server.DeviceRequested = OnDeviceRequested;
+        }
+
+        /// <summary>
+        /// A phone asks to be allowed. The page shows it when Connect is open; otherwise a phone notification says
+        /// so, and the icon badge stays until it is answered. The notification cannot be pressed, so it names the app.
+        /// </summary>
+        private void OnDeviceRequested(KnownDevices.Request request)
+        {
+            if (_handle.IsOnScreen)
+            {
+                Core.Log.Msg($"'{request.Name}' request shown in the open Connect app.");
+                return;
+            }
+
+            _handle.Notify(request.Name + " wants to connect", "Allow it in Connect.", 20f);
+            Core.Log.Msg($"'{request.Name}' request sent as a phone notification.");
         }
 
         private CompanionServer Server => _companion.Server;
@@ -36,7 +53,9 @@ namespace Reflash.Screens
         /// icon like any ordinary Sideload app.</summary>
         public VanillaApp Replaces => (VanillaApp)(-1);
 
-        public int Badge => 0;
+        /// <summary>Requests waiting for an answer. The badge is what still points at Connect after the
+        /// notification is gone.</summary>
+        public int Badge => _companion.Running ? Server.Known.Waiting(Clock.Now).Count : 0;
 
         /// <summary>
         /// Changes with the number of connected devices and with the pairing token, so the page re-reads when a
@@ -54,6 +73,8 @@ namespace Reflash.Screens
                     hash = hash * 31 + _companion.Problem.Length;
                     hash = hash * 31 + (AppHijack.Ready ? 1 : 0);
                     hash = hash * 31 + (Server.RelayOn ? 1 : 0);
+                    hash = hash * 31 + Server.Known.Revision;
+                    hash = hash * 31 + Server.Known.Waiting(Clock.Now).Count;
 
                     // Quantised to five seconds: the countdown should tick, not the whole page.
                     if (_companion.Running) hash = hash * 31 + (int)(Server.Devices.TokenAgeSeconds(Clock.Now) / 5);
@@ -71,9 +92,15 @@ namespace Reflash.Screens
                 .Add("devices", Server.Devices.Count)
                 .Add("problem", _companion.Problem)
                 .Add("takeover", AppHijack.Ready)
-                .Add("relay", Server.RelayOn);
+                .Add("relay", Server.RelayOn)
+                .Add("known", KnownJson());
 
-            if (!_companion.Running) return root.Add("url", "").Add("qr", false).Close();
+            if (!_companion.Running) return root.Add("url", "").Add("qr", false).Add("requests", Json.Array()).Close();
+
+            var requests = Json.Array();
+            foreach (KnownDevices.Request r in Server.Known.Waiting(Clock.Now))
+                requests.Item(Json.Object().Add("id", r.Id).Add("name", r.Name));
+            root.Add("requests", requests);
 
             string token = Server.Devices.CurrentToken(Clock.Now);
 
@@ -98,6 +125,18 @@ namespace Reflash.Screens
                 .Add("plain", Server.LanIp + ":" + Server.Port)
                 .Add("expires", Math.Max(0, (int)(120 - age)))
                 .Close();
+        }
+
+        /// <summary>Remembered devices for the list in Connect. "on" marks one with a live session.</summary>
+        private Json KnownJson()
+        {
+            var list = Json.Array();
+            foreach (KnownDevices.Device d in Server.Known.Devices())
+            {
+                bool on = _companion.Running && Server.Devices.Peek(d.SessionId, Clock.Now) != null;
+                list.Item(Json.Object().Add("id", d.Id).Add("name", d.Name).Add("on", on));
+            }
+            return list;
         }
 
         public string Act(Cmd cmd)
@@ -133,8 +172,45 @@ namespace Reflash.Screens
                     return Reply.Ok;
 
                 case "kick":
-                    Server.Devices.DropAll();
+                    // Also forgets every remembered device: "all" has to mean nobody gets back in without asking.
+                    Server.DisconnectAll();
                     return Reply.Ok;
+
+                case "allow":
+                case "deny":
+                {
+                    string id = cmd.Str(0);
+                    if (string.IsNullOrEmpty(id)) return Reply.BadArgs;
+
+                    // Answered on the in-game phone only. A paired phone letting in more phones is not the
+                    // player saying yes at the game.
+                    if (CallOrigin.Current != null)
+                    {
+                        Core.Log.Warning($"{cmd.Op} for request {id} refused: pressed on a paired phone, not in the game.");
+                        return Reply.Refused;
+                    }
+
+                    KnownDevices.Request r = cmd.Op == "allow"
+                        ? Server.Known.Allow(id, Clock.Now)
+                        : Server.Known.Deny(id, Clock.Now);
+                    if (r == null)
+                    {
+                        Core.Log.Warning($"{cmd.Op} for request {id}: the request is gone (expired or already answered).");
+                        return Reply.Stale;
+                    }
+
+                    Core.Log.Msg(cmd.Op == "allow"
+                        ? $"device '{r.Name}' from {r.Remote} allowed in Connect and remembered."
+                        : $"device '{r.Name}' from {r.Remote} denied in Connect.");
+                    return Reply.Ok;
+                }
+
+                case "forget":
+                {
+                    string id = cmd.Str(0);
+                    if (string.IsNullOrEmpty(id)) return Reply.BadArgs;
+                    return Server.ForgetDevice(id) ? Reply.Ok : Reply.NotFound;
+                }
 
                 default:
                     return Reply.BadArgs;

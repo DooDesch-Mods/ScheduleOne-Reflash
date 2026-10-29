@@ -7,7 +7,10 @@ var RICH = typeof s1 !== 'undefined' && s1.rich === true;
 var bodyEl = document.getElementById('body');
 var devicesEl = document.getElementById('devices');
 
-var state = { running: false, devices: 0, url: '', plain: '', qr: false, expires: 0, problem: '', takeover: false, relay: false };
+var state = { running: false, devices: 0, url: '', plain: '', qr: false, expires: 0, problem: '', takeover: false, relay: false, requests: [], known: [] };
+
+// 'main' or 'devices'. Page-local: the list of remembered devices is a second screen, the code stays the first.
+var view = 'main';
 
 function read() {
   var raw = s1.call('reflash-connect.state', '');
@@ -21,6 +24,12 @@ function render() {
   bodyEl.replaceChildren();
 
   if (!state.running) { renderOff(); return; }
+
+  // A phone asking to connect comes before everything else: it is waiting, and its request runs out.
+  if (state.requests && state.requests.length) { renderRequests(); return; }
+
+  if (view === 'devices' && state.known && state.known.length) { renderDevices(); return; }
+  view = 'main';
 
   if (state.qr) {
     var img = document.createElement('img');
@@ -65,7 +74,8 @@ function side() {
   var buttons = document.createElement('div');
   buttons.className = 'buttons';
   buttons.appendChild(button('New code', 'new'));
-  if (state.devices > 0) buttons.appendChild(button('Disconnect all', 'kick'));
+  if (state.known && state.known.length) buttons.appendChild(showDevices());
+  if (state.devices > 0 || (state.known && state.known.length)) buttons.appendChild(button('Disconnect all', 'kick'));
   if (!RICH) buttons.appendChild(button('Turn off', 'off'));
   side.appendChild(buttons);
 
@@ -126,16 +136,109 @@ function step(n, text) {
   return row;
 }
 
-function button(label, op) {
+function button(label, op, cls) {
   var btn = document.createElement('button');
-  btn.className = 'btn';
+  btn.className = cls || 'btn';
   btn.textContent = label;
   btn.addEventListener('click', function () {
-    s1.call('reflash-connect.act', op);
+    var answer = s1.call('reflash-connect.act', op);
+    if (answer !== 'ok') s1.log(op.split('\u001F')[0] + ' answered ' + answer);
     read();
     render();
   });
   return btn;
+}
+
+function renderRequests() {
+  var box = document.createElement('div');
+  box.className = 'requests';
+
+  for (var i = 0; i < state.requests.length; i++) {
+    var r = state.requests[i];
+
+    var card = document.createElement('div');
+    card.className = 'request';
+
+    var title = document.createElement('div');
+    title.className = 'request-title';
+    title.textContent = r.name + ' wants to connect';
+    card.appendChild(title);
+
+    var text = document.createElement('div');
+    text.className = 'request-text';
+    text.textContent = RICH ? 'Answer it on the in-game phone.' : 'Remembered after you allow it.';
+    card.appendChild(text);
+
+    if (!RICH) {
+      var buttons = document.createElement('div');
+      buttons.className = 'buttons';
+      buttons.appendChild(button('Allow', 'allow\u001F' + r.id, 'btn btn-allow'));
+      buttons.appendChild(button('Deny', 'deny\u001F' + r.id));
+      card.appendChild(buttons);
+    }
+
+    box.appendChild(card);
+  }
+
+  bodyEl.appendChild(box);
+}
+
+function showDevices() {
+  var btn = document.createElement('button');
+  btn.className = 'btn';
+  btn.textContent = 'Devices (' + state.known.length + ')';
+  btn.addEventListener('click', function () {
+    view = 'devices';
+    render();
+  });
+  return btn;
+}
+
+function renderDevices() {
+  var box = document.createElement('div');
+  box.className = 'known';
+
+  var title = document.createElement('div');
+  title.className = 'known-title';
+  title.textContent = 'Remembered devices';
+  box.appendChild(title);
+
+  for (var i = 0; i < state.known.length; i++) {
+    var d = state.known[i];
+
+    var row = document.createElement('div');
+    row.className = 'known-row';
+
+    var name = document.createElement('div');
+    name.className = 'known-name';
+    name.textContent = d.name;
+    row.appendChild(name);
+
+    if (d.on) {
+      var on = document.createElement('div');
+      on.className = 'known-on';
+      on.textContent = 'Connected';
+      row.appendChild(on);
+    }
+
+    row.appendChild(button('Forget', 'forget\u001F' + d.id));
+    box.appendChild(row);
+  }
+
+  var back = document.createElement('button');
+  back.className = 'btn';
+  back.textContent = 'Back';
+  back.addEventListener('click', function () {
+    view = 'main';
+    render();
+  });
+
+  var buttons = document.createElement('div');
+  buttons.className = 'buttons';
+  buttons.appendChild(back);
+  box.appendChild(buttons);
+
+  bodyEl.appendChild(box);
 }
 
 function renderOff() {

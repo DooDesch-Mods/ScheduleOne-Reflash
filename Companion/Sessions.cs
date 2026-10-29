@@ -186,6 +186,23 @@ namespace Reflash.Companion
             return session;
         }
 
+        /// <summary>
+        /// A session for a device the player already allowed, without a code. Its own older session goes first, so
+        /// a phone that reconnects does not count twice against <see cref="MaxSessions"/>.
+        /// </summary>
+        internal Session Admit(string device, string replaces, double now, out Refusal why)
+        {
+            why = Refusal.None;
+            Sweep(now);
+            Drop(replaces);
+
+            if (_sessions.Count >= MaxSessions) { why = Refusal.TooManyDevices; return null; }
+
+            var session = new Session { Id = RandomId(16), Device = device ?? "", LastSeen = now };
+            _sessions[session.Id] = session;
+            return session;
+        }
+
         internal Session Find(string sessionId, double now)
         {
             if (string.IsNullOrEmpty(sessionId)) return null;
