@@ -10,7 +10,7 @@
 >
 > Built on [Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload), which is a hard requirement.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![Game](https://img.shields.io/badge/game-Schedule%20I-purple)
 ![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3+-green)
 ![Sideload](https://img.shields.io/badge/Sideload-1.33.6+-orange)
@@ -21,7 +21,7 @@
 
 **[Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload)** · **[Support](https://support.doodesch.de/reflash)**
 
-![Reflash: the in game Connect code and the map on a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
+![Reflash: Connect asking to allow a phone, and the Android app live](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
 
 ## What you get
 
@@ -41,6 +41,16 @@ Every number is read from the same manager the vanilla screen reads, and every a
 server call the vanilla screen makes, so a delivery ordered from the sofa is a delivery, and co-op sees it
 the way it always did.
 
+## Android app
+
+**Reflash - S1 mod companion** is in a closed test on Google Play.
+[Join the tester group](https://groups.google.com/g/reflash-testers) to get it.
+
+- It finds your game on the Wi-Fi by itself. No code to scan.
+- It opens your mod apps full screen, for example the Yesla car app.
+- When the game stops answering, it waits and reconnects when the game is back.
+- A demo shows Yesla without the game.
+
 ## The in game phone is untouched
 
 Out of the box Reflash adds one icon and changes nothing else. The seven icons on the in game phone still
@@ -59,6 +69,7 @@ and the same switch puts the originals back. It is also `ReplaceVanillaApps` in 
 | On your phone | In the game |
 |---|---|
 | ![Home screen, a customer thread and the delivery shops](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/apps.jpg) | ![Connect with the QR code](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/connect.jpg) |
+| ![The Android app: live, waiting for the game, demo](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/android.jpg) | ![Connect asking to allow a phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/allow.jpg) |
 | ![Map, contacts graph and messages](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/map.jpg) | ![The rebuilt map on the in game phone](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/in-game.jpg) |
 
 ## Requirements
@@ -68,7 +79,7 @@ and the same switch puts the originals back. It is also `ReplaceVanillaApps` in 
 | Schedule I | IL2CPP (current Steam public build) |
 | MelonLoader | `0.7.3+` |
 | Sideload | `1.33.6+` ([Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)) |
-| A phone or tablet | any current browser, on any network |
+| A phone or tablet | any current browser, or the Android app, on any network |
 
 ## Installation
 
@@ -82,6 +93,16 @@ Install **Reflash** with r2modman or the Thunderstore app. Sideload comes with i
 2. Drop `Sideload.dll` and `Reflash.dll` into `Schedule I/Mods/`.
 
 ## Pairing a phone
+
+### With the Android app
+
+1. Open **Connect** on the in game phone and press **Turn on**.
+2. Open the app on your phone, on the same Wi-Fi. Connect shows "wants to connect".
+3. Tap **Allow**. The phone gets back in by itself, also after a game restart. **Forget** in Connect removes it.
+
+A phone that asks waits for your answer. Three **Deny** in five minutes stop that address from asking.
+
+### In a browser
 
 1. Open **Connect** on the in game phone and press **Turn on**. The server starts and a QR code appears.
 2. Scan it with your phone's camera.
