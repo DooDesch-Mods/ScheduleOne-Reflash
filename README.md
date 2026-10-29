@@ -44,7 +44,9 @@ the way it always did.
 ## Android app
 
 **Reflash - S1 mod companion** is in a closed test on Google Play.
-[Join the tester group](https://groups.google.com/g/reflash-testers) to get it.
+
+1. [Join the tester group](https://groups.google.com/g/reflash-testers) with the Google account of your phone.
+2. [Become a tester and install it from Google Play](https://play.google.com/apps/testing/de.doodesch.reflash).
 
 - It finds your game on the Wi-Fi by itself. No code to scan.
 - It opens your mod apps full screen, for example the Yesla car app.

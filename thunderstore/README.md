@@ -23,7 +23,7 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 The address is printed under the code as text too, for when a QR code across a room will not read.
 
 **Android app:** Reflash - S1 mod companion is in a closed test on Google Play,
-[join the tester group](https://groups.google.com/g/reflash-testers). It finds your game on the Wi-Fi, you tap
+[join the tester group](https://groups.google.com/g/reflash-testers), then [install it from Google Play](https://play.google.com/apps/testing/de.doodesch.reflash). It finds your game on the Wi-Fi, you tap
 **Allow** in Connect once, and it gets back in by itself after a game restart.
 
 ## What is on the second screen
