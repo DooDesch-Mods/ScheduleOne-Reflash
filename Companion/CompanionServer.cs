@@ -41,6 +41,7 @@ namespace Reflash.Companion
         private const int MaxConnections = 24;
 
         private readonly Sessions _sessions = new Sessions();
+        private readonly KnownDevices _known = new KnownDevices();
         private readonly ConcurrentQueue<Action> _mainThread = new ConcurrentQueue<Action>();
         private readonly Bundles _bundles;
 
@@ -63,6 +64,35 @@ namespace Reflash.Companion
         internal string LanIp { get; private set; } = "";
 
         internal Sessions Devices => _sessions;
+
+        internal KnownDevices Known => _known;
+
+        /// <summary>A phone asked to be allowed. Raised on the main thread, so the handler may notify.</summary>
+        internal Action<KnownDevices.Request> DeviceRequested;
+
+        /// <summary>Forget one remembered device and cut its session. Main thread, from Connect.</summary>
+        internal bool ForgetDevice(string deviceId)
+        {
+            KnownDevices.Device gone = _known.Forget(deviceId);
+            if (gone == null)
+            {
+                Core.Log.Warning($"forget: no remembered device '{deviceId}'.");
+                return false;
+            }
+
+            _sessions.Drop(gone.SessionId);
+            Core.Log.Msg($"device '{gone.Name}' forgotten in Connect.");
+            return true;
+        }
+
+        /// <summary>"Disconnect all": every session goes, and every remembered device with it.</summary>
+        internal void DisconnectAll()
+        {
+            int sessions = _sessions.Count;
+            _sessions.DropAll();
+            int forgotten = _known.ForgetAll();
+            Core.Log.Msg($"disconnect all: {sessions} session(s) dropped, {forgotten} remembered device(s) forgotten.");
+        }
 
         internal bool RelayOn => _tunnel != null;
 
@@ -298,6 +328,12 @@ namespace Reflash.Companion
                     if (req.ViaRelay) { Http.Text(reply, 404, "not found"); return; }
                     Pair(reply, req, remote);
                     return;
+
+                case "/api/pair/device":
+                    // LAN only. The relay pairs in its own room, by the code.
+                    if (req.ViaRelay) { Http.Text(reply, 404, "not found"); return; }
+                    PairDevice(reply, req, remote);
+                    return;
             }
 
             if (req.Path.StartsWith("/sc/", StringComparison.Ordinal))
@@ -371,6 +407,100 @@ namespace Reflash.Companion
         }
 
         /// <summary>
+        /// Pairing without the code: the companion app sends its device key, and the player allows it once in
+        /// Connect. A device allowed before gets its session straight away, also after a game restart. Any 403 or
+        /// 429 text is shown on the phone as it is.
+        /// </summary>
+        private void PairDevice(IReply reply, HttpRequest req, string remote)
+        {
+            if (req.Method != "POST" || !req.HasClientHeader)
+            {
+                Core.Log.Warning($"device pairing from {remote} refused: not a POST with X-Reflash.");
+                Http.Text(reply, 400, "bad request");
+                return;
+            }
+
+            string key = JsonRead.Field(req.Body, "key");
+            string name = KnownDevices.CleanName(JsonRead.Field(req.Body, "device"));
+            if (!KnownDevices.KeyLooksRight(key) || name.Length == 0)
+            {
+                Core.Log.Warning($"device pairing from {remote} refused: bad body.");
+                Http.Text(reply, 400, "bad request");
+                return;
+            }
+
+            double now = Clock.Now;
+            KnownDevices.Verdict verdict = _known.Ask(KnownDevices.HashOf(key), name, remote, now,
+                                                      out KnownDevices.Device device, out KnownDevices.Request request);
+            switch (verdict)
+            {
+                case KnownDevices.Verdict.Known:
+                {
+                    Sessions.Session session = _sessions.Admit(name, device.SessionId, now, out Sessions.Refusal why);
+                    if (session == null)
+                    {
+                        Core.Log.Warning($"remembered device '{name}' from {remote} refused: {why}.");
+                        Http.Text(reply, 403, Explain(why));
+                        return;
+                    }
+
+                    _known.Admitted(device, session.Id, name);
+                    Core.Log.Msg($"remembered device '{name}' paired from {remote}.");
+                    Http.Bytes(reply, 200, "application/json",
+                               Encoding.UTF8.GetBytes("{\"ok\":true}"),
+                               "Set-Cookie: rsid=" + session.Id + "; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200");
+                    return;
+                }
+
+                case KnownDevices.Verdict.NewRequest:
+                    Core.Log.Msg($"device '{name}' from {remote} asks to connect. Waiting for the player in Connect.");
+                    _mainThread.Enqueue(() =>
+                    {
+                        if (DeviceRequested == null) Core.Log.Warning("a device request arrived with nothing to show it.");
+                        else DeviceRequested(request);
+                    });
+                    Http.Json(reply, 202, "{\"ok\":false,\"wait\":true}");
+                    return;
+
+                case KnownDevices.Verdict.Waiting:
+                    Http.Json(reply, 202, "{\"ok\":false,\"wait\":true}");
+                    return;
+
+                case KnownDevices.Verdict.Denied:
+                    Core.Log.Msg($"device '{name}' from {remote} told it was denied.");
+                    Http.Text(reply, 403, "Denied in the game.");
+                    return;
+
+                case KnownDevices.Verdict.Expired:
+                    Core.Log.Msg($"device '{name}' from {remote} refused: its request expired unanswered.");
+                    Http.Text(reply, 403, "Request expired.");
+                    return;
+
+                case KnownDevices.Verdict.Forgotten:
+                    Core.Log.Msg($"device '{name}' from {remote} refused: forgotten in the game after it was allowed.");
+                    Http.Text(reply, 403, "Forgotten in the game.");
+                    return;
+
+                case KnownDevices.Verdict.Busy:
+                    Core.Log.Warning(request != null
+                        ? $"device '{name}' from {remote} refused: '{request.Name}' from the same address is still waiting."
+                        : $"device '{name}' from {remote} refused: 3 requests are already waiting.");
+                    Http.Text(reply, 429, "Another request is waiting. Try again later.");
+                    return;
+
+                case KnownDevices.Verdict.Throttled:
+                    Core.Log.Warning($"device '{name}' from {remote} refused: denied 3 times in 5 minutes.");
+                    Http.Text(reply, 429, "Too many requests. Try again later.");
+                    return;
+
+                default:
+                    Core.Log.Error($"device pairing from {remote}: unhandled verdict {verdict}.");
+                    Http.Text(reply, 500, "server error");
+                    return;
+            }
+        }
+
+        /// <summary>
         /// What to tell the phone. Four different problems used to arrive as one sentence about the code, so a
         /// player whose real problem was anything else kept showing new codes that were never going to work.
         /// </summary>
@@ -381,8 +511,7 @@ namespace Reflash.Companion
             Sessions.Refusal.Expired =>
                 "Code expired. Get a new one in the game.",
             Sessions.Refusal.TooManyDevices =>
-                "4 devices connected. Disconnect one in the game.",
-            _ => "Wrong code. Scan the one on screen.",
+                "4 devices connected. Disconnect one in the game.",            _ => "Wrong code. Scan the one on screen.",
         };
 
         /// <summary>
