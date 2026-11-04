@@ -2,13 +2,15 @@
 
 > 🛟 **Need help or found a bug?** Get support at [support.doodesch.de/reflash](https://support.doodesch.de/reflash).
 
+**Download:** [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2879) · [Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Reflash/) · [GitHub Releases](https://github.com/DooDesch-Mods/ScheduleOne-Reflash/releases)
+
 📖 **Documentation:** [docs.doodesch.de/mods/reflash/](https://docs.doodesch.de/mods/reflash/)
 
 > The seven apps on the in game phone, rebuilt as web pages and served to the phone in your pocket. Open
 > Connect, scan the code, and messages, the map, deliveries, products, dealers, contacts and the journal are
 > on a second screen - same save, same moment, while the game keeps the whole monitor.
 >
-> Built on [Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload), which is a hard requirement.
+> Built on [Sideload](https://www.nexusmods.com/schedule1/mods/2360), which is a hard requirement.
 
 ![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![Game](https://img.shields.io/badge/game-Schedule%20I-purple)
@@ -19,7 +21,7 @@
 
 [![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
 
-**[Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload)** · **[Support](https://support.doodesch.de/reflash)**
+**[Sideload](https://www.nexusmods.com/schedule1/mods/2360)** · **[Support](https://support.doodesch.de/reflash)**
 
 ![Reflash: Connect asking to allow a phone, and the Android app live](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
 
@@ -80,14 +82,21 @@ and the same switch puts the originals back. It is also `ReplaceVanillaApps` in 
 |-----------|------------------|
 | Schedule I | IL2CPP (current Steam public build) |
 | MelonLoader | `0.7.3+` |
-| Sideload | `1.33.6+` ([Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)) |
+| Sideload | `1.33.6+` ([Nexus Mods](https://www.nexusmods.com/schedule1/mods/2360)) |
 | A phone or tablet | any current browser, or the Android app, on any network |
 
 ## Installation
 
-### Recommended: a Thunderstore mod manager
+### Recommended: Nexus Mods
 
-Install **Reflash** with r2modman or the Thunderstore app. Sideload comes with it as a dependency.
+1. Install [MelonLoader](https://melonwiki.xyz/) `0.7.3+` and run the game once.
+2. Download Reflash from [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2879) and install it with Vortex,
+   or put **`Reflash.dll`** into your Schedule I `Mods/` folder.
+3. Get [Sideload](https://www.nexusmods.com/schedule1/mods/2360) from its Nexus page the same way.
+
+### Thunderstore mod manager
+
+Install **Reflash** from the [Thunderstore page](https://thunderstore.io/c/schedule-i/p/DooDesch/Reflash/) with r2modman or the Thunderstore app. Sideload comes with it as a dependency.
 
 ### Manual
 
@@ -221,7 +230,7 @@ in the log.
 ## Credits
 
 - **DooDesch** - mod author.
-- **[Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload)** - the renderer this is written against.
+- **[Sideload](https://www.nexusmods.com/schedule1/mods/2360)** - the renderer this is written against.
 - **[QrLite](https://github.com/DooDesch/QrLite)** (MIT) - the QR encoder, vendored as one file.
 - **TVGS** - Schedule I.
 
