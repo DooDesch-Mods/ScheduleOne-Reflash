@@ -4,6 +4,8 @@
 
 **Download:** [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2879) · [Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Reflash/) · [GitHub Releases](https://github.com/DooDesch-Mods/ScheduleOne-Reflash/releases)
 
+[![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de)
+
 📖 **Documentation:** [docs.doodesch.de/mods/reflash/](https://docs.doodesch.de/mods/reflash/)
 
 > The seven apps on the in game phone, rebuilt as web pages and served to the phone in your pocket. Open
@@ -226,6 +228,12 @@ in the log.
   vanilla app keeps working and the log says which.
 - The bundles can be overridden per app: a folder `Mods/reflash-map/` with an `app.css` in it wins over the
   one compiled in, on both screens at once. That is Sideload's mechanism, not a special case here.
+
+## Community
+
+[![DooDesch Mods on Discord](https://mods.doodesch.de/img/card.svg)](https://mods.doodesch.de)
+
+Join the DooDesch Mods Discord: update pings, polls on what comes next, and playtests of new mods.
 
 ## Credits
 

@@ -2,6 +2,8 @@
 
 > 🛟 **Need help or found a bug?** Get support at [support.doodesch.de/reflash](https://support.doodesch.de/reflash).
 
+[![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de)
+
 The seven apps on the in game phone, rebuilt as web pages and served to the phone in your pocket. Open
 Connect, scan the code, and messages, the map, deliveries, products, dealers, contacts and the journal are on
 a second screen - same save, same moment, while the game keeps the whole monitor.
@@ -79,3 +81,9 @@ same switch puts the originals back.
 | `Relay` | `true` | Whether a phone on another network can connect through `relay.doodesch.de`. |
 
 MIT licensed. Built on [Sideload](https://github.com/DooDesch-Mods/ScheduleOne-Sideload).
+
+## Community
+
+[![DooDesch Mods on Discord](https://mods.doodesch.de/img/card.svg)](https://mods.doodesch.de)
+
+Join the DooDesch Mods Discord: update pings, polls on what comes next, and playtests of new mods.
