@@ -2,8 +2,6 @@
 
 > 🛟 **Need help or found a bug?** Get support at [support.doodesch.de/reflash](https://support.doodesch.de/reflash).
 
-[![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de)
-
 The seven apps on the in game phone, rebuilt as web pages and served to the phone in your pocket. Open
 Connect, scan the code, and messages, the map, deliveries, products, dealers, contacts and the journal are on
 a second screen - same save, same moment, while the game keeps the whole monitor.
@@ -14,7 +12,7 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 
 [![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
 
-[![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
+[![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de) [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
 ## How to use it
 

@@ -4,8 +4,6 @@
 
 **Download:** [Nexus Mods](https://www.nexusmods.com/schedule1/mods/2879) · [Thunderstore](https://thunderstore.io/c/schedule-i/p/DooDesch/Reflash/) · [GitHub Releases](https://github.com/DooDesch-Mods/ScheduleOne-Reflash/releases)
 
-[![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de)
-
 📖 **Documentation:** [docs.doodesch.de/mods/reflash/](https://docs.doodesch.de/mods/reflash/)
 
 > The seven apps on the in game phone, rebuilt as web pages and served to the phone in your pocket. Open
@@ -19,7 +17,7 @@
 ![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3+-green)
 ![Sideload](https://img.shields.io/badge/Sideload-1.33.6+-orange)
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
-[![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
+[![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de) [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
 [![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
 
