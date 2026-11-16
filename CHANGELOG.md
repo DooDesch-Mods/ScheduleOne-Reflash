@@ -3,6 +3,17 @@
 All notable changes to Reflash are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-11-16
+
+### Fixed
+
+- r2modman and Gale install Sideload with Reflash again. The Thunderstore package asked for Sideload 1.1.0,
+  which the mod managers could no longer find.
+
+### Changed
+
+- Needs Sideload 1.36.5 or newer (was 1.33.6).
+
 ## [1.1.0] - 2026-10-29
 
 ### Added

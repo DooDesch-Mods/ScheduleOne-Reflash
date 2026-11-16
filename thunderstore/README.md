@@ -16,6 +16,7 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 
 [![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
 
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 [![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de) [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
 ## How to use it
@@ -62,7 +63,7 @@ same switch puts the originals back.
 
 ## Before you install
 
-- Needs **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** `1.33.6` or newer. A mod
+- Needs **[Sideload](https://thunderstore.io/c/schedule-i/p/DooDesch/Sideload/)** `1.36.5` or newer. A mod
   manager installs it with this one.
 - Your phone can be on any network. On mobile data or another Wi-Fi it connects through
   `relay.doodesch.de`, end to end encrypted. **Same Wi-Fi only** in Connect turns that off.
@@ -89,3 +90,7 @@ MIT licensed. Built on [Sideload](https://github.com/DooDesch-Mods/ScheduleOne-S
 [![DooDesch Mods on Discord](https://mods.doodesch.de/img/card.svg)](https://mods.doodesch.de)
 
 Join the DooDesch Mods Discord: update pings, polls on what comes next, and playtests of new mods.
+
+This mod is written with help from generative AI tools (Anthropic Claude, OpenAI Codex).
+
+If you have fun with it, a like on the [Thunderstore page](https://thunderstore.io/c/schedule-i/p/DooDesch/Reflash/) really helps other people find it (thumbs up next to Download, you need to be logged in) - ty either way, and lemme know if anything breaks or you've got ideas
