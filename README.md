@@ -12,10 +12,10 @@
 >
 > Built on [Sideload](https://www.nexusmods.com/schedule1/mods/2360), which is a hard requirement.
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 ![Game](https://img.shields.io/badge/game-Schedule%20I-purple)
 ![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3+-green)
-![Sideload](https://img.shields.io/badge/Sideload-1.33.6+-orange)
+![Sideload](https://img.shields.io/badge/Sideload-1.36.5+-orange)
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
 [![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de) [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
@@ -82,7 +82,7 @@ and the same switch puts the originals back. It is also `ReplaceVanillaApps` in 
 |-----------|------------------|
 | Schedule I | IL2CPP (current Steam public build) |
 | MelonLoader | `0.7.3+` |
-| Sideload | `1.33.6+` ([Nexus Mods](https://www.nexusmods.com/schedule1/mods/2360)) |
+| Sideload | `1.36.5+` ([Nexus Mods](https://www.nexusmods.com/schedule1/mods/2360)) |
 | A phone or tablet | any current browser, or the Android app, on any network |
 
 ## Installation
@@ -243,3 +243,5 @@ Join the DooDesch Mods Discord: update pings, polls on what comes next, and play
 ## License
 
 MIT. See [LICENSE.md](LICENSE.md).
+
+This mod is written with help from generative AI tools (Anthropic Claude, OpenAI Codex).
