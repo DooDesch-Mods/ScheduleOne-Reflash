@@ -14,7 +14,7 @@ a second screen - same save, same moment, while the game keeps the whole monitor
 
 ![Reflash: Connect asking to allow a phone, and the Android app live](https://raw.githubusercontent.com/DooDesch-Mods/ScheduleOne-Reflash/main/docs/img/header.jpg)
 
-[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
+[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_8oICBheT-2JY3XTi2rL48e70/badge.svg)](https://mlvscan.com/attestations/att_8oICBheT-2JY3XTi2rL48e70)
 
 ![Version](https://img.shields.io/badge/version-1.1.1-blue)
 [![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de) [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)

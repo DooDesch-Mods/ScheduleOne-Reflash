@@ -19,7 +19,7 @@
 ![Multiplayer](https://img.shields.io/badge/multiplayer-co--op-blue)
 [![Discord](https://mods.doodesch.de/img/badge.svg)](https://mods.doodesch.de) [![Polyfill](https://polyfill.doomods.com/badge/reflash.svg)](https://polyfill.doomods.com/mod/reflash)
 
-[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx/badge.svg)](https://mlvscan.com/attestations/att_6dftXG6pyRGtVpJcvNlAaDkx)
+[![MLVScan Reflash.dll](https://mlvscan.com/attestations/att_8oICBheT-2JY3XTi2rL48e70/badge.svg)](https://mlvscan.com/attestations/att_8oICBheT-2JY3XTi2rL48e70)
 
 **[Sideload](https://www.nexusmods.com/schedule1/mods/2360)** · **[Support](https://support.doodesch.de/reflash)**
 
